@@ -1,21 +1,21 @@
 # My Weekly List Issue Index
 
-This index tracks the intended MVP issue sequence. Issue numbers should be filled in after GitHub issues are created.
+This index tracks the intended MVP issue sequence.
 
 ## MVP sequence
 
 | Order | Issue | Title | Purpose | Status |
 | --- | --- | --- | --- | --- |
-| 1 | TBD | Initialize responsive Next.js project foundation | Create the app foundation, tooling, scripts, and responsive shell. | Planned |
-| 2 | TBD | Set up Supabase auth and allowed-user access control | Add Google auth, environment variables, and private single-user access control. | Planned |
-| 3 | TBD | Create Supabase schema, RLS, and seed data | Add migrations, core tables, RLS, seed categories/activities, and schema docs. | Planned |
-| 4 | TBD | Implement week lifecycle and date rules | Add Draft/Active/Needs Review/Closed logic and Monday/Sunday/late-start behavior. | Planned |
-| 5 | TBD | Build This Week grid | Implement the paper-like weekly grid and cell status behavior. | Planned |
-| 6 | TBD | Build Today view | Implement fast mobile daily execution: done, move, unplanned done, cleanup. | Planned |
-| 7 | TBD | Build draft planning and copy-week flow | Copy prior weeks, edit Draft weeks, and support late current-week creation. | Planned |
-| 8 | TBD | Build Review and Close Week | Add weekly review, target vs done summaries, category summaries, and locking. | Planned |
-| 9 | TBD | Mobile browser polish and acceptance pass | Tune iPhone Chrome UX, accessibility, empty states, and visual polish. | Planned |
-| 10 | TBD | Deployment and production readiness | Verify Vercel/Supabase setup, env docs, and production checks. | Planned |
+| 1 | #1 | Initialize responsive Next.js project foundation | Create the app foundation, tooling, scripts, and responsive shell. | Open |
+| 2 | #2 | Set up Supabase auth and allowed-user access control | Add Google auth, environment variables, and private single-user access control. | Open |
+| 3 | #3 | Create Supabase schema, RLS, seed data, and schema docs | Add migrations, core tables, RLS, seed categories/activities, and schema docs. | Open |
+| 4 | #4 | Implement week lifecycle and date rules | Add Draft/Active/Needs Review/Closed logic and Monday/Sunday/late-start behavior. | Open |
+| 5 | #5 | Build This Week grid and cell status behavior | Implement the paper-like weekly grid and cell status behavior. | Open |
+| 6 | #6 | Build Today view for daily execution | Implement fast mobile daily execution: done, move, unplanned done, cleanup. | Open |
+| 7 | #7 | Build draft planning and copy-week flow | Copy prior weeks, edit Draft weeks, and support late current-week creation. | Open |
+| 8 | #8 | Build Review and Close Week flow | Add weekly review, target vs done summaries, category summaries, and locking. | Open |
+| 9 | #9 | Mobile browser polish and acceptance pass | Tune iPhone Chrome UX, accessibility, empty states, and visual polish. | Open |
+| 10 | #10 | Deployment and production readiness | Verify Vercel/Supabase setup, env docs, and production checks. | Open |
 
 ## Label suggestions
 
