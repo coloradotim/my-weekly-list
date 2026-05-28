@@ -64,6 +64,29 @@ npm run test:run
 npm run build
 ```
 
+## Supabase migrations
+
+Database migrations live in `supabase/migrations`.
+
+After linking a Supabase project, apply migrations with:
+
+```bash
+supabase link --project-ref <project-ref>
+supabase db push
+```
+
+After the allowed user signs in for the first time, the initial reusable list can
+be seeded for that authenticated user with:
+
+```sql
+select public.seed_initial_weekly_list();
+```
+
+Local Supabase database validation requires a running local Supabase stack. The
+Supabase CLI uses Docker for that local stack.
+
+The schema contract is documented in [docs/supabase-contract.md](docs/supabase-contract.md).
+
 ## Development notes
 
 - Do not commit secrets or local environment files.
