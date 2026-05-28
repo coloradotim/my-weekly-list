@@ -210,6 +210,7 @@ The app is private and single-user.
 - Use Supabase Auth with Google login if feasible.
 - Lock access to `cubuff98@gmail.com`.
 - Use `ALLOWED_USER_EMAIL` as an environment variable.
+- Use `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for browser-safe Supabase client configuration.
 - Reject all other authenticated users.
 - Do not commit secrets.
 - Do not use service-role keys in browser code.

@@ -10,5 +10,5 @@ export function createSupabaseBrowserClient() {
     throw new Error(`Missing Supabase env vars: ${config.missing.join(", ")}`);
   }
 
-  return createBrowserClient(config.url, config.anonKey);
+  return createBrowserClient(config.url, config.publishableKey);
 }
