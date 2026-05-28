@@ -3,3 +3,53 @@
 A personal weekly planning app for creating a weekly list, planning which days to do each item, marking items done or skipped, moving items later in the week, and reviewing follow-through at the end of the week.
 
 This is a private/single-user app built for personal use.
+
+## Current foundation
+
+This repository now contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, and placeholder routes for the MVP screens:
+
+- Today
+- This Week
+- Review
+- Plan
+
+The current screens are intentionally placeholders. Supabase, auth, database schema, real week logic, Today behavior, and Review behavior are planned for later issues.
+
+## Local setup
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
+
+## Checks
+
+Run the standard repo check command:
+
+```bash
+./scripts/check.sh
+```
+
+The check script runs:
+
+```bash
+npm run lint
+npm run format
+npm run test:run
+npm run build
+```
+
+## Development notes
+
+- Do not commit secrets or local environment files.
+- This is a responsive web app, with iPhone Chrome as the primary daily-use target.
+- Native iOS, React Native, push notifications, offline-first behavior, streaks, badges, gamification, and AI coaching are out of scope for the MVP foundation.
