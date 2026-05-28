@@ -12,6 +12,9 @@ build/
 # testing
 coverage/
 
+# supabase
+supabase/.temp/
+
 # env
 .env
 .env*.local

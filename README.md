@@ -68,11 +68,34 @@ npm run build
 
 Database migrations live in `supabase/migrations`.
 
-After linking a Supabase project, apply migrations with:
+Supabase schema changes should be applied from repo migrations, not by manually
+pasting SQL into the Supabase dashboard. The full operations workflow is in
+[docs/supabase-operations.md](docs/supabase-operations.md).
+
+Check linked-project status with:
 
 ```bash
-supabase link --project-ref <project-ref>
-supabase db push
+SUPABASE_PROJECT_REF=<project-ref> \
+SUPABASE_DB_PASSWORD=<database-password> \
+scripts/supabase-status.sh
+```
+
+Preview pending migrations with:
+
+```bash
+SUPABASE_PROJECT_REF=<project-ref> \
+SUPABASE_DB_PASSWORD=<database-password> \
+SUPABASE_MIGRATION_MODE=dry-run \
+scripts/supabase-migrate.sh
+```
+
+Apply pending migrations with:
+
+```bash
+SUPABASE_PROJECT_REF=<project-ref> \
+SUPABASE_DB_PASSWORD=<database-password> \
+SUPABASE_MIGRATION_MODE=apply \
+scripts/supabase-migrate.sh
 ```
 
 After the allowed user signs in for the first time, the initial reusable list can
