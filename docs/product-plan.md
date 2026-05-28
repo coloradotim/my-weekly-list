@@ -28,6 +28,34 @@ The app should preserve that lightweight rhythm without turning it into a generi
 8. Prefer clear, durable data modeling over clever UI shortcuts.
 9. Build with enough testing and deployment hygiene that Codex can safely extend the app.
 
+## Platform target
+
+MVP is a responsive web app, not a native iOS app.
+
+Primary use cases:
+
+- iPhone browser, especially Chrome on iPhone
+- quick daily use from a mobile browser
+- desktop browser for easier planning and review
+
+MVP should not require:
+
+- App Store distribution
+- native iOS development
+- React Native
+- push notifications
+- offline-first behavior
+
+The app may later become a Progressive Web App (PWA) so it can be added to the iPhone home screen, but the first release should focus on a reliable mobile browser experience.
+
+Design implications:
+
+- Today view is the primary mobile screen.
+- Touch targets should be large and easy to hit.
+- Forms should be short and forgiving.
+- The weekly grid must be usable on mobile, either through horizontal scrolling or a mobile-friendly day/activity layout.
+- Desktop should make planning and review easier, but the app must not depend on desktop use.
+
 ## Look and feel
 
 The UI should feel warm, calm, welcoming, and practical. The user should not feel sad, scolded, or annoyed when opening the app.
@@ -471,6 +499,11 @@ Do not build these in the first MVP unless they fall out naturally:
 - multiple completions per day
 - adding brand-new activities to an already-active week
 - editing closed weeks
+- native iOS app
+- App Store distribution
+- React Native app
+- push notifications
+- offline-first behavior
 
 ## Testing expectations
 
@@ -479,6 +512,7 @@ Core logic should be covered with tests from the start.
 Important test areas:
 
 - Monday-Sunday week calculations
+- responsive behavior for iPhone browser viewport sizes
 - Sunday review/planning prompt behavior
 - Monday transition behavior
 - late current-week creation behavior
@@ -497,7 +531,7 @@ Important test areas:
 
 ## First implementation sequence
 
-1. Project foundation: Next.js, TypeScript, linting, test setup, basic app shell.
+1. Responsive web foundation: Next.js, TypeScript, linting, test setup, basic app shell, and mobile browser layout baseline.
 2. Supabase setup: client, environment variables, auth guard, allowed-user check.
 3. Database schema: weeks, categories, activities, week activities, day cells, seed data.
 4. Week lifecycle logic: Draft, Active, Needs Review, Closed; Monday-Sunday dates; Sunday/Monday/late-start behavior.
