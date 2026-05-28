@@ -2,7 +2,7 @@ export type SupabaseConfig =
   | {
       status: "configured";
       url: string;
-      anonKey: string;
+      publishableKey: string;
     }
   | {
       status: "missing";
@@ -11,24 +11,24 @@ export type SupabaseConfig =
 
 export function getSupabaseConfig(): SupabaseConfig {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
   const missing: string[] = [];
 
   if (!url) {
     missing.push("NEXT_PUBLIC_SUPABASE_URL");
   }
 
-  if (!anonKey) {
-    missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+  if (!publishableKey) {
+    missing.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
   }
 
-  if (!url || !anonKey) {
+  if (!url || !publishableKey) {
     return { status: "missing", missing };
   }
 
   return {
     status: "configured",
     url: url,
-    anonKey: anonKey,
+    publishableKey: publishableKey,
   };
 }

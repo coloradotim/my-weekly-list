@@ -83,7 +83,7 @@ function AuthSetupMissing() {
           Supabase auth is not configured yet.
         </h1>
         <p className="mt-3 leading-7 text-stone-700">
-          Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
+          Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
           `ALLOWED_USER_EMAIL` to your local environment, then restart the dev server.
         </p>
       </section>

@@ -33,7 +33,7 @@ Fill in:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your Supabase project URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your Supabase anon key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your Supabase publishable key
 ALLOWED_USER_EMAIL=cubuff98@gmail.com
 ```
 
@@ -67,7 +67,7 @@ npm run build
 ## Development notes
 
 - Do not commit secrets or local environment files.
-- Browser code must use the Supabase anon key only. Do not use service-role keys in browser code.
+- Browser code must use the Supabase publishable key only. Do not use service-role keys in browser code.
 - The app is private and single-user. `ALLOWED_USER_EMAIL` controls the one Google account allowed to open protected app screens.
 - Configure Supabase Auth with Google as an enabled provider and add the local callback URL, such as `http://localhost:3000/auth/callback`, to the allowed redirect URLs for local development.
 - This is a responsive web app, with iPhone Chrome as the primary daily-use target.

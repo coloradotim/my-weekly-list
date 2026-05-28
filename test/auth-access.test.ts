@@ -34,15 +34,23 @@ describe("allowed-user access control", () => {
 });
 
 describe("Supabase env configuration", () => {
-  it("uses the approved anon key variable name", () => {
+  it("uses the approved publishable key variable name", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
-    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "publishable-key");
 
     expect(getSupabaseConfig()).toEqual({
       status: "configured",
       url: "https://example.supabase.co",
-      anonKey: "anon-key",
+      publishableKey: "publishable-key",
+    });
+  });
+
+  it("reports the publishable key as required", () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
+
+    expect(getSupabaseConfig()).toEqual({
+      status: "missing",
+      missing: ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"],
     });
   });
 });
