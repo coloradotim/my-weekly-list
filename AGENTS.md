@@ -215,6 +215,7 @@ The app is private and single-user.
 - Do not commit secrets.
 - Do not use service-role keys in browser code.
 - Supabase schema and RLS changes must be captured in migrations and docs, not only in the dashboard.
+- Supabase migrations should be applied through the documented CLI or manual GitHub Actions workflow in `docs/supabase-operations.md`; dashboard SQL edits are exceptional and must be followed by repo migrations.
 
 ## Development workflow
 

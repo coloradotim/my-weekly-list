@@ -1,0 +1,48 @@
+name: Supabase migrations
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run a dry run or apply pending migrations"
+        required: true
+        default: "dry-run"
+        type: choice
+        options:
+          - dry-run
+          - apply
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Supabase migration ${{ inputs.mode }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_MIGRATION_MODE: ${{ inputs.mode }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Check required secrets
+        run: |
+          test -n "${SUPABASE_ACCESS_TOKEN}" || (echo "Missing SUPABASE_ACCESS_TOKEN" >&2; exit 1)
+          test -n "${SUPABASE_PROJECT_REF}" || (echo "Missing SUPABASE_PROJECT_REF" >&2; exit 1)
+          test -n "${SUPABASE_DB_PASSWORD}" || (echo "Missing SUPABASE_DB_PASSWORD" >&2; exit 1)
+
+      - name: Run Supabase migration workflow
+        run: scripts/supabase-migrate.sh
