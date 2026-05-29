@@ -8,9 +8,17 @@ const migrationPath = join(
   repoRoot,
   "supabase/migrations/20260528223000_initial_schema.sql",
 );
+const weekActivityUniquenessMigrationPath = join(
+  repoRoot,
+  "supabase/migrations/20260529040500_week_activity_snapshot_uniqueness.sql",
+);
 const contractPath = join(repoRoot, "docs/supabase-contract.md");
 
 const migration = readFileSync(migrationPath, "utf8");
+const weekActivityUniquenessMigration = readFileSync(
+  weekActivityUniquenessMigrationPath,
+  "utf8",
+);
 const contract = readFileSync(contractPath, "utf8");
 
 describe("Supabase schema migration", () => {
@@ -40,6 +48,9 @@ describe("Supabase schema migration", () => {
   it("protects weekly integrity and historical snapshots", () => {
     expect(migration).toContain("weeks_start_on_monday");
     expect(migration).toContain("activity_day_cells_unique_day");
+    expect(weekActivityUniquenessMigration).toContain(
+      "week_activities_week_template_unique",
+    );
     expect(migration).toContain("category_name text not null");
     expect(migration).toContain("activity_name text not null");
     expect(migration).toContain("target_count integer not null");

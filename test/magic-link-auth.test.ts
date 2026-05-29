@@ -83,6 +83,9 @@ describe("owner magic-link auth", () => {
 
   it("keeps post-login routing on safe in-app paths", () => {
     expect(getSafeAuthNextPath("/today")).toBe("/today");
+    expect(getSafeAuthNextPath("/week")).toBe("/week");
+    expect(getSafeAuthNextPath("/")).toBe("/");
+    expect(getSafeAuthNextPath("/my-weekly-list")).toBe("/setup");
     expect(getSafeAuthNextPath("https://example.com")).toBe("/setup");
     expect(getMagicLinkRedirectUrl("http://localhost:3000", "/week")).toBe(
       "http://localhost:3000/auth/callback?next=%2Fweek",

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
 import { checkAllowedUser } from "@/lib/auth/access";
+import { getSafeAuthNextPath } from "@/lib/auth/magic-link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type LoginPageProps = {
@@ -20,7 +21,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     } = await supabase.auth.getUser();
 
     if (user && checkAllowedUser(user.email).status === "allowed") {
-      redirect(next?.startsWith("/") ? next : "/");
+      redirect(getSafeAuthNextPath(next));
     }
   }
 

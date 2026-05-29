@@ -1,4 +1,5 @@
 import { getAllowedUserEmail } from "@/lib/auth/access";
+import { appRoutes } from "@/lib/routes";
 
 export type MagicLinkAuthClient = {
   auth: {
@@ -17,8 +18,14 @@ export type MagicLinkResult =
   | { status: "missing-allowed-email" }
   | { status: "error" };
 
+const allowedAuthNextPaths = new Set([
+  "/",
+  "/setup",
+  ...appRoutes.map((route) => route.href),
+]);
+
 export function getSafeAuthNextPath(nextPath: string | null | undefined) {
-  return nextPath?.startsWith("/") ? nextPath : "/setup";
+  return nextPath && allowedAuthNextPaths.has(nextPath) ? nextPath : "/setup";
 }
 
 export function getMagicLinkRedirectUrl(origin: string, nextPath: string) {

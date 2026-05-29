@@ -3,6 +3,7 @@ import {
   addDays,
   compareDateOnly,
   daysBetween,
+  getDateOnlyForTimeZone,
   getWeekEndDate,
   getWeekRange,
   getWeekRelation,
@@ -56,6 +57,12 @@ describe("week date helpers", () => {
     expect(toDateOnly(parseDateOnly("2026-03-08"))).toBe("2026-03-08");
     expect(addDays("2026-03-08", 1)).toBe("2026-03-09");
     expect(daysBetween("2026-03-08", "2026-03-09")).toBe(1);
+  });
+
+  it("derives today in the app timezone instead of the server timezone", () => {
+    expect(
+      getDateOnlyForTimeZone(new Date("2026-05-29T03:30:00.000Z"), "America/Denver"),
+    ).toBe("2026-05-28");
   });
 
   it("compares valid date-only values and rejects malformed dates", () => {

@@ -5,6 +5,8 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 export type WeekRelation = "past" | "current" | "future";
 
+export const DEFAULT_APP_TIME_ZONE = "America/Denver";
+
 export function parseDateOnly(date: DateOnly) {
   if (!ISO_DATE_PATTERN.test(date)) {
     throw new Error(`Expected date-only string in YYYY-MM-DD format: ${date}`);
@@ -94,4 +96,19 @@ export function getWeekRelation(weekStartDate: DateOnly, today: DateOnly): WeekR
 
 export function maxDateOnly(left: DateOnly, right: DateOnly) {
   return compareDateOnly(left, right) >= 0 ? left : right;
+}
+
+export function getDateOnlyForTimeZone(
+  date = new Date(),
+  timeZone = DEFAULT_APP_TIME_ZONE,
+) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const partMap = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return `${partMap.year}-${partMap.month}-${partMap.day}`;
 }

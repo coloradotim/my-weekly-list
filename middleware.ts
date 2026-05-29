@@ -2,11 +2,20 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { checkAllowedUser } from "@/lib/auth/access";
 import { getSupabaseConfig } from "@/lib/supabase/env";
+import { isDevWeekPreviewEnabled } from "@/lib/week/preview";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
+
+  if (
+    request.nextUrl.pathname.startsWith("/dev/week-preview") &&
+    isDevWeekPreviewEnabled()
+  ) {
+    return response;
+  }
+
   const config = getSupabaseConfig();
 
   if (config.status === "missing") {

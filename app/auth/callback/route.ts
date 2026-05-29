@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { checkAllowedUser } from "@/lib/auth/access";
+import { getSafeAuthNextPath } from "@/lib/auth/magic-link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next");
-  const safeNext = next?.startsWith("/") ? next : "/setup";
+  const safeNext = getSafeAuthNextPath(next);
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
