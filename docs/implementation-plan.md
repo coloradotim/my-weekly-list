@@ -82,6 +82,7 @@ View-only historical week. No corrections or edits.
 ## Date behavior
 
 - Weeks run Monday through Sunday.
+- App-side lifecycle helpers use `YYYY-MM-DD` date-only strings and UTC date math internally so a personal planning day does not shift because of browser or server timezone conversion.
 - Sunday should prompt review and next-week planning while still allowing Sunday execution.
 - Monday should start a planned Draft week as Active if one exists.
 - If the user starts the current week late, do not create missed cells for days before the user planned the week.
