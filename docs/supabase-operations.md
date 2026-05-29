@@ -113,9 +113,26 @@ Run this as the authenticated allowed user after that user has signed in at
 least once. The function uses `auth.uid()`, so it creates rows for the current
 authenticated user and is safe to run more than once.
 
-Do not run the seed through browser code with a service-role key. A future setup
-flow may call it with the signed-in user's normal Supabase session, or it can be
-run manually in an authenticated SQL/RPC context for the allowed user.
+The normal setup path is the protected `/setup` page in the app. Sign in with
+the allowed Google account, open `/setup`, and use `Create my weekly list`. The
+app calls the RPC with the signed-in user's normal Supabase session, so RLS and
+`auth.uid()` stay in effect.
+
+Running the function from the Supabase SQL Editor without an authenticated app
+session fails with:
+
+```text
+Must be authenticated to seed My Weekly List defaults.
+```
+
+That failure is expected. Do not work around it by hardcoding a user id, pasting
+manual insert SQL, or putting a service-role key in browser code.
+
+Do not run the seed through browser code with a service-role key.
+
+If setup fails in the app, confirm the migration has been applied, sign in again
+as the allowed user, and retry `/setup`; the seed function is idempotent and will
+not duplicate the initial categories or activity templates.
 
 ## Codex Workflow Rules
 

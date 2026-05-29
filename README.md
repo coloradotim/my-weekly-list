@@ -98,12 +98,22 @@ SUPABASE_MIGRATION_MODE=apply \
 scripts/supabase-migrate.sh
 ```
 
-After the allowed user signs in for the first time, the initial reusable list can
-be seeded for that authenticated user with:
+After the allowed user signs in for the first time, open the protected setup
+flow and create the starter list:
+
+```text
+/setup
+```
+
+The setup flow calls the authenticated, idempotent Supabase RPC:
 
 ```sql
 select public.seed_initial_weekly_list();
 ```
+
+Do not run this from the Supabase SQL Editor without an authenticated app
+session; it will fail by design because it uses `auth.uid()` to create
+user-owned rows. Do not use service-role keys in browser code.
 
 Local Supabase database validation requires a running local Supabase stack. The
 Supabase CLI uses Docker for that local stack.
