@@ -14,7 +14,7 @@ export default async function UnauthorizedPage({ searchParams }: UnauthorizedPag
           Private app
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-normal text-ink">
-          This Google account cannot open My Weekly List.
+          This email account cannot open My Weekly List.
         </h1>
         <p className="mt-3 leading-7 text-stone-700">
           {email
@@ -22,7 +22,7 @@ export default async function UnauthorizedPage({ searchParams }: UnauthorizedPag
             : "You are signed in, but this app is limited to the one configured account."}
         </p>
         <p className="mt-3 leading-7 text-stone-700">
-          Sign out and use the allowed Google account when you are ready.
+          Sign out and use the configured owner email when you are ready.
         </p>
         <form action="/auth/sign-out" method="post" className="mt-6">
           <button

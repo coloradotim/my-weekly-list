@@ -395,9 +395,11 @@ The app is private and single-user.
 
 Preferred approach:
 
-- Supabase Auth with Google login, if easy and free to implement.
+- Supabase Auth with email Magic Link login for the configured owner account.
 - Lock access to `cubuff98@gmail.com`.
 - Use an `ALLOWED_USER_EMAIL` environment variable so the allowed user is configured outside source code.
+- Do not expose an editable login email field; the app should send links only to `ALLOWED_USER_EMAIL`.
+- Disable new public signups in Supabase after the owner Auth user exists.
 - Reject all other authenticated users.
 - Use database row-level security policies appropriate for a single-user app.
 

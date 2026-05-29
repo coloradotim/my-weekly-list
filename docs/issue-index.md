@@ -7,7 +7,7 @@ This index tracks the intended MVP issue sequence.
 | Order | Issue | Title | Purpose | Status |
 | --- | --- | --- | --- | --- |
 | 1 | #1 | Initialize responsive Next.js project foundation | Create the app foundation, tooling, scripts, and responsive shell. | Open |
-| 2 | #2 | Set up Supabase auth and allowed-user access control | Add Google auth, environment variables, and private single-user access control. | Open |
+| 2 | #2 | Set up Supabase auth and allowed-user access control | Add auth, environment variables, and private single-user access control. | Open |
 | 3 | #3 | Create Supabase schema, RLS, seed data, and schema docs | Add migrations, core tables, RLS, seed categories/activities, and schema docs. | Open |
 | 4 | #4 | Implement week lifecycle and date rules | Add Draft/Active/Needs Review/Closed logic and Monday/Sunday/late-start behavior. | Open |
 | 5 | #5 | Build This Week grid and cell status behavior | Implement the paper-like weekly grid and cell status behavior. | Open |

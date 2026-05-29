@@ -124,8 +124,9 @@ Do not invent a new visual language without approval.
 ### Phase 1 — Auth and environment
 
 - Add Supabase client setup.
-- Add Google auth if feasible.
+- Add owner-only Supabase email Magic Link auth.
 - Add `ALLOWED_USER_EMAIL` environment variable.
+- Send magic links only to the configured owner email, with `shouldCreateUser: false`.
 - Reject users whose authenticated email does not match.
 - Document required environment variables.
 
@@ -227,7 +228,7 @@ Update docs when changing:
 
 MVP is done when Tim can:
 
-1. Log in with Google and only his email can access the app.
+1. Log in with a Supabase email Magic Link and only his email can access the app.
 2. See or create the current Monday-Sunday week.
 3. Copy the prior week into a new week.
 4. Plan days for activities.
