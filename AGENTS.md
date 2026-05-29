@@ -207,10 +207,12 @@ If a different stack is proposed, stop and ask before changing direction.
 
 The app is private and single-user.
 
-- Use Supabase Auth with Google login if feasible.
+- Use Supabase Auth email Magic Link login for the configured owner account.
 - Lock access to `cubuff98@gmail.com`.
 - Use `ALLOWED_USER_EMAIL` as an environment variable.
 - Use `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for browser-safe Supabase client configuration.
+- The login action must derive the recipient from `ALLOWED_USER_EMAIL`, not browser input.
+- Magic-link login must use `shouldCreateUser: false`; provision the owner user in Supabase first and keep public signup disabled for normal use.
 - Reject all other authenticated users.
 - Do not commit secrets.
 - Do not use service-role keys in browser code.

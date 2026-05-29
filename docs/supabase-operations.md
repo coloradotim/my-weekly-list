@@ -101,6 +101,36 @@ the linked project's migration history. If a migration is missing, run the
 workflow in `apply` mode or run `SUPABASE_MIGRATION_MODE=apply
 scripts/supabase-migrate.sh` locally.
 
+## Owner Auth Bootstrap
+
+My Weekly List uses Supabase email Magic Link auth for one existing owner user.
+The app never accepts a browser-submitted recipient email. It reads
+`ALLOWED_USER_EMAIL` on the server and calls `signInWithOtp` with
+`shouldCreateUser: false`.
+
+One-time Supabase dashboard setup:
+
+1. Open the Supabase project dashboard.
+2. Go to **Authentication > Sign In / Providers > Email**.
+3. Confirm the Email provider and Magic Link email auth are enabled.
+4. Go to **Authentication > Users**.
+5. Use **Add user > Create new user** to provision `cubuff98@gmail.com` as the
+   existing owner Auth user. Confirm the user has an email identity and can
+   receive Magic Link email.
+6. Return to **Authentication > Sign In / Providers > Email** and disable
+   **Allow new users to sign up** before normal app login/use. Supabase documents
+   this as the existing-users-only mode when signup is disabled.
+7. Go to **Authentication > URL Configuration**.
+8. Configure the production Site URL and add allowed redirect URLs for
+   production Vercel and local development:
+   - `https://<production-vercel-domain>/auth/callback`
+   - `http://localhost:3000/auth/callback`
+   - `http://127.0.0.1:3000/auth/callback`
+
+No Google Cloud OAuth setup is required. Do not add a Before User Created hook
+unless the existing-user-plus-signups-disabled approach proves blocked. Do not
+put service-role keys in browser code.
+
 ## Seed Function
 
 The initial reusable categories and activity templates are inserted by:
@@ -114,8 +144,8 @@ least once. The function uses `auth.uid()`, so it creates rows for the current
 authenticated user and is safe to run more than once.
 
 The normal setup path is the protected `/setup` page in the app. Sign in with
-the allowed Google account, open `/setup`, and use `Create my weekly list`. The
-app calls the RPC with the signed-in user's normal Supabase session, so RLS and
+the owner Magic Link, open `/setup`, and use `Create my weekly list`. The app
+calls the RPC with the signed-in user's normal Supabase session, so RLS and
 `auth.uid()` stay in effect.
 
 Running the function from the Supabase SQL Editor without an authenticated app
