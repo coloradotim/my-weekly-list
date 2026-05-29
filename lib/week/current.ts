@@ -269,6 +269,22 @@ export function getNextPlanningCellFacts({
   return current.planned ? null : { planned: true, done: false };
 }
 
+export function getDesiredPlanningCellFacts({
+  currentCell,
+  desiredPlanned,
+}: {
+  currentCell: Pick<PersistedDayCell, "planned" | "done"> | null;
+  desiredPlanned: boolean;
+}): { planned: boolean; done: boolean } | null {
+  const current = currentCell ?? { planned: false, done: false };
+
+  if (current.done) {
+    return current;
+  }
+
+  return desiredPlanned ? { planned: true, done: false } : null;
+}
+
 export function buildWeekCreationPlan({
   today,
   week,
@@ -581,14 +597,16 @@ async function repairCurrentWeekSnapshots({
   };
 }
 
-export async function toggleWeekCellPlan({
+export async function setWeekCellPlanned({
   supabase,
   weekActivityId,
   cellDate,
+  planned: desiredPlanned,
 }: {
   supabase: SupabaseClient;
   weekActivityId: string;
   cellDate: DateOnly;
+  planned: boolean;
 }) {
   parseDateOnly(cellDate);
 
@@ -641,8 +659,9 @@ export async function toggleWeekCellPlan({
     return { status: "blocked" as const, message: "That plan is view-only right now." };
   }
 
-  const nextFacts = getNextPlanningCellFacts({
+  const nextFacts = getDesiredPlanningCellFacts({
     currentCell: existing.cell,
+    desiredPlanned,
   });
 
   if (!nextFacts) {

@@ -1,10 +1,8 @@
 import Link from "next/link";
-import {
-  startThisWeekAction,
-  toggleWeekPlanningCellAction,
-} from "@/app/(app)/week/actions";
+import { startThisWeekAction } from "@/app/(app)/week/actions";
+import { OptimisticThisWeekGrid } from "@/components/optimistic-this-week-grid";
 import { ScreenShell } from "@/components/screen-shell";
-import { formatDateRange, Notice, ThisWeekGrid } from "@/components/this-week-grid";
+import { formatDateRange, Notice } from "@/components/this-week-grid";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadThisWeek } from "@/lib/week/current";
 
@@ -107,21 +105,7 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
           {formatWeekStatus(state.view.week.status)}
         </p>
       </header>
-      {notice ? <Notice tone={notice.tone} body={notice.body} /> : null}
-      <ThisWeekGrid
-        view={state.view}
-        notice={null}
-        showStatusPanel={false}
-        renderPlanningControl={({ activity, cell, children, className, ariaLabel }) => (
-          <form action={toggleWeekPlanningCellAction}>
-            <input type="hidden" name="weekActivityId" value={activity.id} />
-            <input type="hidden" name="cellDate" value={cell.date} />
-            <button type="submit" className={className} aria-label={ariaLabel}>
-              {children}
-            </button>
-          </form>
-        )}
-      />
+      <OptimisticThisWeekGrid initialView={state.view} initialNotice={notice} />
     </section>
   );
 }
