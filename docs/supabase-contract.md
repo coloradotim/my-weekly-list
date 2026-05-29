@@ -128,7 +128,9 @@ Current-week creation snapshots each active reusable template into
 `week_activities`. The repo migration
 `20260529040500_week_activity_snapshot_uniqueness.sql` adds a uniqueness guard
 on `(week_id, activity_template_id)` so retrying the first-week creation flow
-cannot duplicate the same template snapshot inside one week.
+cannot duplicate the same template snapshot inside one week. That migration
+also merges any retry-created duplicate snapshots before adding the index,
+preserving any planned/done day cells on the kept snapshot row.
 
 ### `activity_day_cells`
 

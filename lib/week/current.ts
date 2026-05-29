@@ -325,6 +325,27 @@ export function buildWeekActivitySnapshotRows({
   }));
 }
 
+export function buildMissingWeekActivitySnapshotRows({
+  week,
+  templates,
+  activities,
+}: {
+  week: WeekRecord;
+  templates: ActivityTemplateSnapshot[];
+  activities: PersistedWeekActivity[];
+}): WeekActivitySnapshotInsert[] {
+  const existingTemplateIds = new Set(
+    activities
+      .map((activity) => activity.activityTemplateId)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  return buildWeekActivitySnapshotRows({
+    weekId: week.id,
+    templates: templates.filter((template) => !existingTemplateIds.has(template.id)),
+  });
+}
+
 export function buildThisWeekViewModel({
   week,
   activities,
@@ -432,11 +453,22 @@ export async function loadThisWeek(
     };
   }
 
+  const repaired = await repairCurrentWeekSnapshots({
+    supabase,
+    week: week.week,
+    activities: week.activities,
+    templates: templates.templates,
+  });
+
+  if (repaired.status === "error") {
+    return { status: "error", message: repaired.message };
+  }
+
   return {
     status: "ready",
     view: buildThisWeekViewModel({
-      week: week.week,
-      activities: week.activities,
+      week: repaired.week,
+      activities: repaired.activities,
       today,
     }),
   };
@@ -485,14 +517,10 @@ export async function createCurrentWeekFromTemplates({
     };
   }
 
-  const existingTemplateIds = weekResult.activities
-    .map((activity) => activity.activityTemplateId)
-    .filter((id): id is string => Boolean(id));
-  const rows = buildWeekActivitySnapshotRows({
-    weekId: weekResult.week.id,
-    templates: templatesResult.templates.filter(
-      (template) => !existingTemplateIds.includes(template.id),
-    ),
+  const rows = buildMissingWeekActivitySnapshotRows({
+    week: weekResult.week,
+    templates: templatesResult.templates,
+    activities: weekResult.activities,
   });
 
   if (rows.length > 0) {
@@ -504,6 +532,53 @@ export async function createCurrentWeekFromTemplates({
   }
 
   return { status: "created" as const, weekId: weekResult.week.id };
+}
+
+async function repairCurrentWeekSnapshots({
+  supabase,
+  week,
+  activities,
+  templates,
+}: {
+  supabase: SupabaseClient;
+  week: WeekRecord;
+  activities: PersistedWeekActivity[];
+  templates: ActivityTemplateSnapshot[];
+}) {
+  const rows = buildMissingWeekActivitySnapshotRows({
+    week,
+    activities,
+    templates,
+  });
+
+  if (rows.length === 0) {
+    return { status: "success" as const, week, activities };
+  }
+
+  const { error } = await supabase.from("week_activities").insert(rows);
+
+  if (error && error.code !== "23505") {
+    return { status: "error" as const, message: error.message };
+  }
+
+  const refreshedWeek = await getWeekByStartDate(supabase, week.weekStartDate);
+
+  if (refreshedWeek.status === "error") {
+    return { status: "error" as const, message: refreshedWeek.message };
+  }
+
+  if (!refreshedWeek.week) {
+    return {
+      status: "error" as const,
+      message: "The current week could not be reloaded after repairing snapshots.",
+    };
+  }
+
+  return {
+    status: "success" as const,
+    week: refreshedWeek.week,
+    activities: refreshedWeek.activities,
+  };
 }
 
 export async function toggleWeekCellPlan({

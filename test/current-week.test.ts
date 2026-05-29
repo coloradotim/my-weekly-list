@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   buildThisWeekViewModel,
+  buildMissingWeekActivitySnapshotRows,
   buildWeekActivitySnapshotRows,
   buildWeekCreationPlan,
   canTogglePlanningCell,
@@ -133,6 +134,99 @@ describe("current-week creation planning", () => {
         },
       ],
     });
+  });
+
+  it("repairs an existing current week with zero snapshots from active templates", () => {
+    expect(
+      buildMissingWeekActivitySnapshotRows({
+        week: activeWeek,
+        templates,
+        activities: [],
+      }),
+    ).toEqual([
+      {
+        week_id: "week-1",
+        activity_template_id: "walk-template",
+        category_id: "physical-category",
+        category_name: "Physical Health",
+        category_sort_order: 10,
+        activity_name: "Walk",
+        target_count: 4,
+        sort_order: 10,
+      },
+      {
+        week_id: "week-1",
+        activity_template_id: "read-template",
+        category_id: "mental-category",
+        category_name: "Mental Health",
+        category_sort_order: 20,
+        activity_name: "Read",
+        target_count: 5,
+        sort_order: 70,
+      },
+    ]);
+  });
+
+  it("repairs only missing snapshots for partially populated weeks", () => {
+    expect(
+      buildMissingWeekActivitySnapshotRows({
+        week: activeWeek,
+        templates,
+        activities: [
+          activity({
+            id: "walk",
+            activityTemplateId: "walk-template",
+            activityName: "Walk",
+          }),
+        ],
+      }),
+    ).toEqual([
+      {
+        week_id: "week-1",
+        activity_template_id: "read-template",
+        category_id: "mental-category",
+        category_name: "Mental Health",
+        category_sort_order: 20,
+        activity_name: "Read",
+        target_count: 5,
+        sort_order: 70,
+      },
+    ]);
+  });
+
+  it("does not duplicate healthy populated week snapshots", () => {
+    expect(
+      buildMissingWeekActivitySnapshotRows({
+        week: activeWeek,
+        templates,
+        activities: [
+          activity({
+            id: "walk",
+            activityTemplateId: "walk-template",
+            activityName: "Walk",
+          }),
+          activity({
+            id: "read",
+            activityTemplateId: "read-template",
+            activityName: "Read",
+          }),
+        ],
+      }),
+    ).toEqual([]);
+  });
+
+  it("repairs snapshots without creating planned day cells or missed history", () => {
+    const rows = buildMissingWeekActivitySnapshotRows({
+      week: activeWeek,
+      templates: [templates[0]],
+      activities: [],
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).not.toHaveProperty("planned");
+    expect(rows[0]).not.toHaveProperty("done");
+    expect(rows[0]).not.toHaveProperty("cell_date");
+    expect(rows[0]).not.toHaveProperty("activity_day_cells");
   });
 });
 

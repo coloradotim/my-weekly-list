@@ -58,6 +58,23 @@ describe("Supabase schema migration", () => {
     expect(contract).toContain("historical activity name snapshot");
   });
 
+  it("deduplicates retry-created snapshots before adding the unique index", () => {
+    expect(weekActivityUniquenessMigration).toContain("week_activity_duplicate_map");
+    expect(weekActivityUniquenessMigration).toContain("first_value(id) over");
+    expect(weekActivityUniquenessMigration).toContain(
+      "keeper_cell.planned or duplicate_cell.planned",
+    );
+    expect(weekActivityUniquenessMigration).toContain(
+      "keeper_cell.done or duplicate_cell.done",
+    );
+    expect(weekActivityUniquenessMigration).toContain(
+      "delete from public.week_activities as duplicate_activity",
+    );
+    expect(weekActivityUniquenessMigration).toContain(
+      "week_activities_week_template_unique",
+    );
+  });
+
   it("includes an idempotent authenticated seed function", () => {
     expect(migration).toContain("public.seed_initial_weekly_list()");
     expect(migration).toContain("current_user_id uuid := auth.uid()");

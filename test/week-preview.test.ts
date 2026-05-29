@@ -115,4 +115,11 @@ describe("development week preview", () => {
     expect(gridComponent).toContain("snap-x snap-mandatory");
     expect(gridComponent).toContain("scroll-pl-[116px]");
   });
+
+  it("uses keyboard-only focus rings for editable planning cells", () => {
+    expect(gridComponent).toContain("focus:outline-none");
+    expect(gridComponent).toContain("focus-visible:ring-2");
+    expect(gridComponent).not.toContain(" focus:ring-2");
+    expect(gridComponent).not.toContain("focus:ring-clay");
+  });
 });
