@@ -187,9 +187,10 @@ Completion entry belongs to Today, and completion corrections belong to Review.
 
 - Show planned items for today.
 - Mark done quickly.
-- Move unfinished planned items to tomorrow or another day.
-- Mark an unplanned item done.
-- Show unresolved prior planned items when useful.
+- Move or remove an incomplete plan scheduled for today.
+- Mark an unplanned activity done for today.
+- Do not show unresolved prior planned days as a Today backlog; Review owns
+  backdated correction before week close.
 
 ### Phase 6 — Draft planning and copy week
 

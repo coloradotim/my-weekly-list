@@ -270,9 +270,9 @@ It should show:
 - current date and week context
 - items planned for today
 - each item's category and weekly progress, such as `2/4`
-- fast actions: Done, Move to tomorrow, Move to another day
+- a fast Done action for activities planned today
+- a quiet way to move or remove an incomplete plan scheduled for today
 - a way to mark an unplanned item done
-- a small cleanup section for unresolved items from prior days, when present
 - Sunday review/planning prompt when the current day is Sunday
 - current-week setup prompt when no active week exists
 
@@ -292,7 +292,8 @@ It should show:
 - Monday through Sunday columns
 - day cells using the defined status visuals
 
-The grid should support marking an item done even if it was not planned for that day.
+The grid is a planning and weekly-overview surface. Completion entry belongs in
+Today, while correction of forgotten prior-day completions belongs in Review.
 
 ### Edit List / Draft Week Planning
 
@@ -359,21 +360,22 @@ An activity can count at most once per day toward its weekly target. The app is 
 Normal Today actions should be:
 
 - Done
-- Move to tomorrow
-- Move to another day
+- Move today's plan to another remaining day in the same week
+- Remove today's plan
+- Mark something else done today
 
 The app does not need a prominent manual Skip action in the normal Today flow.
 
-If an item was planned for a prior day and was not completed, the app may show it in a cleanup section with choices like:
+If an item was planned for a prior day and was not completed, that past day
+derives as missed and remains visible in This Week. Today should not turn prior
+missed planned days into an overdue-task queue. If the user actually completed a
+prior-day activity but forgot to enter it, Review owns that correction before
+the week is closed.
 
-- Move to today
-- Move to another day
-- Leave missed
-- Mark done
-
-Missed should be implicit for unresolved planned items in the past, but the user should have an easy chance to clean up yesterday's unfinished items.
-
-Moving an item should affect the planned marker, not the done marker. For example, moving an unfinished planned item from Tuesday to Thursday removes the Tuesday planned marker and adds a Thursday planned marker. If Tuesday is already done, moving should not be available for that completed cell.
+Moving an item should affect the planned marker, not the done marker. For
+example, moving an unfinished plan from today to Saturday removes today's planned
+marker and adds a Saturday planned marker. If today's cell is already done,
+moving should not be available for that completed cell.
 
 ## Planning rules
 

@@ -14,8 +14,8 @@ export type TodayPreviewScenario =
 
 export type TodayPreviewAction =
   | { type: "mark-done"; activityId: string }
-  | { type: "move-prior"; activityId: string; fromDate: DateOnly; toDate: DateOnly }
-  | { type: "leave-missed"; activityId: string; fromDate: DateOnly };
+  | { type: "move-today-plan"; activityId: string; toDate: DateOnly }
+  | { type: "remove-today-plan"; activityId: string };
 
 export type TodayPreviewState =
   | {
@@ -24,7 +24,6 @@ export type TodayPreviewState =
       week: WeekRecord;
       today: DateOnly;
       activities: PersistedWeekActivity[];
-      dismissedPriorKeys: string[];
     }
   | {
       status: "no-current-week" | "setup-needed";
@@ -38,12 +37,9 @@ export type TodayPreviewActivity = {
   targetCount: number;
   doneCount: number;
   progressLabel: string;
+  isPlannedToday: boolean;
   isDoneToday: boolean;
-};
-
-export type TodayPreviewPriorItem = TodayPreviewActivity & {
-  fromDate: DateOnly;
-  fromDayLabel: string;
+  canAdjustTodayPlan: boolean;
 };
 
 export type TodayPreviewView =
@@ -57,8 +53,8 @@ export type TodayPreviewView =
       tomorrow: DateOnly | null;
       remainingMoveDates: DateOnly[];
       plannedToday: TodayPreviewActivity[];
+      completedTodayExtras: TodayPreviewActivity[];
       unplannedOptions: TodayPreviewActivity[];
-      priorUnresolved: TodayPreviewPriorItem[];
     }
   | {
       status: "no-current-week" | "setup-needed";
@@ -92,7 +88,6 @@ export function getInitialTodayPreviewState(
     },
     today: isSunday ? "2026-06-07" : "2026-06-04",
     activities: getTodayPreviewActivities(),
-    dismissedPriorKeys: [],
   };
 }
 
@@ -131,8 +126,11 @@ export function getTodayPreviewView(state: TodayPreviewState): TodayPreviewView 
       targetCount: activity.targetCount,
       doneCount: activity.doneCount,
       progressLabel: `${activity.doneCount}/${activity.targetCount}`,
+      isPlannedToday:
+        activity.cells.find((cell) => cell.date === readyState.today)?.planned ?? false,
       isDoneToday:
         activity.cells.find((cell) => cell.date === readyState.today)?.done ?? false,
+      canAdjustTodayPlan: false,
       cells: activity.cells,
     })),
   );
@@ -141,35 +139,23 @@ export function getTodayPreviewView(state: TodayPreviewState): TodayPreviewView 
   const remainingMoveDates = weekView.dayDates.filter(
     (date) => compareDateOnly(date, readyState.today) > 0,
   );
-  const plannedToday = activities.filter((activity) => {
-    const todayCell = activity.cells.find((cell) => cell.date === readyState.today);
-    return todayCell?.planned || todayCell?.done;
-  });
-  const unplannedOptions = activities.filter((activity) => {
-    const todayCell = activity.cells.find((cell) => cell.date === readyState.today);
-    return !todayCell?.planned && !todayCell?.done;
-  });
-  const dismissedPriorKeySet = new Set(readyState.dismissedPriorKeys);
-  const priorUnresolved = activities.flatMap<TodayPreviewPriorItem>((activity) =>
-    activity.cells
-      .filter(
-        (cell) =>
-          compareDateOnly(cell.date, readyState.today) < 0 &&
-          cell.planned &&
-          !cell.done &&
-          !dismissedPriorKeySet.has(getPriorKey(activity.id, cell.date)),
-      )
-      .map((cell) => ({
-        id: activity.id,
-        categoryName: activity.categoryName,
-        activityName: activity.activityName,
-        targetCount: activity.targetCount,
-        doneCount: activity.doneCount,
-        progressLabel: activity.progressLabel,
-        isDoneToday: activity.isDoneToday,
-        fromDate: cell.date,
-        fromDayLabel: formatWeekday(cell.date),
-      })),
+  const withTodayBehavior = activities.map<TodayPreviewActivity>((activity) => ({
+    id: activity.id,
+    categoryName: activity.categoryName,
+    activityName: activity.activityName,
+    targetCount: activity.targetCount,
+    doneCount: activity.doneCount,
+    progressLabel: activity.progressLabel,
+    isPlannedToday: activity.isPlannedToday,
+    isDoneToday: activity.isDoneToday,
+    canAdjustTodayPlan: activity.isPlannedToday && !activity.isDoneToday,
+  }));
+  const plannedToday = withTodayBehavior.filter((activity) => activity.isPlannedToday);
+  const completedTodayExtras = withTodayBehavior.filter(
+    (activity) => activity.isDoneToday && !activity.isPlannedToday,
+  );
+  const unplannedOptions = withTodayBehavior.filter(
+    (activity) => !activity.isDoneToday && !activity.isPlannedToday,
   );
 
   return {
@@ -184,8 +170,8 @@ export function getTodayPreviewView(state: TodayPreviewState): TodayPreviewView 
     tomorrow: hasTomorrow ? tomorrow : null,
     remainingMoveDates,
     plannedToday,
+    completedTodayExtras,
     unplannedOptions,
-    priorUnresolved,
   };
 }
 
@@ -195,18 +181,6 @@ export function applyTodayPreviewAction(
 ): TodayPreviewState {
   if (state.status !== "ready") {
     return state;
-  }
-
-  if (action.type === "leave-missed") {
-    return {
-      ...state,
-      dismissedPriorKeys: [
-        ...new Set([
-          ...state.dismissedPriorKeys,
-          getPriorKey(action.activityId, action.fromDate),
-        ]),
-      ],
-    };
   }
 
   return {
@@ -223,24 +197,65 @@ export function applyTodayPreviewAction(
         }));
       }
 
-      return moveActivityPlan(activity, action.fromDate, action.toDate);
+      if (action.type === "move-today-plan") {
+        return moveTodayPlan({
+          activity,
+          today: state.today,
+          toDate: action.toDate,
+          weekEndDate: state.week.weekEndDate,
+        });
+      }
+
+      return removeTodayPlan(activity, state.today);
     }),
   };
 }
 
-function moveActivityPlan(
-  activity: PersistedWeekActivity,
-  fromDate: DateOnly,
-  toDate: DateOnly,
-): PersistedWeekActivity {
-  const withoutFromPlan = upsertActivityCell(activity, fromDate, (cell) => ({
+function moveTodayPlan({
+  activity,
+  today,
+  toDate,
+  weekEndDate,
+}: {
+  activity: PersistedWeekActivity;
+  today: DateOnly;
+  toDate: DateOnly;
+  weekEndDate: DateOnly;
+}): PersistedWeekActivity {
+  const todayCell = activity.cells.find((cell) => cell.cellDate === today);
+
+  if (!todayCell?.planned || todayCell.done) {
+    return activity;
+  }
+
+  if (compareDateOnly(toDate, today) <= 0 || compareDateOnly(toDate, weekEndDate) > 0) {
+    return activity;
+  }
+
+  const withoutTodayPlan = upsertActivityCell(activity, today, (cell) => ({
     ...cell,
     planned: false,
   }));
 
-  return upsertActivityCell(withoutFromPlan, toDate, (cell) => ({
+  return upsertActivityCell(withoutTodayPlan, toDate, (cell) => ({
     ...cell,
     planned: true,
+  }));
+}
+
+function removeTodayPlan(
+  activity: PersistedWeekActivity,
+  today: DateOnly,
+): PersistedWeekActivity {
+  const todayCell = activity.cells.find((cell) => cell.cellDate === today);
+
+  if (!todayCell?.planned || todayCell.done) {
+    return activity;
+  }
+
+  return upsertActivityCell(activity, today, (cell) => ({
+    ...cell,
+    planned: false,
   }));
 }
 
@@ -318,7 +333,7 @@ function getTodayPreviewActivities(): PersistedWeekActivity[] {
       activityName: "Quality kid time",
       targetCount: 1,
       sortOrder: 10,
-      cells: [cell("kid-thu", "2026-06-04", false, true)],
+      cells: [cell("kid-thu", "2026-06-04", true, true)],
     }),
     activity({
       id: "today-singing",
@@ -367,10 +382,6 @@ function activity({
 
 function cell(id: string, cellDate: DateOnly, planned: boolean, done: boolean) {
   return { id, cellDate, planned, done };
-}
-
-function getPriorKey(activityId: string, date: DateOnly) {
-  return `${activityId}:${date}`;
 }
 
 export function formatShortDate(date: DateOnly) {
