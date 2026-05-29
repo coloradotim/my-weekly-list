@@ -2,7 +2,10 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { sendOwnerMagicLink } from "@/lib/auth/magic-link";
+import {
+  getMagicLinkRedirectUrlFromHeaders,
+  sendOwnerMagicLink,
+} from "@/lib/auth/magic-link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function sendOwnerMagicLinkAction(formData: FormData) {
@@ -14,13 +17,13 @@ export async function sendOwnerMagicLinkAction(formData: FormData) {
   }
 
   const requestHeaders = await headers();
-  const origin =
-    requestHeaders.get("origin") ??
-    `${requestHeaders.get("x-forwarded-proto") ?? "http"}://${requestHeaders.get("host") ?? "localhost:3000"}`;
+  const redirectTo = getMagicLinkRedirectUrlFromHeaders({
+    headers: requestHeaders,
+    nextPath: typeof nextPath === "string" ? nextPath : null,
+  });
   const result = await sendOwnerMagicLink({
     supabase,
-    origin,
-    nextPath: typeof nextPath === "string" ? nextPath : null,
+    redirectTo,
   });
 
   if (result.status === "sent") {

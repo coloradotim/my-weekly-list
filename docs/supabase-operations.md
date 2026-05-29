@@ -126,6 +126,10 @@ One-time Supabase dashboard setup:
    - `https://<production-vercel-domain>/auth/callback`
    - `http://localhost:3000/auth/callback`
    - `http://127.0.0.1:3000/auth/callback`
+   If local Magic Link callback URLs include query parameters or nested local
+   paths, add local wildcards too:
+   - `http://localhost:3000/**`
+   - `http://127.0.0.1:3000/**`
 
 No Google Cloud OAuth setup is required. Do not add a Before User Created hook
 unless the existing-user-plus-signups-disabled approach proves blocked. Do not

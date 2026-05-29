@@ -101,6 +101,9 @@ Required Supabase dashboard setup:
 6. Go to **Authentication > URL Configuration** and set the production Site URL.
    Add redirect URLs for production Vercel and local development, including
    `http://localhost:3000/auth/callback` and `http://127.0.0.1:3000/auth/callback`.
+   If local callback links include query parameters or nested development paths,
+   also add local wildcards such as `http://localhost:3000/**` and
+   `http://127.0.0.1:3000/**`.
 
 No Google Cloud OAuth setup is required. Do not add service-role keys to browser
 code.
