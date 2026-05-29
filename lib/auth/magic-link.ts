@@ -27,6 +27,44 @@ export function getMagicLinkRedirectUrl(origin: string, nextPath: string) {
   return callbackUrl.toString();
 }
 
+export type MagicLinkRedirectHeaders = Pick<Headers, "get">;
+
+export function getMagicLinkRedirectUrlFromHeaders({
+  headers,
+  nextPath,
+}: {
+  headers: MagicLinkRedirectHeaders;
+  nextPath: string | null | undefined;
+}) {
+  return getMagicLinkRedirectUrl(
+    getRequestOrigin(headers),
+    getSafeAuthNextPath(nextPath),
+  );
+}
+
+export function getRequestOrigin(headers: MagicLinkRedirectHeaders) {
+  const explicitOrigin = getFirstHeaderValue(headers.get("origin"));
+
+  if (explicitOrigin) {
+    return explicitOrigin;
+  }
+
+  const host =
+    getFirstHeaderValue(headers.get("x-forwarded-host")) ??
+    getFirstHeaderValue(headers.get("host")) ??
+    "localhost:3000";
+  const forwardedProto = getFirstHeaderValue(headers.get("x-forwarded-proto"));
+  const proto =
+    forwardedProto ??
+    (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
+
+  return `${proto}://${host}`;
+}
+
+function getFirstHeaderValue(value: string | null) {
+  return value?.split(",")[0]?.trim() || null;
+}
+
 export function maskEmail(email: string | null | undefined) {
   const normalizedEmail = email?.trim().toLowerCase();
 
@@ -47,11 +85,13 @@ export function maskEmail(email: string | null | undefined) {
 export async function sendOwnerMagicLink({
   supabase,
   origin,
+  redirectTo,
   nextPath,
   allowedEmail = getAllowedUserEmail(),
 }: {
   supabase: MagicLinkAuthClient;
-  origin: string;
+  origin?: string;
+  redirectTo?: string;
   nextPath?: string | null;
   allowedEmail?: string;
 }): Promise<MagicLinkResult> {
@@ -59,11 +99,16 @@ export async function sendOwnerMagicLink({
     return { status: "missing-allowed-email" };
   }
 
-  const redirectTo = getMagicLinkRedirectUrl(origin, getSafeAuthNextPath(nextPath));
+  const emailRedirectTo =
+    redirectTo ??
+    getMagicLinkRedirectUrl(
+      origin ?? "http://localhost:3000",
+      getSafeAuthNextPath(nextPath),
+    );
   const { error } = await supabase.auth.signInWithOtp({
     email: allowedEmail,
     options: {
-      emailRedirectTo: redirectTo,
+      emailRedirectTo,
       shouldCreateUser: false,
     },
   });
@@ -75,6 +120,6 @@ export async function sendOwnerMagicLink({
   return {
     status: "sent",
     email: allowedEmail,
-    redirectTo,
+    redirectTo: emailRedirectTo,
   };
 }

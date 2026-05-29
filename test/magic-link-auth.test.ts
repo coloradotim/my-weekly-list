@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   getMagicLinkRedirectUrl,
+  getMagicLinkRedirectUrlFromHeaders,
+  getRequestOrigin,
   getSafeAuthNextPath,
   maskEmail,
   sendOwnerMagicLink,
@@ -25,6 +27,14 @@ function createMagicLinkClient() {
   };
 
   return { client, calls };
+}
+
+function headers(values: Record<string, string | null>) {
+  return {
+    get(name: string) {
+      return values[name.toLowerCase()] ?? null;
+    },
+  };
 }
 
 describe("owner magic-link auth", () => {
@@ -77,6 +87,51 @@ describe("owner magic-link auth", () => {
     expect(getMagicLinkRedirectUrl("http://localhost:3000", "/week")).toBe(
       "http://localhost:3000/auth/callback?next=%2Fweek",
     );
+  });
+
+  it("builds local 127.0.0.1 callback destinations from request headers", () => {
+    expect(
+      getMagicLinkRedirectUrlFromHeaders({
+        headers: headers({
+          origin: "http://127.0.0.1:3000",
+        }),
+        nextPath: "/week",
+      }),
+    ).toBe("http://127.0.0.1:3000/auth/callback?next=%2Fweek");
+  });
+
+  it("builds localhost callback destinations from request headers", () => {
+    expect(
+      getMagicLinkRedirectUrlFromHeaders({
+        headers: headers({
+          host: "localhost:3000",
+        }),
+        nextPath: "/setup",
+      }),
+    ).toBe("http://localhost:3000/auth/callback?next=%2Fsetup");
+  });
+
+  it("builds production Vercel callback destinations from request headers", () => {
+    expect(
+      getMagicLinkRedirectUrlFromHeaders({
+        headers: headers({
+          "x-forwarded-proto": "https",
+          "x-forwarded-host": "my-weekly-list.vercel.app",
+        }),
+        nextPath: "/setup",
+      }),
+    ).toBe("https://my-weekly-list.vercel.app/auth/callback?next=%2Fsetup");
+  });
+
+  it("prefers the first forwarded host value", () => {
+    expect(
+      getRequestOrigin(
+        headers({
+          "x-forwarded-proto": "https",
+          "x-forwarded-host": "my-weekly-list.vercel.app, proxy.local",
+        }),
+      ),
+    ).toBe("https://my-weekly-list.vercel.app");
   });
 
   it("masks the configured owner email for display", () => {
