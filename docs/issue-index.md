@@ -11,9 +11,9 @@ This index tracks the intended MVP issue sequence.
 | 3 | #3 | Create Supabase schema, RLS, seed data, and schema docs | Add migrations, core tables, RLS, seed categories/activities, and schema docs. | Open |
 | 4 | #4 | Implement week lifecycle and date rules | Add Draft/Active/Needs Review/Closed logic and Monday/Sunday/late-start behavior. | Closed |
 | 5 | #5 | Build first current-week setup flow and persisted This Week grid | Create the current week from seeded templates, persist snapshots, and implement the first paper-like weekly grid. | Open |
-| 6 | #6 | Build Today view for daily execution | Implement fast mobile daily execution: done, move, unplanned done, cleanup. | Open |
+| 6 | #6 | Build Today view for same-day completion and plan resolution | Preview-first implementation of state-ordered Today: open planned items, `+ Something else` unplanned same-day completion, Done today, today's plan movement, explicit Skip, and no prior-missed backlog queue. | Open |
 | 7 | #7 | Build draft planning and copy-week flow | Copy prior weeks, edit Draft weeks, and support late current-week creation. | Open |
-| 8 | #8 | Build Review and Close Week flow | Add weekly review, target vs done summaries, category summaries, and locking. | Open |
+| 8 | #8 | Build Review and Close Week flow | Add weekly review, target vs done summaries, category summaries, past-day correction, skipped/missed/completed reporting, and locking. | Open |
 | 9 | #9 | Mobile browser polish and acceptance pass | Tune iPhone Chrome UX, accessibility, empty states, and visual polish. | Open |
 | 10 | #10 | Deployment and production readiness | Verify Vercel/Supabase setup, env docs, and production checks. | Open |
 

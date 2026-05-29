@@ -16,6 +16,7 @@ const previewClient = readFileSync(
   join(process.cwd(), "app/dev/today-preview/today-preview-client.tsx"),
   "utf8",
 );
+const previewModel = readFileSync(join(process.cwd(), "lib/today/preview.ts"), "utf8");
 const middleware = readFileSync(join(process.cwd(), "middleware.ts"), "utf8");
 
 describe("development today preview", () => {
@@ -36,24 +37,27 @@ describe("development today preview", () => {
     expect(previewClient).not.toContain("service_role");
   });
 
-  it("builds an active Today view without a prior-missed backlog queue", () => {
+  it("builds the state-ordered active Today view without prior backlog", () => {
     const view = getTodayPreviewView(getInitialTodayPreviewState("active"));
 
     expect(view.status).toBe("ready");
     expect(view.today).toBe("2026-06-04");
-    expect(view.plannedToday.map((activity) => activity.activityName)).toEqual([
+    expect(view.openPlannedToday.map((activity) => activity.activityName)).toEqual([
       "Walk",
+      "Meditation",
       "Read",
+    ]);
+    expect(view.doneToday.map((activity) => activity.activityName)).toEqual([
       "Quality kid time",
     ]);
+    expect(view.skippedToday).toEqual([]);
     expect(view.unplannedOptions.map((activity) => activity.activityName)).toContain(
       "Yoga",
     );
-    expect(view.completedTodayExtras).toEqual([]);
     expect("priorUnresolved" in view).toBe(false);
   });
 
-  it("marks a planned item done while preserving weekly progress", () => {
+  it("marks an open planned item done and moves it out of open plans", () => {
     const state = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
       type: "mark-done",
       activityId: "today-walk",
@@ -61,16 +65,42 @@ describe("development today preview", () => {
     const view = getTodayPreviewView(state);
 
     expect(view.status).toBe("ready");
+    expect(view.openPlannedToday.some((activity) => activity.id === "today-walk")).toBe(
+      false,
+    );
+    expect(view.doneToday.find((activity) => activity.id === "today-walk")).toMatchObject(
+      {
+        isDoneToday: true,
+        isPlannedToday: true,
+        isSkippedToday: false,
+        progressLabel: "2/4",
+      },
+    );
+  });
+
+  it("lets a planned done item return to open planned today", () => {
+    const doneState = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
+      type: "mark-done",
+      activityId: "today-walk",
+    });
+    const undoneState = applyTodayPreviewAction(doneState, {
+      type: "undo-done",
+      activityId: "today-walk",
+    });
+    const view = getTodayPreviewView(undoneState);
+
+    expect(view.status).toBe("ready");
+    expect(view.doneToday.some((activity) => activity.id === "today-walk")).toBe(false);
     expect(
-      view.plannedToday.find((activity) => activity.id === "today-walk"),
+      view.openPlannedToday.find((activity) => activity.id === "today-walk"),
     ).toMatchObject({
-      isDoneToday: true,
       isPlannedToday: true,
-      progressLabel: "2/4",
+      isDoneToday: false,
+      progressLabel: "1/4",
     });
   });
 
-  it("records unplanned done today without implying it was planned today", () => {
+  it("records unplanned done today into unified Done today", () => {
     const state = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
       type: "mark-done",
       activityId: "today-yoga",
@@ -78,22 +108,37 @@ describe("development today preview", () => {
     const view = getTodayPreviewView(state);
 
     expect(view.status).toBe("ready");
-    expect(
-      view.completedTodayExtras.find((activity) => activity.id === "today-yoga"),
-    ).toMatchObject({
-      isDoneToday: true,
-      isPlannedToday: false,
-      progressLabel: "2/2",
-    });
-    expect(view.plannedToday.some((activity) => activity.id === "today-yoga")).toBe(
-      false,
+    expect(view.doneToday.find((activity) => activity.id === "today-yoga")).toMatchObject(
+      {
+        isDoneToday: true,
+        isPlannedToday: false,
+        progressLabel: "2/2",
+      },
     );
     expect(view.unplannedOptions.some((activity) => activity.id === "today-yoga")).toBe(
       false,
     );
   });
 
-  it("moves today's incomplete plan to a remaining day", () => {
+  it("lets an unplanned done item become picker-eligible again", () => {
+    const doneState = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
+      type: "mark-done",
+      activityId: "today-yoga",
+    });
+    const undoneState = applyTodayPreviewAction(doneState, {
+      type: "undo-done",
+      activityId: "today-yoga",
+    });
+    const view = getTodayPreviewView(undoneState);
+
+    expect(view.status).toBe("ready");
+    expect(view.doneToday.some((activity) => activity.id === "today-yoga")).toBe(false);
+    expect(view.unplannedOptions.some((activity) => activity.id === "today-yoga")).toBe(
+      true,
+    );
+  });
+
+  it("moves today's incomplete plan to a remaining day with day-name choices", () => {
     const state = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
       type: "move-today-plan",
       activityId: "today-walk",
@@ -102,7 +147,12 @@ describe("development today preview", () => {
     const view = getTodayPreviewView(state);
 
     expect(view.status).toBe("ready");
-    expect(view.plannedToday.some((activity) => activity.id === "today-walk")).toBe(
+    expect(view.remainingMoveDates.map((date) => date.weekdayLabel)).toEqual([
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ]);
+    expect(view.openPlannedToday.some((activity) => activity.id === "today-walk")).toBe(
       false,
     );
     expect(view.unplannedOptions.some((activity) => activity.id === "today-walk")).toBe(
@@ -110,56 +160,105 @@ describe("development today preview", () => {
     );
   });
 
-  it("removes today's incomplete plan without creating a completion", () => {
-    const state = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
-      type: "remove-today-plan",
-      activityId: "today-read",
+  it("undoes a moved planned occurrence back to today", () => {
+    const movedState = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
+      type: "move-today-plan",
+      activityId: "today-walk",
+      toDate: "2026-06-05",
     });
-    const view = getTodayPreviewView(state);
+    const undoState = applyTodayPreviewAction(movedState, {
+      type: "undo-move-today-plan",
+      activityId: "today-walk",
+      fromDate: "2026-06-05",
+    });
+    const view = getTodayPreviewView(undoState);
 
     expect(view.status).toBe("ready");
-    expect(view.plannedToday.some((activity) => activity.id === "today-read")).toBe(
-      false,
-    );
-    expect(view.unplannedOptions.some((activity) => activity.id === "today-read")).toBe(
+    expect(view.openPlannedToday.some((activity) => activity.id === "today-walk")).toBe(
       true,
     );
   });
 
-  it("does not move a completed planned-today item as though incomplete", () => {
+  it("skips a planned-today occurrence without changing progress or clearing planned", () => {
     const state = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
-      type: "move-today-plan",
-      activityId: "today-kid-time",
-      toDate: "2026-06-05",
+      type: "skip-today",
+      activityId: "today-meditation",
     });
     const view = getTodayPreviewView(state);
 
     expect(view.status).toBe("ready");
     expect(
-      view.plannedToday.find((activity) => activity.id === "today-kid-time"),
+      view.openPlannedToday.some((activity) => activity.id === "today-meditation"),
+    ).toBe(false);
+    expect(
+      view.skippedToday.find((activity) => activity.id === "today-meditation"),
     ).toMatchObject({
-      isDoneToday: true,
       isPlannedToday: true,
+      isSkippedToday: true,
+      isDoneToday: false,
+      progressLabel: "0/3",
     });
   });
 
-  it("handles Sunday without offering a next day in the current week", () => {
+  it("can undo Skip and can later mark a skipped occurrence done", () => {
+    const skippedState = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
+      type: "skip-today",
+      activityId: "today-meditation",
+    });
+    const undoState = applyTodayPreviewAction(skippedState, {
+      type: "undo-skip",
+      activityId: "today-meditation",
+    });
+    const doneState = applyTodayPreviewAction(skippedState, {
+      type: "mark-done",
+      activityId: "today-meditation",
+    });
+    const undoView = getTodayPreviewView(undoState);
+    const doneView = getTodayPreviewView(doneState);
+
+    expect(undoView.status).toBe("ready");
+    expect(
+      undoView.openPlannedToday.some((activity) => activity.id === "today-meditation"),
+    ).toBe(true);
+    expect(doneView.status).toBe("ready");
+    expect(doneView.skippedToday).toEqual([]);
+    expect(
+      doneView.doneToday.find((activity) => activity.id === "today-meditation"),
+    ).toMatchObject({
+      isDoneToday: true,
+      isSkippedToday: false,
+      progressLabel: "1/3",
+    });
+  });
+
+  it("handles Sunday without move options or Adjust plan", () => {
     const view = getTodayPreviewView(getInitialTodayPreviewState("sunday"));
 
     expect(view.status).toBe("ready");
     expect(view.isSunday).toBe(true);
     expect(view.tomorrow).toBeNull();
     expect(view.remainingMoveDates).toEqual([]);
+    expect(view.openPlannedToday.map((activity) => activity.activityName)).toEqual([
+      "Singing practice",
+    ]);
   });
 
-  it("uses approved picker and adjustment copy without old backlog actions", () => {
+  it("uses approved copy and removes old backlog actions", () => {
     expect(previewClient).toContain("+ Something else");
-    expect(previewClient).toContain("What did you do today?");
-    expect(previewClient).toContain("Adjust plan");
-    expect(previewClient).toContain("Remove from today");
+    expect(previewClient).toContain("Mark done");
+    expect(previewClient).toContain("Mark done today");
+    expect(previewClient).toContain("Done today");
+    expect(previewClient).toContain("Skipped");
+    expect(previewClient).toContain("Move to another day");
+    expect(previewClient).toContain("Skip");
+    expect(previewClient).not.toContain("What did you do today?");
+    expect(previewClient).not.toContain("Recorded ");
+    expect(previewClient).not.toContain("Also done today");
     expect(previewClient).not.toContain("Earlier this week");
     expect(previewClient).not.toContain("Move to today");
     expect(previewClient).not.toContain("Leave missed");
+    expect(previewClient).not.toContain("Remove from today");
+    expect(previewModel).toContain("skipped: boolean");
   });
 
   it("shows no-current-week and setup-needed prompt states", () => {

@@ -268,13 +268,28 @@ Today is the primary mobile execution screen.
 It should show:
 
 - current date and week context
-- items planned for today
-- each item's category and weekly progress, such as `2/4`
-- a fast Done action for activities planned today
-- a quiet way to move or remove an incomplete plan scheduled for today
-- a way to mark an unplanned item done
+- open items planned for today
+- each item's weekly progress, such as `2/4`
+- a fast `Mark done` action for activities planned today
+- a quiet way to move or skip an incomplete plan scheduled for today
+- a compact `+ Something else` picker for unplanned same-day completion
+- one unified Done today section for all activities completed today
+- a Skipped section for planned-today occurrences intentionally skipped today
 - Sunday review/planning prompt when the current day is Sunday
 - current-week setup prompt when no active week exists
+
+Today is same-day execution and same-day plan resolution. It should not become
+a prior-day backlog cleanup screen.
+
+Today should be organized by current state:
+
+1. Open Planned for today
+2. `+ Something else`
+3. Done today
+4. Skipped
+
+Normal Today rows should not show category labels. Categories appear only inside
+the expanded `+ Something else` picker.
 
 The Today view should be fast. The user should be able to open the app, mark something done, and leave within seconds.
 
@@ -359,12 +374,14 @@ An activity can count at most once per day toward its weekly target. The app is 
 
 Normal Today actions should be:
 
-- Done
+- Mark done
 - Move today's plan to another remaining day in the same week
-- Remove today's plan
+- Skip today's planned occurrence
 - Mark something else done today
 
-The app does not need a prominent manual Skip action in the normal Today flow.
+Skip should be available as an intentional resolution path for today's planned
+occurrence, but it should not visually compete with the primary `Mark done`
+action except on Sunday when no same-week move is available.
 
 If an item was planned for a prior day and was not completed, that past day
 derives as missed and remains visible in This Week. Today should not turn prior
@@ -376,6 +393,32 @@ Moving an item should affect the planned marker, not the done marker. For
 example, moving an unfinished plan from today to Saturday removes today's planned
 marker and adds a Saturday planned marker. If today's cell is already done,
 moving should not be available for that completed cell.
+
+### Today completion and Skip behavior
+
+The `+ Something else` picker should be expanded-by-default when opened, grouped
+by collapsible categories, and used only for unplanned same-day completion.
+Selecting `Mark done today` keeps the picker open so multiple same-day
+completions can be recorded quickly.
+
+`✓ Done` is a quiet tappable same-day correction status. Tapping it removes
+today's completion: planned items return to open Planned for today, while
+unplanned completions become eligible again in the picker.
+
+Before Sunday, `Adjust plan` on an open planned-today item offers exactly:
+
+- Move to another day
+- Skip
+
+Move destinations are later day names in the same current week. Sunday has no
+cross-week movement; open planned Sunday rows show direct `Mark done` and `Skip`
+actions instead of `Adjust plan`.
+
+Skip means the user intentionally decided not to complete an occurrence planned
+for today. It preserves the original planned occurrence, does not change the
+weekly target, and does not remove the activity from future weeks. A skipped
+activity remains eligible to be marked done later the same day. Review owns
+correction of forgotten prior-day completions.
 
 ## Planning rules
 

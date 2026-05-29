@@ -1,10 +1,5 @@
 import { addDays, compareDateOnly, type DateOnly } from "@/lib/week/date";
-import {
-  buildThisWeekViewModel,
-  type PersistedDayCell,
-  type PersistedWeekActivity,
-  type WeekRecord,
-} from "@/lib/week/current";
+import type { WeekRecord } from "@/lib/week/current";
 
 export type TodayPreviewScenario =
   | "active"
@@ -14,8 +9,29 @@ export type TodayPreviewScenario =
 
 export type TodayPreviewAction =
   | { type: "mark-done"; activityId: string }
+  | { type: "undo-done"; activityId: string }
+  | { type: "skip-today"; activityId: string }
+  | { type: "undo-skip"; activityId: string }
   | { type: "move-today-plan"; activityId: string; toDate: DateOnly }
-  | { type: "remove-today-plan"; activityId: string };
+  | { type: "undo-move-today-plan"; activityId: string; fromDate: DateOnly };
+
+export type TodayPreviewDayCell = {
+  id: string;
+  cellDate: DateOnly;
+  planned: boolean;
+  done: boolean;
+  skipped: boolean;
+};
+
+export type TodayPreviewActivityRecord = {
+  id: string;
+  categoryName: string;
+  categorySortOrder: number;
+  activityName: string;
+  targetCount: number;
+  sortOrder: number;
+  cells: TodayPreviewDayCell[];
+};
 
 export type TodayPreviewState =
   | {
@@ -23,7 +39,7 @@ export type TodayPreviewState =
       scenario: Extract<TodayPreviewScenario, "active" | "sunday">;
       week: WeekRecord;
       today: DateOnly;
-      activities: PersistedWeekActivity[];
+      activities: TodayPreviewActivityRecord[];
     }
   | {
       status: "no-current-week" | "setup-needed";
@@ -33,13 +49,20 @@ export type TodayPreviewState =
 export type TodayPreviewActivity = {
   id: string;
   categoryName: string;
+  categorySortOrder: number;
   activityName: string;
   targetCount: number;
+  sortOrder: number;
   doneCount: number;
   progressLabel: string;
   isPlannedToday: boolean;
   isDoneToday: boolean;
-  canAdjustTodayPlan: boolean;
+  isSkippedToday: boolean;
+};
+
+export type TodayPreviewMoveDate = {
+  date: DateOnly;
+  weekdayLabel: string;
 };
 
 export type TodayPreviewView =
@@ -51,9 +74,10 @@ export type TodayPreviewView =
       weekRangeLabel: string;
       isSunday: boolean;
       tomorrow: DateOnly | null;
-      remainingMoveDates: DateOnly[];
-      plannedToday: TodayPreviewActivity[];
-      completedTodayExtras: TodayPreviewActivity[];
+      remainingMoveDates: TodayPreviewMoveDate[];
+      openPlannedToday: TodayPreviewActivity[];
+      doneToday: TodayPreviewActivity[];
+      skippedToday: TodayPreviewActivity[];
       unplannedOptions: TodayPreviewActivity[];
     }
   | {
@@ -113,49 +137,44 @@ export function getTodayPreviewView(state: TodayPreviewState): TodayPreviewView 
   }
 
   const readyState = state as Extract<TodayPreviewState, { status: "ready" }>;
-  const weekView = buildThisWeekViewModel({
-    week: readyState.week,
-    today: readyState.today,
-    activities: readyState.activities,
-  });
-  const activities = weekView.categories.flatMap((category) =>
-    category.activities.map((activity) => ({
-      id: activity.id,
-      categoryName: category.name,
-      activityName: activity.activityName,
-      targetCount: activity.targetCount,
-      doneCount: activity.doneCount,
-      progressLabel: `${activity.doneCount}/${activity.targetCount}`,
-      isPlannedToday:
-        activity.cells.find((cell) => cell.date === readyState.today)?.planned ?? false,
-      isDoneToday:
-        activity.cells.find((cell) => cell.date === readyState.today)?.done ?? false,
-      canAdjustTodayPlan: false,
-      cells: activity.cells,
-    })),
-  );
   const tomorrow = addDays(readyState.today, 1);
   const hasTomorrow = compareDateOnly(tomorrow, readyState.week.weekEndDate) <= 0;
-  const remainingMoveDates = weekView.dayDates.filter(
-    (date) => compareDateOnly(date, readyState.today) > 0,
+  const remainingMoveDates = getRemainingMoveDates({
+    today: readyState.today,
+    weekEndDate: readyState.week.weekEndDate,
+  });
+  const activities = readyState.activities
+    .toSorted(compareTodayPreviewActivities)
+    .map<TodayPreviewActivity>((activity) => {
+      const todayCell = activity.cells.find((cell) => cell.cellDate === readyState.today);
+      const doneCount = activity.cells.filter((cell) => cell.done).length;
+
+      return {
+        id: activity.id,
+        categoryName: activity.categoryName,
+        categorySortOrder: activity.categorySortOrder,
+        activityName: activity.activityName,
+        targetCount: activity.targetCount,
+        sortOrder: activity.sortOrder,
+        doneCount,
+        progressLabel: `${doneCount}/${activity.targetCount}`,
+        isPlannedToday: todayCell?.planned ?? false,
+        isDoneToday: todayCell?.done ?? false,
+        isSkippedToday: todayCell?.skipped ?? false,
+      };
+    });
+  const openPlannedToday = activities.filter(
+    (activity) =>
+      activity.isPlannedToday && !activity.isDoneToday && !activity.isSkippedToday,
   );
-  const withTodayBehavior = activities.map<TodayPreviewActivity>((activity) => ({
-    id: activity.id,
-    categoryName: activity.categoryName,
-    activityName: activity.activityName,
-    targetCount: activity.targetCount,
-    doneCount: activity.doneCount,
-    progressLabel: activity.progressLabel,
-    isPlannedToday: activity.isPlannedToday,
-    isDoneToday: activity.isDoneToday,
-    canAdjustTodayPlan: activity.isPlannedToday && !activity.isDoneToday,
-  }));
-  const plannedToday = withTodayBehavior.filter((activity) => activity.isPlannedToday);
-  const completedTodayExtras = withTodayBehavior.filter(
-    (activity) => activity.isDoneToday && !activity.isPlannedToday,
+  const doneToday = activities.filter((activity) => activity.isDoneToday);
+  const skippedToday = activities.filter(
+    (activity) =>
+      activity.isPlannedToday && activity.isSkippedToday && !activity.isDoneToday,
   );
-  const unplannedOptions = withTodayBehavior.filter(
-    (activity) => !activity.isDoneToday && !activity.isPlannedToday,
+  const unplannedOptions = activities.filter(
+    (activity) =>
+      !activity.isDoneToday && !activity.isPlannedToday && !activity.isSkippedToday,
   );
 
   return {
@@ -169,8 +188,9 @@ export function getTodayPreviewView(state: TodayPreviewState): TodayPreviewView 
     isSunday: readyState.today === readyState.week.weekEndDate,
     tomorrow: hasTomorrow ? tomorrow : null,
     remainingMoveDates,
-    plannedToday,
-    completedTodayExtras,
+    openPlannedToday,
+    doneToday,
+    skippedToday,
     unplannedOptions,
   };
 }
@@ -194,6 +214,26 @@ export function applyTodayPreviewAction(
         return upsertActivityCell(activity, state.today, (cell) => ({
           ...cell,
           done: true,
+          skipped: false,
+        }));
+      }
+
+      if (action.type === "undo-done") {
+        return upsertActivityCell(activity, state.today, (cell) => ({
+          ...cell,
+          done: false,
+          skipped: false,
+        }));
+      }
+
+      if (action.type === "skip-today") {
+        return skipTodayPlan(activity, state.today);
+      }
+
+      if (action.type === "undo-skip") {
+        return upsertActivityCell(activity, state.today, (cell) => ({
+          ...cell,
+          skipped: false,
         }));
       }
 
@@ -206,9 +246,29 @@ export function applyTodayPreviewAction(
         });
       }
 
-      return removeTodayPlan(activity, state.today);
+      return undoMoveTodayPlan({
+        activity,
+        today: state.today,
+        fromDate: action.fromDate,
+      });
     }),
   };
+}
+
+function skipTodayPlan(
+  activity: TodayPreviewActivityRecord,
+  today: DateOnly,
+): TodayPreviewActivityRecord {
+  const todayCell = activity.cells.find((cell) => cell.cellDate === today);
+
+  if (!todayCell?.planned || todayCell.done) {
+    return activity;
+  }
+
+  return upsertActivityCell(activity, today, (cell) => ({
+    ...cell,
+    skipped: true,
+  }));
 }
 
 function moveTodayPlan({
@@ -217,14 +277,14 @@ function moveTodayPlan({
   toDate,
   weekEndDate,
 }: {
-  activity: PersistedWeekActivity;
+  activity: TodayPreviewActivityRecord;
   today: DateOnly;
   toDate: DateOnly;
   weekEndDate: DateOnly;
-}): PersistedWeekActivity {
+}): TodayPreviewActivityRecord {
   const todayCell = activity.cells.find((cell) => cell.cellDate === today);
 
-  if (!todayCell?.planned || todayCell.done) {
+  if (!todayCell?.planned || todayCell.done || todayCell.skipped) {
     return activity;
   }
 
@@ -235,51 +295,78 @@ function moveTodayPlan({
   const withoutTodayPlan = upsertActivityCell(activity, today, (cell) => ({
     ...cell,
     planned: false,
+    skipped: false,
   }));
 
   return upsertActivityCell(withoutTodayPlan, toDate, (cell) => ({
     ...cell,
     planned: true,
+    skipped: false,
   }));
 }
 
-function removeTodayPlan(
-  activity: PersistedWeekActivity,
-  today: DateOnly,
-): PersistedWeekActivity {
-  const todayCell = activity.cells.find((cell) => cell.cellDate === today);
-
-  if (!todayCell?.planned || todayCell.done) {
-    return activity;
-  }
-
-  return upsertActivityCell(activity, today, (cell) => ({
+function undoMoveTodayPlan({
+  activity,
+  today,
+  fromDate,
+}: {
+  activity: TodayPreviewActivityRecord;
+  today: DateOnly;
+  fromDate: DateOnly;
+}): TodayPreviewActivityRecord {
+  const withoutFuturePlan = upsertActivityCell(activity, fromDate, (cell) => ({
     ...cell,
     planned: false,
+    skipped: false,
+  }));
+
+  return upsertActivityCell(withoutFuturePlan, today, (cell) => ({
+    ...cell,
+    planned: true,
+    skipped: false,
   }));
 }
 
 function upsertActivityCell(
-  activity: PersistedWeekActivity,
+  activity: TodayPreviewActivityRecord,
   cellDate: DateOnly,
-  update: (cell: PersistedDayCell) => PersistedDayCell,
-): PersistedWeekActivity {
+  update: (cell: TodayPreviewDayCell) => TodayPreviewDayCell,
+): TodayPreviewActivityRecord {
   const existingCell = activity.cells.find((cell) => cell.cellDate === cellDate) ?? {
     id: `${activity.id}-${cellDate}`,
     cellDate,
     planned: false,
     done: false,
+    skipped: false,
   };
   const nextCell = update(existingCell);
   const nextCells = activity.cells
     .filter((cell) => cell.cellDate !== cellDate)
     .concat(nextCell)
-    .filter((cell) => cell.planned || cell.done);
+    .filter((cell) => cell.planned || cell.done || cell.skipped);
 
   return { ...activity, cells: nextCells };
 }
 
-function getTodayPreviewActivities(): PersistedWeekActivity[] {
+function getRemainingMoveDates({
+  today,
+  weekEndDate,
+}: {
+  today: DateOnly;
+  weekEndDate: DateOnly;
+}): TodayPreviewMoveDate[] {
+  const dates: TodayPreviewMoveDate[] = [];
+  let nextDate = addDays(today, 1);
+
+  while (compareDateOnly(nextDate, weekEndDate) <= 0) {
+    dates.push({ date: nextDate, weekdayLabel: formatWeekday(nextDate) });
+    nextDate = addDays(nextDate, 1);
+  }
+
+  return dates;
+}
+
+function getTodayPreviewActivities(): TodayPreviewActivityRecord[] {
   return [
     activity({
       id: "today-walk",
@@ -316,6 +403,15 @@ function getTodayPreviewActivities(): PersistedWeekActivity[] {
         cell("read-thu", "2026-06-04", true, false),
         cell("read-fri", "2026-06-05", true, false),
       ],
+    }),
+    activity({
+      id: "today-meditation",
+      categoryName: "Mental Health",
+      categorySortOrder: 20,
+      activityName: "Meditation",
+      targetCount: 3,
+      sortOrder: 50,
+      cells: [cell("meditation-thu", "2026-06-04", true, false)],
     }),
     activity({
       id: "today-journal",
@@ -365,12 +461,10 @@ function activity({
   activityName: string;
   targetCount: number;
   sortOrder: number;
-  cells: PersistedDayCell[];
-}): PersistedWeekActivity {
+  cells: TodayPreviewDayCell[];
+}): TodayPreviewActivityRecord {
   return {
     id,
-    activityTemplateId: `template-${id}`,
-    categoryId: `category-${categorySortOrder}`,
     categoryName,
     categorySortOrder,
     activityName,
@@ -380,8 +474,26 @@ function activity({
   };
 }
 
-function cell(id: string, cellDate: DateOnly, planned: boolean, done: boolean) {
-  return { id, cellDate, planned, done };
+function cell(
+  id: string,
+  cellDate: DateOnly,
+  planned: boolean,
+  done: boolean,
+  skipped = false,
+) {
+  return { id, cellDate, planned, done, skipped };
+}
+
+function compareTodayPreviewActivities(
+  left: TodayPreviewActivityRecord,
+  right: TodayPreviewActivityRecord,
+) {
+  return (
+    left.categorySortOrder - right.categorySortOrder ||
+    left.categoryName.localeCompare(right.categoryName) ||
+    left.sortOrder - right.sortOrder ||
+    left.activityName.localeCompare(right.activityName)
+  );
 }
 
 export function formatShortDate(date: DateOnly) {
@@ -393,7 +505,7 @@ export function formatShortDate(date: DateOnly) {
 
 export function formatWeekday(date: DateOnly) {
   return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
+    weekday: "long",
   }).format(new Date(`${date}T12:00:00Z`));
 }
 

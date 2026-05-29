@@ -3,13 +3,28 @@
 import { useEffect, useState } from "react";
 import {
   applyTodayPreviewAction,
-  formatShortDate,
   getInitialTodayPreviewState,
   getTodayPreviewView,
   type TodayPreviewActivity,
+  type TodayPreviewMoveDate,
   type TodayPreviewScenario,
 } from "@/lib/today/preview";
 import type { DateOnly } from "@/lib/week/date";
+
+type AdjustStep = "choices" | "move";
+type TemporaryUndo =
+  | {
+      kind: "move";
+      activityId: string;
+      activityName: string;
+      movedToDate: DateOnly;
+      movedToLabel: string;
+    }
+  | {
+      kind: "skip";
+      activityId: string;
+      activityName: string;
+    };
 
 const scenarios: { id: TodayPreviewScenario; label: string }[] = [
   { id: "active", label: "Today" },
@@ -22,27 +37,56 @@ export function TodayPreviewClient() {
   const [scenario, setScenario] = useState<TodayPreviewScenario>("active");
   const [state, setState] = useState(() => getInitialTodayPreviewState("active"));
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [adjustingActivityId, setAdjustingActivityId] = useState<string | null>(null);
-  const [lastRecordedActivity, setLastRecordedActivity] = useState<string | null>(null);
+  const [adjustStep, setAdjustStep] = useState<AdjustStep>("choices");
+  const [temporaryUndo, setTemporaryUndo] = useState<TemporaryUndo | null>(null);
   const view = getTodayPreviewView(state);
 
   useEffect(() => {
     const hash = window.location.hash;
 
-    if (hash === "#picker") {
+    if (hash === "#picker-added") {
       setIsPickerOpen(true);
+      setState((current) =>
+        applyTodayPreviewAction(current, {
+          type: "mark-done",
+          activityId: "today-yoga",
+        }),
+      );
       return;
     }
 
-    if (hash === "#adjust") {
+    if (hash === "#adjust-step") {
       setAdjustingActivityId("today-walk");
+      setAdjustStep("choices");
       return;
     }
 
-    if (hash === "#sunday-adjust") {
+    if (hash === "#move-step") {
+      setAdjustingActivityId("today-walk");
+      setAdjustStep("move");
+      return;
+    }
+
+    if (hash === "#skipped") {
+      setState((current) =>
+        applyTodayPreviewAction(current, {
+          type: "skip-today",
+          activityId: "today-meditation",
+        }),
+      );
+      setTemporaryUndo({
+        kind: "skip",
+        activityId: "today-meditation",
+        activityName: "Meditation",
+      });
+      return;
+    }
+
+    if (hash === "#sunday") {
       setScenario("sunday");
       setState(getInitialTodayPreviewState("sunday"));
-      setAdjustingActivityId("today-singing");
     }
   }, []);
 
@@ -50,8 +94,10 @@ export function TodayPreviewClient() {
     setScenario(nextScenario);
     setState(getInitialTodayPreviewState(nextScenario));
     setIsPickerOpen(false);
+    setCollapsedCategories([]);
     setAdjustingActivityId(null);
-    setLastRecordedActivity(null);
+    setAdjustStep("choices");
+    setTemporaryUndo(null);
   }
 
   if (view.status !== "ready") {
@@ -85,28 +131,86 @@ export function TodayPreviewClient() {
       }),
     );
     setAdjustingActivityId(null);
-    setLastRecordedActivity(activity.activityName);
+    setAdjustStep("choices");
+    setTemporaryUndo(null);
   }
 
-  function moveTodayPlan(activityId: string, toDate: DateOnly) {
+  function undoDone(activity: TodayPreviewActivity) {
+    setState((current) =>
+      applyTodayPreviewAction(current, {
+        type: "undo-done",
+        activityId: activity.id,
+      }),
+    );
+    setTemporaryUndo(null);
+  }
+
+  function moveTodayPlan(activity: TodayPreviewActivity, moveDate: TodayPreviewMoveDate) {
     setState((current) =>
       applyTodayPreviewAction(current, {
         type: "move-today-plan",
-        activityId,
-        toDate,
+        activityId: activity.id,
+        toDate: moveDate.date,
       }),
     );
     setAdjustingActivityId(null);
+    setAdjustStep("choices");
+    setTemporaryUndo({
+      kind: "move",
+      activityId: activity.id,
+      activityName: activity.activityName,
+      movedToDate: moveDate.date,
+      movedToLabel: moveDate.weekdayLabel,
+    });
   }
 
-  function removeTodayPlan(activityId: string) {
+  function skipTodayPlan(activity: TodayPreviewActivity) {
     setState((current) =>
       applyTodayPreviewAction(current, {
-        type: "remove-today-plan",
-        activityId,
+        type: "skip-today",
+        activityId: activity.id,
       }),
     );
     setAdjustingActivityId(null);
+    setAdjustStep("choices");
+    setTemporaryUndo({
+      kind: "skip",
+      activityId: activity.id,
+      activityName: activity.activityName,
+    });
+  }
+
+  function undoTemporaryChange() {
+    if (!temporaryUndo) {
+      return;
+    }
+
+    if (temporaryUndo.kind === "move") {
+      setState((current) =>
+        applyTodayPreviewAction(current, {
+          type: "undo-move-today-plan",
+          activityId: temporaryUndo.activityId,
+          fromDate: temporaryUndo.movedToDate,
+        }),
+      );
+    } else {
+      setState((current) =>
+        applyTodayPreviewAction(current, {
+          type: "undo-skip",
+          activityId: temporaryUndo.activityId,
+        }),
+      );
+    }
+
+    setTemporaryUndo(null);
+  }
+
+  function togglePickerCategory(categoryName: string) {
+    setCollapsedCategories((current) =>
+      current.includes(categoryName)
+        ? current.filter((name) => name !== categoryName)
+        : [...current, categoryName],
+    );
   }
 
   return (
@@ -131,113 +235,140 @@ export function TodayPreviewClient() {
       </header>
 
       <section className="space-y-2">
-        <SectionHeading title="Planned for today" count={view.plannedToday.length} />
-        {view.plannedToday.length > 0 ? (
+        <SectionHeading title="Planned for today" count={view.openPlannedToday.length} />
+        {view.openPlannedToday.length > 0 ? (
           <div className="space-y-2">
-            {view.plannedToday.map((activity) => (
-              <TodayActivityCard
+            {view.openPlannedToday.map((activity) => (
+              <OpenPlannedRow
                 key={activity.id}
                 activity={activity}
+                isSunday={view.isSunday}
                 isAdjusting={adjustingActivityId === activity.id}
+                adjustStep={adjustStep}
                 moveDates={view.remainingMoveDates}
                 onDone={() => markDone(activity)}
-                onToggleAdjust={() =>
+                onSkip={() => skipTodayPlan(activity)}
+                onToggleAdjust={() => {
                   setAdjustingActivityId((current) =>
                     current === activity.id ? null : activity.id,
-                  )
-                }
-                onMove={(date) => moveTodayPlan(activity.id, date)}
-                onRemove={() => removeTodayPlan(activity.id)}
+                  );
+                  setAdjustStep("choices");
+                }}
+                onShowMoveDays={() => setAdjustStep("move")}
+                onMove={(moveDate) => moveTodayPlan(activity, moveDate)}
               />
             ))}
           </div>
         ) : (
-          <EmptyNote body="Nothing is planned for today. You can still record something you did." />
+          <EmptyNote body="Nothing is open for today. You can still record something else you did." />
         )}
       </section>
 
-      {view.completedTodayExtras.length > 0 ? (
+      {temporaryUndo ? (
+        <TemporaryUndoMessage undo={temporaryUndo} onUndo={undoTemporaryChange} />
+      ) : null}
+
+      <section className="rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft">
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-white px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus:ring-2 focus:ring-clay"
+            onClick={() => setIsPickerOpen((current) => !current)}
+          >
+            + Something else
+          </button>
+          {isPickerOpen ? (
+            <button
+              type="button"
+              className="rounded-full px-2 py-1 text-sm font-semibold text-stone-500 transition hover:bg-paper hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+              onClick={() => setIsPickerOpen(false)}
+            >
+              Close
+            </button>
+          ) : null}
+        </div>
+        {isPickerOpen ? (
+          <div className="mt-3 border-t border-stone-200 pt-3">
+            {pickerGroups.length > 0 ? (
+              <div className="space-y-2">
+                {pickerGroups.map((group) => {
+                  const isCollapsed = collapsedCategories.includes(group.categoryName);
+
+                  return (
+                    <div
+                      key={group.categoryName}
+                      className="rounded-lg border border-stone-200 bg-white/70"
+                    >
+                      <button
+                        type="button"
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus:ring-2 focus:ring-clay"
+                        onClick={() => togglePickerCategory(group.categoryName)}
+                        aria-expanded={!isCollapsed}
+                      >
+                        <span>{group.categoryName}</span>
+                        <span className="text-stone-500">
+                          {isCollapsed ? "Show" : "Hide"}
+                        </span>
+                      </button>
+                      {!isCollapsed ? (
+                        <div className="border-t border-stone-100">
+                          {group.activities.map((activity) => (
+                            <button
+                              key={activity.id}
+                              type="button"
+                              className="flex min-h-11 w-full items-center justify-between gap-4 px-3 py-2 text-left text-sm transition hover:bg-paper focus:outline-none focus:ring-2 focus:ring-meadow"
+                              onClick={() => markDone(activity)}
+                            >
+                              <span className="font-semibold text-ink">
+                                {activity.activityName}
+                              </span>
+                              <span className="shrink-0 text-right font-semibold text-meadow">
+                                Mark done today
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <EmptyNote body="Everything eligible is already counted or resolved for today." />
+            )}
+          </div>
+        ) : null}
+      </section>
+
+      {view.doneToday.length > 0 ? (
         <section className="space-y-2">
-          <SectionHeading
-            title="Also done today"
-            count={view.completedTodayExtras.length}
-          />
+          <SectionHeading title="Done today" count={view.doneToday.length} />
           <div className="space-y-2">
-            {view.completedTodayExtras.map((activity) => (
-              <CompletedExtraCard key={activity.id} activity={activity} />
+            {view.doneToday.map((activity) => (
+              <DoneTodayRow
+                key={activity.id}
+                activity={activity}
+                onUndoDone={() => undoDone(activity)}
+              />
             ))}
           </div>
         </section>
       ) : null}
 
-      <section className="rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft">
-        <button
-          type="button"
-          className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-white px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus:ring-2 focus:ring-clay"
-          onClick={() => setIsPickerOpen((current) => !current)}
-        >
-          + Something else
-        </button>
-        {lastRecordedActivity ? (
-          <p className="mt-2 text-sm text-stone-600">
-            Recorded {lastRecordedActivity} for today.
-          </p>
-        ) : null}
-        {isPickerOpen ? (
-          <div className="mt-3 border-t border-stone-200 pt-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-base font-semibold text-ink">
-                  What did you do today?
-                </h3>
-                <p className="mt-1 text-sm leading-5 text-stone-600">
-                  Pick from this week&apos;s activities.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="rounded-full px-2 py-1 text-sm font-semibold text-stone-500 transition hover:bg-paper hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
-                onClick={() => setIsPickerOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-            {pickerGroups.length > 0 ? (
-              <div className="mt-3 space-y-3">
-                {pickerGroups.map((group) => (
-                  <div key={group.categoryName}>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-clay">
-                      {group.categoryName}
-                    </p>
-                    <div className="mt-1 grid gap-2">
-                      {group.activities.map((activity) => (
-                        <button
-                          key={activity.id}
-                          type="button"
-                          className="flex min-h-11 items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2 text-left text-sm transition hover:border-meadow focus:outline-none focus:ring-2 focus:ring-meadow"
-                          onClick={() => {
-                            markDone(activity);
-                            setIsPickerOpen(false);
-                          }}
-                        >
-                          <span className="font-semibold text-ink">
-                            {activity.activityName}
-                          </span>
-                          <span className="text-stone-500">
-                            {activity.progressLabel} this week
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyNote body="Everything eligible is already counted for today." />
-            )}
+      {view.skippedToday.length > 0 ? (
+        <section className="space-y-2">
+          <SectionHeading title="Skipped" count={view.skippedToday.length} />
+          <div className="space-y-2">
+            {view.skippedToday.map((activity) => (
+              <SkippedRow
+                key={activity.id}
+                activity={activity}
+                onDone={() => markDone(activity)}
+              />
+            ))}
           </div>
-        ) : null}
-      </section>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -269,35 +400,38 @@ function ScenarioTabs({
   );
 }
 
-function TodayActivityCard({
+function OpenPlannedRow({
   activity,
+  isSunday,
   isAdjusting,
+  adjustStep,
   moveDates,
   onDone,
+  onSkip,
   onToggleAdjust,
+  onShowMoveDays,
   onMove,
-  onRemove,
 }: {
   activity: TodayPreviewActivity;
+  isSunday: boolean;
   isAdjusting: boolean;
-  moveDates: DateOnly[];
+  adjustStep: AdjustStep;
+  moveDates: TodayPreviewMoveDate[];
   onDone: () => void;
+  onSkip: () => void;
   onToggleAdjust: () => void;
-  onMove: (date: DateOnly) => void;
-  onRemove: () => void;
+  onShowMoveDays: () => void;
+  onMove: (moveDate: TodayPreviewMoveDate) => void;
 }) {
   return (
     <article className="rounded-lg border border-stone-200 bg-white/85 p-3 shadow-soft">
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-clay">
-            {activity.categoryName}
-          </p>
-          <h3 className="mt-1 text-base font-semibold leading-6 text-ink">
+          <h3 className="text-base font-semibold leading-6 text-ink">
             {activity.activityName}
           </h3>
           <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
-          {activity.canAdjustTodayPlan ? (
+          {!isSunday && moveDates.length > 0 ? (
             <button
               type="button"
               className="mt-1 text-sm font-semibold text-clay underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
@@ -307,84 +441,167 @@ function TodayActivityCard({
             </button>
           ) : null}
         </div>
-        {activity.isDoneToday ? (
-          <span className="shrink-0 rounded-full bg-meadow/15 px-3 py-2 text-sm font-semibold text-meadow">
-            ✓ Done
-          </span>
-        ) : (
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <button
             type="button"
-            className="min-h-11 shrink-0 rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow"
+            className="min-h-11 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow"
             onClick={onDone}
           >
-            Done
+            Mark done
           </button>
-        )}
+          {isSunday ? (
+            <button
+              type="button"
+              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+              onClick={onSkip}
+            >
+              Skip
+            </button>
+          ) : null}
+        </div>
       </div>
-      {isAdjusting && activity.canAdjustTodayPlan ? (
-        <AdjustPlanPanel moveDates={moveDates} onMove={onMove} onRemove={onRemove} />
+      {isAdjusting && !isSunday ? (
+        <AdjustPlanPanel
+          step={adjustStep}
+          moveDates={moveDates}
+          onShowMoveDays={onShowMoveDays}
+          onMove={onMove}
+          onSkip={onSkip}
+        />
       ) : null}
     </article>
   );
 }
 
 function AdjustPlanPanel({
+  step,
   moveDates,
+  onShowMoveDays,
   onMove,
-  onRemove,
+  onSkip,
 }: {
-  moveDates: DateOnly[];
-  onMove: (date: DateOnly) => void;
-  onRemove: () => void;
+  step: AdjustStep;
+  moveDates: TodayPreviewMoveDate[];
+  onShowMoveDays: () => void;
+  onMove: (moveDate: TodayPreviewMoveDate) => void;
+  onSkip: () => void;
 }) {
   return (
     <div className="mt-3 rounded-lg border border-mist bg-mist/25 p-3">
-      <p className="text-sm font-semibold text-ink">Adjust today&apos;s plan</p>
-      {moveDates.length > 0 ? (
+      <p className="text-sm font-semibold text-ink">
+        {step === "move" ? "Move to another day" : "Adjust plan"}
+      </p>
+      {step === "move" ? (
         <div className="mt-2 flex flex-wrap gap-2">
-          {moveDates.map((date) => (
+          {moveDates.map((moveDate) => (
             <button
-              key={date}
+              key={moveDate.date}
               type="button"
               className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
-              onClick={() => onMove(date)}
+              onClick={() => onMove(moveDate)}
             >
-              Move to {formatShortDate(date)}
+              {moveDate.weekdayLabel}
             </button>
           ))}
         </div>
       ) : (
-        <p className="mt-1 text-sm leading-5 text-stone-600">
-          No later days remain in this week.
-        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+            onClick={onShowMoveDays}
+          >
+            Move to another day
+          </button>
+          <button
+            type="button"
+            className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+            onClick={onSkip}
+          >
+            Skip
+          </button>
+        </div>
       )}
-      <button
-        type="button"
-        className="mt-2 min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
-        onClick={onRemove}
-      >
-        Remove from today
-      </button>
     </div>
   );
 }
 
-function CompletedExtraCard({ activity }: { activity: TodayPreviewActivity }) {
+function DoneTodayRow({
+  activity,
+  onUndoDone,
+}: {
+  activity: TodayPreviewActivity;
+  onUndoDone: () => void;
+}) {
   return (
     <article className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/75 p-3 shadow-soft">
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wide text-clay">
-          {activity.categoryName}
-        </p>
-        <h3 className="mt-1 text-base font-semibold leading-6 text-ink">
+        <h3 className="text-base font-semibold leading-6 text-ink">
           {activity.activityName}
         </h3>
         <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
       </div>
-      <span className="shrink-0 rounded-full bg-meadow/15 px-3 py-2 text-sm font-semibold text-meadow">
+      <button
+        type="button"
+        className="shrink-0 rounded-full bg-meadow/15 px-3 py-2 text-sm font-semibold text-meadow transition hover:bg-meadow/25 focus:outline-none focus:ring-2 focus:ring-meadow"
+        onClick={onUndoDone}
+      >
         ✓ Done
-      </span>
+      </button>
     </article>
+  );
+}
+
+function SkippedRow({
+  activity,
+  onDone,
+}: {
+  activity: TodayPreviewActivity;
+  onDone: () => void;
+}) {
+  return (
+    <article className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/75 p-3 shadow-soft">
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold leading-6 text-ink">
+          {activity.activityName}
+        </h3>
+        <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
+        <p className="mt-1 text-sm font-semibold text-stone-500">Skipped</p>
+      </div>
+      <button
+        type="button"
+        className="min-h-11 shrink-0 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow"
+        onClick={onDone}
+      >
+        Mark done
+      </button>
+    </article>
+  );
+}
+
+function TemporaryUndoMessage({
+  undo,
+  onUndo,
+}: {
+  undo: TemporaryUndo;
+  onUndo: () => void;
+}) {
+  const message =
+    undo.kind === "move"
+      ? `Moved ${undo.activityName} to ${undo.movedToLabel}.`
+      : `Skipped ${undo.activityName}.`;
+
+  return (
+    <p className="rounded-lg border border-mist bg-mist/30 px-3 py-2 text-sm text-stone-700">
+      {message}{" "}
+      <button
+        type="button"
+        className="font-semibold text-clay underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+        onClick={onUndo}
+      >
+        Undo
+      </button>
+    </p>
   );
 }
 
