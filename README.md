@@ -47,6 +47,21 @@ npm run dev
 
 Then open [http://localhost:3000](http://localhost:3000).
 
+Or use the local dev server helper:
+
+```bash
+scripts/dev.sh start
+scripts/dev.sh status
+scripts/dev.sh open
+scripts/dev.sh restart
+scripts/dev.sh stop
+scripts/dev.sh logs
+```
+
+The helper starts the Next.js app at `http://127.0.0.1:3000`, tracks the PID
+under `.dev/`, and writes logs to `.dev/server.log`. Set `DEV_PORT` or
+`DEV_HOST` to override the defaults.
+
 ## Checks
 
 Run the standard repo check command:
