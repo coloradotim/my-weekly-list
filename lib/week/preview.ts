@@ -8,9 +8,11 @@ import type { WeekStatus } from "@/lib/week/lifecycle";
 
 export type WeekPreviewScenario = "active" | "draft" | "closed";
 
-export function isDevWeekPreviewEnabled(nodeEnv = process.env.NODE_ENV) {
+export function isDevPreviewEnabled(nodeEnv = process.env.NODE_ENV) {
   return nodeEnv !== "production";
 }
+
+export const isDevWeekPreviewEnabled = isDevPreviewEnabled;
 
 export function getInitialWeekPreviewView(
   scenario: WeekPreviewScenario = "active",

@@ -27,7 +27,8 @@ describe("development week preview", () => {
     expect(isDevWeekPreviewEnabled("test")).toBe(true);
     expect(isDevWeekPreviewEnabled("production")).toBe(false);
     expect(previewPage).toContain("notFound()");
-    expect(middleware).toContain("isDevWeekPreviewEnabled()");
+    expect(middleware).toContain('startsWith("/dev/")');
+    expect(middleware).toContain("isDevPreviewEnabled()");
   });
 
   it("uses local fixture state without Supabase clients or service-role keys", () => {
