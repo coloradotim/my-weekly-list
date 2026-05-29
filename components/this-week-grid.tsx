@@ -151,7 +151,7 @@ function WeekCell({
     cell.state,
   )}${cell.isPlanningEditable ? `. ${actionLabel}.` : "."}`;
   const controlClassName =
-    "flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full transition hover:bg-paper focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 focus:ring-offset-white sm:min-h-11 sm:min-w-11";
+    "flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full transition hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:min-h-11 sm:min-w-11";
   const mark = <CellMark editable={cell.isPlanningEditable} state={cell.state} />;
 
   return (
