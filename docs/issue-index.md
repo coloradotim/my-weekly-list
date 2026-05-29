@@ -9,8 +9,8 @@ This index tracks the intended MVP issue sequence.
 | 1 | #1 | Initialize responsive Next.js project foundation | Create the app foundation, tooling, scripts, and responsive shell. | Open |
 | 2 | #2 | Set up Supabase auth and allowed-user access control | Add auth, environment variables, and private single-user access control. | Open |
 | 3 | #3 | Create Supabase schema, RLS, seed data, and schema docs | Add migrations, core tables, RLS, seed categories/activities, and schema docs. | Open |
-| 4 | #4 | Implement week lifecycle and date rules | Add Draft/Active/Needs Review/Closed logic and Monday/Sunday/late-start behavior. | Open |
-| 5 | #5 | Build This Week grid and cell status behavior | Implement the paper-like weekly grid and cell status behavior. | Open |
+| 4 | #4 | Implement week lifecycle and date rules | Add Draft/Active/Needs Review/Closed logic and Monday/Sunday/late-start behavior. | Closed |
+| 5 | #5 | Build first current-week setup flow and persisted This Week grid | Create the current week from seeded templates, persist snapshots, and implement the first paper-like weekly grid. | Open |
 | 6 | #6 | Build Today view for daily execution | Implement fast mobile daily execution: done, move, unplanned done, cleanup. | Open |
 | 7 | #7 | Build draft planning and copy-week flow | Copy prior weeks, edit Draft weeks, and support late current-week creation. | Open |
 | 8 | #8 | Build Review and Close Week flow | Add weekly review, target vs done summaries, category summaries, and locking. | Open |

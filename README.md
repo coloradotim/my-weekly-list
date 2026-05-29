@@ -6,15 +6,17 @@ This is a private/single-user app built for personal use.
 
 ## Current foundation
 
-This repository contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and placeholder routes for the MVP screens:
+This repository contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the first persisted This Week workflow.
 
 - Today
 - This Week
 - Review
 - Plan
 
-The current planning screens are intentionally placeholders. Real week logic,
-Today behavior, and Review behavior are planned for later issues.
+The This Week screen can create the current Monday-Sunday week from the seeded
+starter list, snapshot reusable templates into week activities, and persist
+planning day-cell facts. Today completion behavior, future Draft planning, and
+Review behavior are planned for later issues.
 
 ## Local setup
 
@@ -158,6 +160,30 @@ select public.seed_initial_weekly_list();
 Do not run this from the Supabase SQL Editor without an authenticated app
 session; it will fail by design because it uses `auth.uid()` to create
 user-owned rows. Do not use service-role keys in browser code.
+
+After setup has created active reusable categories and activity templates, open
+the protected This Week screen:
+
+```text
+/week
+```
+
+If there is no week for the current Monday-Sunday period, use `Start this week`.
+The app creates one `active` week, snapshots active templates into
+`week_activities`, and leaves day cells empty until you explicitly plan days in
+the grid. Retrying the start action is safe: the database prevents duplicate
+current weeks and duplicate template snapshots inside a week.
+
+While hosted Supabase email Magic Link auth is unavailable or rate-limited, use
+the development-only preview route to review the This Week grid interaction
+without touching Supabase:
+
+```text
+/dev/week-preview
+```
+
+That route uses deterministic in-memory fixture data, supports the same cell
+direct planning toggles as the real grid, and is unavailable in production.
 
 Local Supabase database validation requires a running local Supabase stack. The
 Supabase CLI uses Docker for that local stack.

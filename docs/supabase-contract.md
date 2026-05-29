@@ -124,6 +124,12 @@ the reusable list; they are not the source of truth for a past week.
 
 Rows cannot be inserted, updated, or deleted for a closed week.
 
+Current-week creation snapshots each active reusable template into
+`week_activities`. The repo migration
+`20260529040500_week_activity_snapshot_uniqueness.sql` adds a uniqueness guard
+on `(week_id, activity_template_id)` so retrying the first-week creation flow
+cannot duplicate the same template snapshot inside one week.
+
 ### `activity_day_cells`
 
 Purpose: one day cell for one week activity on one date.
@@ -160,6 +166,19 @@ week status is not draft
 ```
 
 Keeping missed derived avoids creating missed rows for unplanned or ghost weeks.
+
+The This Week grid is a planning and weekly-overview surface. It mutates only
+the `planned` fact:
+
+- Draft weeks: blank and planned cells toggle directly.
+- Active weeks: today and future blank/planned cells toggle directly.
+- Active past cells, done cells, missed cells, and closed weeks are display-only.
+
+Marking an unplanned cell done will store `planned = false` and `done = true`
+from the Today flow. Marking a planned cell done will store `planned = true` and
+`done = true`, but both render with the same Done visual treatment in the normal
+UI. Removing the last false/false fact deletes the day-cell row rather than
+storing empty cells.
 
 ## Seed Data
 

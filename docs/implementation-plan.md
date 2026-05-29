@@ -112,6 +112,15 @@ Use the visual status language from `docs/product-plan.md` and `AGENTS.md`:
 
 Do not invent a new visual language without approval.
 
+For material UI, interaction, responsive-layout, or mobile usability changes,
+create a reviewable local app state before calling the PR complete. If auth or
+persisted setup makes direct review difficult, use a development-only preview
+harness with representative fixture state. Preview harnesses must be disabled in
+production, avoid production data, avoid auth bypasses, and cover the states and
+interactions needed for Tim to review mobile and desktop behavior. High-impact
+screens should stay open for Tim's local interaction review unless he explicitly
+approves auto-merge.
+
 ## Build sequence
 
 ### Phase 0 — Repo and project foundation
@@ -151,9 +160,23 @@ Do not invent a new visual language without approval.
 ### Phase 4 — This Week grid
 
 - Show categories, activities, targets, and seven day cells.
-- Implement cell toggles/actions for blank, planned, done, and missed behavior.
-- Mark done on any day, even if unplanned.
+- Implement direct planning toggles for blank and planned cells.
+- Render done and missed states as display-only in the weekly overview.
 - Make the grid usable on mobile and desktop.
+
+The first current week is created from active seeded templates when `/week` has
+no current Monday-Sunday week. Creation snapshots category name, category order,
+activity name, target count, activity order, and template references into
+`week_activities`; day cells remain absent until the user explicitly plans or
+later completion flows record a done day.
+
+The MVP This Week grid is a planning and overview surface:
+
+- Draft weeks: blank and planned cells toggle directly.
+- Active weeks: today and future blank/planned cells toggle directly.
+- Active past cells, done cells, missed cells, and closed weeks are view-only.
+
+Completion entry belongs to Today, and completion corrections belong to Review.
 
 ### Phase 5 — Today view
 
