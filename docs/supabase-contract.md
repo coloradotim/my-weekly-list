@@ -176,6 +176,11 @@ the `planned` fact:
 - Active weeks: today and future blank/planned cells toggle directly.
 - Active past cells, done cells, missed cells, and closed weeks are display-only.
 
+The app may show an immediate optimistic planning toggle in the browser, but the
+server action still persists an explicit intended `planned` value through the
+authenticated Supabase session and existing RLS. Fresh loads use Supabase as the
+source of truth.
+
 Marking an unplanned cell done will store `planned = false` and `done = true`
 from the Today flow. Marking a planned cell done will store `planned = true` and
 `done = true`, but both render with the same Done visual treatment in the normal

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkAllowedUser } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createCurrentWeekFromTemplates, toggleWeekCellPlan } from "@/lib/week/current";
+import { createCurrentWeekFromTemplates, setWeekCellPlanned } from "@/lib/week/current";
+import type { DateOnly } from "@/lib/week/date";
 
 export async function startThisWeekAction() {
   const { supabase, userId } = await requireAllowedUser("/week");
@@ -22,31 +23,36 @@ export async function startThisWeekAction() {
   redirect("/week?week=started");
 }
 
-export async function toggleWeekPlanningCellAction(formData: FormData) {
-  const weekActivityId = String(formData.get("weekActivityId") ?? "");
-  const cellDate = String(formData.get("cellDate") ?? "");
-
+export async function setWeekPlanningCellAction({
+  weekActivityId,
+  cellDate,
+  planned,
+}: {
+  weekActivityId: string;
+  cellDate: DateOnly;
+  planned: boolean;
+}) {
   if (!weekActivityId || !cellDate) {
-    redirect("/week?cell=error");
+    return { status: "error" as const };
   }
 
   const { supabase } = await requireAllowedUser("/week");
-  const result = await toggleWeekCellPlan({
+  const result = await setWeekCellPlanned({
     supabase,
     weekActivityId,
     cellDate,
+    planned,
   });
 
   if (result.status === "blocked") {
-    redirect("/week?cell=blocked");
+    return { status: "blocked" as const };
   }
 
   if (result.status === "error") {
-    redirect("/week?cell=error");
+    return { status: "error" as const };
   }
 
-  revalidatePath("/week");
-  redirect("/week?cell=updated");
+  return { status: "updated" as const };
 }
 
 async function requireAllowedUser(nextPath: string) {

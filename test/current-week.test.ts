@@ -8,6 +8,7 @@ import {
   buildWeekCreationPlan,
   canTogglePlanningCell,
   getCellVisualState,
+  getDesiredPlanningCellFacts,
   getNextPlanningCellFacts,
   type ActivityTemplateSnapshot,
   type PersistedWeekActivity,
@@ -16,6 +17,11 @@ import {
 
 const weekActions = readFileSync(
   join(process.cwd(), "app/(app)/week/actions.ts"),
+  "utf8",
+);
+const weekPage = readFileSync(join(process.cwd(), "app/(app)/week/page.tsx"), "utf8");
+const optimisticGrid = readFileSync(
+  join(process.cwd(), "components/optimistic-this-week-grid.tsx"),
   "utf8",
 );
 
@@ -353,6 +359,27 @@ describe("persisted grid state", () => {
     });
   });
 
+  it("sets explicit desired planning facts without relying on blind toggles", () => {
+    expect(
+      getDesiredPlanningCellFacts({
+        currentCell: null,
+        desiredPlanned: true,
+      }),
+    ).toEqual({ planned: true, done: false });
+    expect(
+      getDesiredPlanningCellFacts({
+        currentCell: { planned: true, done: false },
+        desiredPlanned: false,
+      }),
+    ).toBeNull();
+    expect(
+      getDesiredPlanningCellFacts({
+        currentCell: { planned: false, done: true },
+        desiredPlanned: true,
+      }),
+    ).toEqual({ planned: false, done: true });
+  });
+
   it("allows direct planning toggles for draft days", () => {
     expect(
       canTogglePlanningCell({
@@ -443,11 +470,33 @@ describe("week action guardrails", () => {
   it("runs mutations behind user and allowed-email checks without service-role keys", () => {
     expect(weekActions).toContain("supabase.auth.getUser()");
     expect(weekActions).toContain("checkAllowedUser(user.email)");
-    expect(weekActions).toContain("toggleWeekCellPlan");
+    expect(weekActions).toContain("setWeekCellPlanned");
     expect(weekActions).not.toContain("mark_done");
     expect(weekActions).not.toContain("undo_done");
     expect(weekActions).not.toContain("SERVICE_ROLE");
     expect(weekActions).not.toContain("service_role");
+  });
+
+  it("uses an optimistic client grid instead of per-cell form navigation", () => {
+    expect(weekPage).toContain("OptimisticThisWeekGrid");
+    expect(weekPage).not.toContain("toggleWeekPlanningCellAction");
+    expect(optimisticGrid).toContain("applyOptimisticPlanningCell");
+    expect(optimisticGrid).toContain("setWeekPlanningCellAction");
+    expect(optimisticGrid).toContain("disabled={isPending}");
+    expect(optimisticGrid).toContain("Couldn’t save that change. Try again.");
+    expect(optimisticGrid).not.toContain("<form");
+    expect(optimisticGrid).not.toContain("redirect(");
+    expect(weekActions).not.toContain(
+      'revalidatePath("/week");\n  return { status: "updated"',
+    );
+  });
+
+  it("persists explicit desired planned state from the optimistic grid", () => {
+    expect(optimisticGrid).toContain("planned = getOptimisticPlannedValue(cell)");
+    expect(optimisticGrid).toContain("planned,");
+    expect(weekActions).toContain("planned: boolean");
+    expect(weekActions).toContain("setWeekPlanningCellAction");
+    expect(weekActions).not.toContain("toggle whatever");
   });
 });
 

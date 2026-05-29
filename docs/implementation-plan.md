@@ -176,6 +176,11 @@ The MVP This Week grid is a planning and overview surface:
 - Active weeks: today and future blank/planned cells toggle directly.
 - Active past cells, done cells, missed cells, and closed weeks are view-only.
 
+Planning toggles should feel immediate. The persisted Week grid uses local
+optimistic state for editable blank/planned cells and saves an explicit desired
+`planned` value in the background, rather than submitting a full-page form for
+each cell or relying on a blind server-side toggle.
+
 Completion entry belongs to Today, and completion corrections belong to Review.
 
 ### Phase 5 — Today view
