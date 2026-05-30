@@ -40,6 +40,14 @@ export function OptimisticThisWeekGrid({
   }, [initialView]);
 
   useEffect(() => {
+    if (initialView.week.status !== "active") {
+      return;
+    }
+
+    if (window.matchMedia("(min-width: 640px)").matches) {
+      return;
+    }
+
     const todayIndex = initialView.dayDates.indexOf(initialView.today);
 
     if (todayIndex < 0) {
@@ -60,7 +68,7 @@ export function OptimisticThisWeekGrid({
     if (grid && todayIndex === 0) {
       grid.scrollLeft = 0;
     }
-  }, [initialView.dayDates, initialView.today]);
+  }, [initialView.dayDates, initialView.today, initialView.week.status]);
 
   const notice = useMemo<WeekNotice>(() => {
     if (saveStatus === "error") {

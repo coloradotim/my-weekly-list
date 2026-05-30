@@ -16,7 +16,6 @@ import {
 } from "@/lib/today/current";
 import type { DateOnly } from "@/lib/week/date";
 
-type AdjustStep = "choices" | "move";
 type TemporaryUndo =
   | {
       kind: "move";
@@ -40,8 +39,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
   const [state, setState] = useState(initialState);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
-  const [adjustingActivityId, setAdjustingActivityId] = useState<string | null>(null);
-  const [adjustStep, setAdjustStep] = useState<AdjustStep>("choices");
+  const [movingActivityId, setMovingActivityId] = useState<string | null>(null);
   const [temporaryUndo, setTemporaryUndo] = useState<TemporaryUndo | null>(null);
   const [pendingActivityIds, setPendingActivityIds] = useState<Set<string>>(
     () => new Set(),
@@ -53,8 +51,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
     setState(initialState);
     setIsPickerOpen(false);
     setCollapsedCategories([]);
-    setAdjustingActivityId(null);
-    setAdjustStep("choices");
+    setMovingActivityId(null);
     setTemporaryUndo(null);
     setPendingActivityIds(new Set());
     setSaveStatus("idle");
@@ -139,8 +136,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
           skipped: false,
         }),
       afterApply: () => {
-        setAdjustingActivityId(null);
-        setAdjustStep("choices");
+        setMovingActivityId(null);
         setTemporaryUndo(null);
       },
     });
@@ -177,8 +173,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
           skipped: true,
         }),
       afterApply: () => {
-        setAdjustingActivityId(null);
-        setAdjustStep("choices");
+        setMovingActivityId(null);
         setTemporaryUndo({
           kind: "skip",
           activityId: activity.id,
@@ -225,8 +220,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
           toDate: moveDate.date,
         }),
       afterApply: () => {
-        setAdjustingActivityId(null);
-        setAdjustStep("choices");
+        setMovingActivityId(null);
         setTemporaryUndo({
           kind: "move",
           activityId: activity.id,
@@ -267,24 +261,13 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
 
   return (
     <div className="space-y-3">
-      <header className="rounded-lg border border-stone-200 bg-white/85 p-3 shadow-soft">
-        <p className="text-sm font-semibold uppercase tracking-wide text-clay">Today</p>
-        <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-normal text-ink">
-              {view.todayLabel}
-            </h1>
-            <p className="text-sm text-stone-600">Week {view.weekRangeLabel}</p>
-          </div>
-          {view.isSunday ? (
-            <p className="max-w-md rounded-lg border border-mist bg-mist/35 px-3 py-2 text-sm leading-5 text-stone-700">
-              Sunday stays in this week. Finish today or skip what will not happen.
-            </p>
-          ) : null}
-        </div>
-      </header>
-
       {notice ? <Notice tone={notice.tone} body={notice.body} /> : null}
+
+      {view.isSunday ? (
+        <p className="rounded-lg border border-mist bg-mist/35 px-3 py-2 text-sm leading-5 text-stone-700">
+          Sunday stays in this week. Finish today or skip what will not happen.
+        </p>
+      ) : null}
 
       <section className="space-y-2">
         <SectionHeading title="Planned for today" count={view.openPlannedToday.length} />
@@ -296,22 +279,16 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                 activity={activity}
                 isSunday={view.isSunday}
                 isPending={pendingActivityIds.has(activity.id)}
-                isAdjusting={adjustingActivityId === activity.id}
-                adjustStep={adjustStep}
+                isMoving={movingActivityId === activity.id}
                 moveDates={activity.moveDates}
                 onDone={() => markDone(activity)}
                 onSkip={() => skipTodayPlan(activity)}
-                onToggleAdjust={() => {
-                  setAdjustingActivityId((current) =>
+                onToggleMove={() => {
+                  setMovingActivityId((current) =>
                     current === activity.id ? null : activity.id,
                   );
-                  setAdjustStep("choices");
                 }}
-                onCancelAdjust={() => {
-                  setAdjustingActivityId(null);
-                  setAdjustStep("choices");
-                }}
-                onShowMoveDays={() => setAdjustStep("move")}
+                onCancelMove={() => setMovingActivityId(null)}
                 onMove={(moveDate) => moveTodayPlan(activity, moveDate)}
               />
             ))}
@@ -446,27 +423,23 @@ function OpenPlannedRow({
   activity,
   isSunday,
   isPending,
-  isAdjusting,
-  adjustStep,
+  isMoving,
   moveDates,
   onDone,
   onSkip,
-  onToggleAdjust,
-  onCancelAdjust,
-  onShowMoveDays,
+  onToggleMove,
+  onCancelMove,
   onMove,
 }: {
   activity: TodayActivity;
   isSunday: boolean;
   isPending: boolean;
-  isAdjusting: boolean;
-  adjustStep: AdjustStep;
+  isMoving: boolean;
   moveDates: TodayMoveDate[];
   onDone: () => void;
   onSkip: () => void;
-  onToggleAdjust: () => void;
-  onCancelAdjust: () => void;
-  onShowMoveDays: () => void;
+  onToggleMove: () => void;
+  onCancelMove: () => void;
   onMove: (moveDate: TodayMoveDate) => void;
 }) {
   return (
@@ -477,16 +450,6 @@ function OpenPlannedRow({
             {activity.activityName}
           </h2>
           <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
-          {!isSunday ? (
-            <button
-              type="button"
-              className="mt-1 text-sm font-semibold text-clay underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-              onClick={onToggleAdjust}
-              disabled={isPending}
-            >
-              Adjust plan
-            </button>
-          ) : null}
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <button
@@ -497,53 +460,47 @@ function OpenPlannedRow({
           >
             Mark done
           </button>
-          {isSunday ? (
+          {!isSunday && moveDates.length > 0 ? (
             <button
               type="button"
               className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:opacity-70"
-              onClick={onSkip}
+              onClick={onToggleMove}
               disabled={isPending}
+              aria-expanded={isMoving}
             >
-              Skip
+              Move
             </button>
           ) : null}
+          <button
+            type="button"
+            className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:opacity-70"
+            onClick={onSkip}
+            disabled={isPending}
+          >
+            Skip
+          </button>
         </div>
       </div>
-      {isAdjusting && !isSunday ? (
-        <AdjustPlanPanel
-          step={adjustStep}
-          moveDates={moveDates}
-          onCancel={onCancelAdjust}
-          onShowMoveDays={onShowMoveDays}
-          onMove={onMove}
-          onSkip={onSkip}
-        />
+      {isMoving && !isSunday ? (
+        <MovePlanPanel moveDates={moveDates} onCancel={onCancelMove} onMove={onMove} />
       ) : null}
     </article>
   );
 }
 
-function AdjustPlanPanel({
-  step,
+function MovePlanPanel({
   moveDates,
   onCancel,
-  onShowMoveDays,
   onMove,
-  onSkip,
 }: {
-  step: AdjustStep;
   moveDates: TodayMoveDate[];
   onCancel: () => void;
-  onShowMoveDays: () => void;
   onMove: (moveDate: TodayMoveDate) => void;
-  onSkip: () => void;
 }) {
   return (
     <div className="mt-3 rounded-lg border border-mist bg-mist/25 p-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-ink">
-          {step === "move" ? "Move to another day" : "Adjust plan"}
-        </p>
+        <p className="text-sm font-semibold text-ink">Move</p>
         <button
           type="button"
           className="rounded-full px-2 py-1 text-sm font-semibold text-stone-500 transition hover:bg-white hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
@@ -552,39 +509,18 @@ function AdjustPlanPanel({
           Cancel
         </button>
       </div>
-      {step === "move" ? (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {moveDates.map((moveDate) => (
-            <button
-              key={moveDate.date}
-              type="button"
-              className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-              onClick={() => onMove(moveDate)}
-            >
-              {moveDate.weekdayLabel}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {moveDates.length > 0 ? (
-            <button
-              type="button"
-              className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-              onClick={onShowMoveDays}
-            >
-              Move to another day
-            </button>
-          ) : null}
+      <div className="mt-2 flex flex-wrap gap-2">
+        {moveDates.map((moveDate) => (
           <button
+            key={moveDate.date}
             type="button"
-            className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-            onClick={onSkip}
+            className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-meadow hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow"
+            onClick={() => onMove(moveDate)}
           >
-            Skip
+            {moveDate.weekdayLabel}
           </button>
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }

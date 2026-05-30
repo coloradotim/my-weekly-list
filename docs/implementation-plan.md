@@ -4,7 +4,7 @@
 
 This document turns `docs/product-plan.md` into a practical build sequence for Codex-driven development.
 
-The goal is a private, single-user, responsive web app that works well in Chrome on iPhone and desktop browsers. The first release should preserve the paper workflow: plan a Monday-Sunday week, mark which days activities happen, move unfinished planned items, review done days against weekly targets, and close the week.
+The goal is a private, single-user, responsive web app that works well in Chrome on iPhone and desktop browsers. The first release should preserve the paper workflow: plan a Monday-Sunday week, mark which days activities happen, move or skip today's unfinished planned items, and review done days against weekly targets.
 
 ## Source of truth
 
@@ -55,36 +55,26 @@ Recommended plain-English model:
 
 A single activity can count at most once per day.
 
-## Week lifecycle
+## Week timing model
 
-Implement lifecycle states deliberately:
+Use date-based user-facing context:
 
-```text
-Draft -> Active -> Needs Review -> Closed
-```
+- This week: the current Monday-Sunday week.
+- Next week: the upcoming Monday-Sunday week prepared from Week.
+- Past week: an ended week that Review can summarize and correct.
 
-### Draft
-
-Future week being planned. Full editing is allowed.
-
-### Active
-
-Current Monday-Sunday week. Completion and day-plan adjustment are allowed. Do not allow brand-new activities, activity deletion, category changes, or target-count changes in MVP.
-
-### Needs Review
-
-Prior week that ended but has not been closed. Review and close are allowed. Do not block use of the current week.
-
-### Closed
-
-View-only historical week. No corrections or edits.
+There is no required Close, Finalize, or user-facing Draft step in normal MVP
+flow. Internal status values may remain for compatibility, but product routing
+and copy should derive current/next/past behavior from dates. Current-week
+structure remains stable in MVP; past weeks allow completion-only Review
+correction and no planning or structure edits.
 
 ## Date behavior
 
 - Weeks run Monday through Sunday.
 - App-side lifecycle helpers use `YYYY-MM-DD` date-only strings and UTC date math internally so a personal planning day does not shift because of browser or server timezone conversion.
 - Sunday should prompt review and next-week planning while still allowing Sunday execution.
-- Monday should start a planned Draft week as Active if one exists.
+- Monday should use a prepared next week as the current week if one exists.
 - If the user starts the current week late, do not create missed cells for days before the user planned the week.
 - If several weeks are missed, do not auto-create ghost weeks.
 
@@ -96,7 +86,7 @@ Build for these user moments first:
 2. Open app on iPhone and move an unfinished item to tomorrow.
 3. On Sunday, review the week and start planning next week.
 4. On desktop, view and adjust the weekly grid.
-5. On Monday or later, recover gracefully if the prior week was not reviewed or the current week was not planned.
+5. On Monday or later, recover gracefully if the current week does not exist yet.
 
 ## UI implementation standards
 
@@ -151,7 +141,7 @@ approves auto-merge.
 ### Phase 3 — Week lifecycle logic
 
 - Implement Monday-Sunday date helpers.
-- Implement Draft, Active, Needs Review, and Closed states.
+- Implement Monday-Sunday date helpers and internal status handling.
 - Implement Sunday prompt behavior.
 - Implement Monday transition behavior.
 - Implement late-start behavior.
@@ -163,8 +153,8 @@ approves auto-merge.
 - Implement direct planning toggles for blank and planned cells.
 - Render done and missed states as display-only in the weekly overview.
 - Make the grid usable on mobile and desktop.
-- Keep Week as the primary home for current-week viewing, future Draft planning,
-  and Draft list editing. `/plan`, if retained, is a compatibility redirect or
+- Keep Week as the primary home for current-week viewing, next-week planning,
+  and future list editing. `/plan`, if retained, is a compatibility redirect or
   internal route, not a primary navigation destination.
 
 The first current week is created from active seeded templates when `/week` has
@@ -175,9 +165,10 @@ later completion flows record a done day.
 
 The MVP This Week grid is a planning and overview surface:
 
-- Draft weeks: blank and planned cells toggle directly.
+- Future weeks being planned: blank and planned cells toggle directly.
 - Active weeks: today and future blank/planned cells toggle directly.
-- Active past cells, done cells, missed cells, and closed weeks are view-only.
+- Active past cells, done cells, missed cells, and past weeks are view-only for
+  planning.
 
 Planning toggles should feel immediate. The persisted Week grid uses local
 optimistic state for editable blank/planned cells and saves an explicit desired
@@ -193,12 +184,12 @@ Completion entry belongs to Today, and completion corrections belong to Review.
 - Show open planned items for today first, with fast `Mark done`.
 - Record unplanned same-day completion through `+ Something else`.
 - Show one unified Done today section for planned and unplanned completions.
-- Move today's planned occurrence to another remaining day, or explicitly Skip
-  it.
+- Show direct row actions: `Mark done`, `Move` when a valid later same-week
+  destination exists, and `Skip`.
 - Exclude move destinations where the same week activity is already planned or
   done, and never overwrite an existing destination cell.
 - Do not show unresolved prior planned days as a Today backlog; Review owns
-  backdated correction before week close.
+  backdated correction before relying on the week as history.
 
 Today should reuse the same `week_activities` and `activity_day_cells` model as
 This Week and should match the optimistic interaction quality established for
@@ -215,22 +206,22 @@ completion truth only in day-by-day details: checks for completed days and blank
 cells for all not-completed days. This Week may still use planned/missed/skipped
 visual language where appropriate.
 
-### Phase 6 — Draft planning and copy week inside Week
+### Phase 6 — Next-week planning and copy week inside Week
 
 - Launch next-week planning from Week rather than a standalone Plan screen.
-- Copy the most recent real week into a Draft week before the new week starts.
+- Copy the most recent real week into next week before the new week starts.
 - Copy activities, categories, targets, ordering, and planned-day pattern when
   planning ahead.
-- Never copy done, skipped, missed, or other outcome facts into the Draft.
+- Never copy done, skipped, missed, or other outcome facts into the new week.
 - If creating the current week late, copy activities and targets but default
   planned days from today forward only.
 - Do not create ghost weeks for skipped calendar gaps.
-- Use an existing Draft as the current Active week when its Monday arrives,
-  rather than requiring a Done/Ready/Finalize action or prior-week closure.
-- Allow Draft week editing from Week: activity name, category, new category,
+- Use an existing prepared next week as the current week when its Monday arrives,
+  rather than requiring a Done/Ready/Finalize action or prior-week ceremony.
+- Allow future week editing from Week: activity name, category, new category,
   target, add activity, remove from future weeks, category/activity order, and
   planned days.
-- Draft structural edits update the future reusable/template list while
+- Future-week structural edits update the reusable/template list while
   preserving historical `week_activities` snapshots.
 
 ### Phase 7 — Review and historical completion correction
@@ -247,6 +238,22 @@ visual language where appropriate.
 
 ### Phase 8 — Mobile polish and hardening
 
+- Replace the scaffold/home route with smart entry behavior: setup if the
+  starter list is missing, Today if the current week exists, and current-week
+  assurance from the saved list before landing on Today when setup is complete
+  and no current week exists.
+- Use compact app navigation focused on Today, Week, and Review. Do not expose
+  Plan, Home, Setup, or Sign out as primary navigation items.
+- Keep `/plan`, if retained, as a compatibility redirect/internal route rather
+  than a primary app destination.
+- Keep Sign out accessible through a quiet secondary account affordance.
+- Remove large mobile header cards where they do not help the user decide:
+  Today should begin with Today content, current Week should begin near the
+  grid, and Review should use compact context like `Review · May 25–31`.
+- On mobile, open current Week near today's column on initial load, while Next
+  Week and Past Week open at Monday. Do not reset the manual scroll position
+  during optimistic planning interactions.
+- Preserve the Today direct action model while polishing navigation and spacing.
 - Make iPhone Chrome the primary acceptance target.
 - Polish touch targets, spacing, empty states, and copy.
 - Add high-value Playwright flows if the foundation supports it.
@@ -266,7 +273,7 @@ Unit tests should cover:
 - one done count per activity per day
 - missed-state derivation
 - moving planned cells
-- closed week immutability
+- past-week planning/structure immutability
 - allowed-user access checks where practical
 
 Browser or integration tests should eventually cover:
@@ -276,7 +283,7 @@ Browser or integration tests should eventually cover:
 - marking planned item done
 - marking unplanned item done
 - moving an item
-- reviewing and closing a week
+- reviewing and correcting completion truth
 - mobile layout at iPhone viewport sizes
 
 ## Documentation expectations
@@ -298,11 +305,11 @@ MVP is done when Tim can:
 
 1. Log in with a Supabase email Magic Link and only his email can access the app.
 2. See or create the current Monday-Sunday week.
-3. Copy the prior week into a Draft from Week.
+3. Open Week for current-week planning and next-week list preparation.
 4. Plan days for activities.
 5. Use Today view on iPhone Chrome.
 6. Mark planned and unplanned items done.
 7. Move unfinished planned items.
-8. Review done days against target counts.
-9. Close a week and view it later as read-only.
+8. Review done days against target counts and correct completion truth.
+9. Use the app through a compact Today / Week / Review shell on iPhone.
 10. Deploy through Vercel with documented environment variables.

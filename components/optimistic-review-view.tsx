@@ -95,13 +95,8 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
 
   return (
     <section className="space-y-3">
-      <article className="rounded-lg border border-stone-200 bg-white/90 p-4 shadow-soft">
-        <p className="text-sm font-semibold uppercase tracking-wide text-clay">
-          Review this week
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink sm:text-3xl">
-          {view.rangeLabel}
-        </h1>
+      <article className="rounded-lg border border-stone-200 bg-white/90 p-3 shadow-soft sm:p-4">
+        <p className="text-sm font-semibold text-clay">Review · {view.rangeLabel}</p>
 
         {view.isSundayCurrentWeek ? (
           <p className="mt-3 rounded-lg border border-mist bg-mist/20 px-3 py-2 text-sm leading-6 text-stone-700">

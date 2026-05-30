@@ -57,6 +57,7 @@ export function ThisWeekGrid({
 
       <div
         data-week-grid-scroll
+        data-initial-scroll={view.week.status === "active" ? "today" : "monday"}
         className="snap-x snap-mandatory scroll-pl-[116px] overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft sm:scroll-pl-[172px]"
       >
         <div className="grid min-w-[620px] grid-cols-[minmax(116px,0.9fr)_repeat(7,minmax(52px,1fr))] pr-12 text-sm sm:min-w-[800px] sm:grid-cols-[minmax(172px,1.35fr)_repeat(7,minmax(66px,1fr))] sm:pr-0">
@@ -242,7 +243,7 @@ export function Notice({
 }
 
 export function formatDateRange(start: string, end: string) {
-  return `${formatMediumDate(start)} to ${formatMediumDate(end)}`;
+  return `${formatMediumDate(start)} – ${formatMediumDate(end)}`;
 }
 
 function formatMediumDate(date: string) {

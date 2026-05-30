@@ -94,16 +94,12 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
 
   return (
     <section className="space-y-3">
-      <header className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-clay">
-            This Week
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink sm:text-3xl">
-            {formatDateRange(state.view.week.weekStartDate, state.view.week.weekEndDate)}
-          </h1>
-        </div>
-      </header>
+      {state.view.week.status === "active" ? null : (
+        <p className="px-1 text-sm font-semibold text-clay">
+          {state.view.week.status === "draft" ? "Next week" : "Past"} ·{" "}
+          {formatDateRange(state.view.week.weekStartDate, state.view.week.weekEndDate)}
+        </p>
+      )}
       <OptimisticThisWeekGrid initialView={state.view} initialNotice={notice} />
       <WeekListEditor view={state.view} />
     </section>

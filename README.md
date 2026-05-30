@@ -6,17 +6,16 @@ This is a private/single-user app built for personal use.
 
 ## Current foundation
 
-This repository contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the first persisted This Week workflow.
+This repository contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the persisted weekly planning workflow.
 
 - Today
 - This Week
 - Review
-- Plan
 
-The This Week screen can create the current Monday-Sunday week from the seeded
-starter list, snapshot reusable templates into week activities, and persist
-planning day-cell facts. Today completion behavior, future Draft planning, and
-Review behavior are planned for later issues.
+The root route sends the authenticated owner into Today whenever possible. Week
+owns current-week planning, next-week list preparation, and list editing; Review
+summarizes and corrects completion truth. `/plan` is retained only as a
+compatibility redirect to Week, not as a primary app area.
 
 ## Local setup
 
