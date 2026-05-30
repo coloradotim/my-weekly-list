@@ -74,7 +74,8 @@ describe("persisted Review model", () => {
     expect(reviewClient).toContain("weekGridScrollerClassName");
     expect(reviewClient).toContain("weekGridColumnsClassName");
     expect(weekGridScrollerClassName).toContain("weekly-grid-scroller");
-    expect(weekGridScrollerClassName).toContain("overscroll-x-contain");
+    expect(weekGridScrollerClassName).toContain("touch-pan-x touch-pan-y");
+    expect(weekGridScrollerClassName).not.toContain("overscroll-x-contain");
     expect(weekGridColumnsClassName).toContain("weekly-grid-columns");
     expect(gridLayoutHook).toContain("mobileVisibleDayCount = 4");
     expect(gridLayoutHook).toContain("desktopVisibleDayCount = 7");
