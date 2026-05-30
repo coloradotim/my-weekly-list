@@ -270,10 +270,11 @@ function ReviewDayButton({
   return (
     <button
       type="button"
-      className={`flex min-h-11 snap-start items-center justify-center border-b border-stone-200 px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`flex min-h-11 snap-start items-center justify-center border-b border-stone-200 px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-inset disabled:cursor-not-allowed ${
         isToday ? "bg-mist/35" : "bg-white"
       }`}
       aria-label={label}
+      aria-busy={isPending}
       disabled={!cell.isCorrectionEditable || isPending}
       onClick={onClick}
     >

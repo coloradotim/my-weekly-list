@@ -15,16 +15,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/" className="text-base font-semibold tracking-normal text-ink">
             My Weekly List
           </Link>
-          <div className="flex items-center gap-3">
-            <PrimaryNav pathname={pathname} />
-            <AccountMenu />
-          </div>
+          <PrimaryNav pathname={pathname} />
         </div>
       </header>
-
-      <div className="fixed right-3 top-3 z-50 sm:hidden">
-        <AccountMenu compact />
-      </div>
 
       <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-8 sm:pt-6 lg:px-8">
         {children}
@@ -85,31 +78,6 @@ function PrimaryNav({ pathname }: { pathname: string }) {
         })}
       </ul>
     </nav>
-  );
-}
-
-function AccountMenu({ compact = false }: { compact?: boolean }) {
-  return (
-    <details className="group relative">
-      <summary
-        className={`flex cursor-pointer list-none items-center justify-center rounded-full border border-stone-200 bg-white/85 text-sm font-semibold text-stone-600 shadow-soft transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay [&::-webkit-details-marker]:hidden ${
-          compact ? "h-10 w-10" : "min-h-10 px-3"
-        }`}
-        aria-label="Account menu"
-      >
-        {compact ? "⋯" : "Account"}
-      </summary>
-      <div className="absolute right-0 mt-2 w-36 rounded-lg border border-stone-200 bg-white p-2 shadow-soft">
-        <form action="/auth/sign-out" method="post">
-          <button
-            type="submit"
-            className="w-full rounded-md px-3 py-2 text-left text-sm font-semibold text-stone-600 transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-          >
-            Sign out
-          </button>
-        </form>
-      </div>
-    </details>
   );
 }
 

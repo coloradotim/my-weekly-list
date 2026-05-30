@@ -26,8 +26,9 @@ There is no permanent top-level Plan workflow. Planning next week is launched
 from Week, and future list editing happens within that Week planning context.
 
 The normal mobile app shell should reflect that hierarchy: compact navigation
-for `Today`, `Week`, and `Review` only. Sign out remains available, but it should
-be a quiet secondary account action rather than competing with daily use.
+for `Today`, `Week`, and `Review` only. Because this is a private single-user
+app, Sign out does not need to appear in the app chrome; it can remain available
+through a deliberate utility route/script when needed.
 
 ## Design principles
 

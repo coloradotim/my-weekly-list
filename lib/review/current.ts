@@ -61,6 +61,7 @@ export type ReviewViewModel = {
   rangeLabel: string;
   completedActivityDays: number;
   summarySentence: string;
+  isCurrentWeek: boolean;
   isSundayCurrentWeek: boolean;
   targetsMet: ReviewSummaryRow[];
   shortOfTarget: ReviewSummaryRow[];
@@ -212,7 +213,8 @@ export function buildReviewViewModel(state: ReviewState): ReviewViewModel {
     dayDates: state.dayDates,
     rangeLabel: formatDateRange(state.week.weekStartDate, state.week.weekEndDate),
     completedActivityDays,
-    summarySentence: getReviewSummarySentence(completedActivityDays),
+    summarySentence: getReviewSummarySentence(completedActivityDays, state.isCurrentWeek),
+    isCurrentWeek: state.isCurrentWeek,
     isSundayCurrentWeek: state.isSundayCurrentWeek,
     targetsMet: rows.filter((row) => row.isTargetMet),
     shortOfTarget: rows.filter((row) => !row.isTargetMet),
@@ -220,8 +222,13 @@ export function buildReviewViewModel(state: ReviewState): ReviewViewModel {
   };
 }
 
-export function getReviewSummarySentence(completedActivityDays: number) {
-  return `You completed ${completedActivityDays} activities this week.`;
+export function getReviewSummarySentence(
+  completedActivityDays: number,
+  isCurrentWeek = false,
+) {
+  return isCurrentWeek
+    ? `You have completed ${completedActivityDays} activities so far this week.`
+    : `You completed ${completedActivityDays} activities this week.`;
 }
 
 export function getReviewDetailDisplayState(cell: Pick<ReviewDayCell, "done">) {

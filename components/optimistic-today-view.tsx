@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   moveTodayPlanAction,
   setTodayCellFactsAction,
@@ -46,13 +46,22 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
   );
   const [saveStatus, setSaveStatus] = useState<"idle" | "error">("idle");
   const [, startTransition] = useTransition();
+  const stateScopeRef = useRef(getTodayStateScope(initialState));
 
   useEffect(() => {
+    const nextScope = getTodayStateScope(initialState);
+    const scopeChanged = stateScopeRef.current !== nextScope;
+
+    stateScopeRef.current = nextScope;
     setState(initialState);
-    setIsPickerOpen(false);
-    setCollapsedCategories([]);
-    setMovingActivityId(null);
-    setTemporaryUndo(null);
+
+    if (scopeChanged) {
+      setIsPickerOpen(false);
+      setCollapsedCategories([]);
+      setMovingActivityId(null);
+      setTemporaryUndo(null);
+    }
+
     setPendingActivityIds(new Set());
     setSaveStatus("idle");
   }, [initialState]);
@@ -344,14 +353,15 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                     >
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                         onClick={() => togglePickerCategory(group.categoryName)}
                         aria-expanded={!isCollapsed}
+                        aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
+                          group.categoryName
+                        }`}
                       >
+                        <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
                         <span>{group.categoryName}</span>
-                        <span className="text-stone-500">
-                          {isCollapsed ? "Show" : "Hide"}
-                        </span>
                       </button>
                       {!isCollapsed ? (
                         <div className="border-t border-stone-100">
@@ -642,4 +652,8 @@ function EmptyNote({ body }: { body: string }) {
       {body}
     </p>
   );
+}
+
+function getTodayStateScope(state: TodayState) {
+  return `${state.week.id}:${state.today}`;
 }

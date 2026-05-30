@@ -291,9 +291,13 @@ describe("development today preview", () => {
     expect(previewClient).toContain("Move");
     expect(previewClient).toContain("moveDates.length > 0");
     expect(previewClient).toContain("Skip");
+    expect(previewClient).toContain("Collapse");
+    expect(previewClient).toContain("Expand");
     expect(previewClient).not.toContain("What did you do today?");
     expect(previewClient).not.toContain("Recorded ");
     expect(previewClient).not.toContain("Also done today");
+    expect(previewClient).not.toContain(">Hide<");
+    expect(previewClient).not.toContain(">Show<");
     expect(previewClient).not.toContain("Adjust plan");
     expect(previewClient).not.toContain("Move to another day");
     expect(previewClient).not.toContain("Earlier this week");

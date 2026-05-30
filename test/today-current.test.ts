@@ -249,6 +249,7 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Couldn’t save that change. Try again.");
     expect(todayClient).toContain("rollback");
     expect(todayClient).toContain("pendingActivityIds");
+    expect(todayClient).toContain("getTodayStateScope");
     expect(todayClient).not.toContain("router.refresh");
   });
 
@@ -261,7 +262,11 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Mark done today");
     expect(todayClient).toContain("Move");
     expect(todayClient).toContain("Skip");
+    expect(todayClient).toContain("Collapse");
+    expect(todayClient).toContain("Expand");
     expect(todayClient).not.toContain("Also done today");
+    expect(todayClient).not.toContain(">Hide<");
+    expect(todayClient).not.toContain(">Show<");
     expect(todayClient).not.toContain("Adjust plan");
     expect(todayClient).not.toContain("Earlier this week");
     expect(todayClient).not.toContain("Leave missed");

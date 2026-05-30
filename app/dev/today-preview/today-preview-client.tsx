@@ -275,14 +275,15 @@ export function TodayPreviewClient() {
                     >
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus:ring-2 focus:ring-clay"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus:ring-2 focus:ring-clay"
                         onClick={() => togglePickerCategory(group.categoryName)}
                         aria-expanded={!isCollapsed}
+                        aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
+                          group.categoryName
+                        }`}
                       >
+                        <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
                         <span>{group.categoryName}</span>
-                        <span className="text-stone-500">
-                          {isCollapsed ? "Show" : "Hide"}
-                        </span>
                       </button>
                       {!isCollapsed ? (
                         <div className="border-t border-stone-100">

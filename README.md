@@ -17,6 +17,13 @@ owns current-week planning, next-week list preparation, and list editing; Review
 summarizes and corrects completion truth. `/plan` is retained only as a
 compatibility redirect to Week, not as a primary app area.
 
+Sign out is intentionally not shown in the normal app chrome. To clear the
+current browser session and ask Supabase to invalidate refresh tokens, run:
+
+```bash
+scripts/sign-out.sh
+```
+
 ## Local setup
 
 Install dependencies:

@@ -246,7 +246,8 @@ visual language where appropriate.
   Plan, Home, Setup, or Sign out as primary navigation items.
 - Keep `/plan`, if retained, as a compatibility redirect/internal route rather
   than a primary app destination.
-- Keep Sign out accessible through a quiet secondary account affordance.
+- Keep Sign out out of normal app chrome; use a deliberate utility route/script
+  when a session needs to be cleared.
 - Remove large mobile header cards where they do not help the user decide:
   Today should begin with Today content, current Week should begin near the
   grid, and Review should use compact context like `Review · May 25–31`.
