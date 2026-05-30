@@ -7,6 +7,7 @@ import {
   getRequestOrigin,
   getSafeAuthNextPath,
   maskEmail,
+  parsePastedMagicLink,
   sendOwnerMagicLink,
   type MagicLinkAuthClient,
 } from "@/lib/auth/magic-link";
@@ -143,9 +144,62 @@ describe("owner magic-link auth", () => {
 
   it("does not accept an arbitrary email from browser input", () => {
     expect(loginAction).toContain('formData.get("next")');
+    expect(loginAction).toContain('formData.get("magicLink")');
+    expect(loginAction).toContain("parsePastedMagicLink");
+    expect(loginAction).toContain("verifyOtp");
     expect(loginAction).not.toContain('formData.get("email")');
     expect(loginAction).not.toContain("service_role");
     expect(loginForm).not.toContain('type="email"');
     expect(loginForm).not.toContain('name="email"');
+  });
+
+  it("lets the Home Screen app finish sign-in from a pasted app callback link", () => {
+    expect(
+      parsePastedMagicLink({
+        value:
+          "https://my-weekly-list.vercel.app/auth/callback?code=abc123&next=%2Ftoday",
+        requestOrigin: "https://my-weekly-list.vercel.app",
+      }),
+    ).toEqual({
+      status: "callback",
+      callbackPath: "/auth/callback?code=abc123&next=%2Ftoday",
+    });
+  });
+
+  it("extracts Supabase token-hash links and keeps the safe next path", () => {
+    expect(
+      parsePastedMagicLink({
+        value:
+          "https://project.supabase.co/auth/v1/verify?token_hash=hash123&type=email&redirect_to=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fnext%3D%252Ftoday",
+        requestOrigin: "https://my-weekly-list.vercel.app",
+      }),
+    ).toEqual({
+      status: "otp",
+      tokenHash: "hash123",
+      type: "email",
+      nextPath: "/today",
+    });
+  });
+
+  it("extracts magic links from Gmail-style wrapped URLs", () => {
+    expect(
+      parsePastedMagicLink({
+        value:
+          "https://www.google.com/url?q=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fcode%3Dabc123%26next%3D%252Fweek",
+        requestOrigin: "https://my-weekly-list.vercel.app",
+      }),
+    ).toEqual({
+      status: "callback",
+      callbackPath: "/auth/callback?code=abc123&next=%2Fweek",
+    });
+  });
+
+  it("rejects pasted callback links for another origin", () => {
+    expect(
+      parsePastedMagicLink({
+        value: "https://evil.example/auth/callback?code=abc123&next=%2Ftoday",
+        requestOrigin: "https://my-weekly-list.vercel.app",
+      }),
+    ).toEqual({ status: "invalid" });
   });
 });

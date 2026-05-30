@@ -10,6 +10,10 @@ export type MagicLinkAuthClient = {
         shouldCreateUser: false;
       };
     }): Promise<{ error: { message: string } | null }>;
+    verifyOtp?(options: {
+      token_hash: string;
+      type: "email" | "magiclink";
+    }): Promise<{ error: { message: string } | null }>;
   };
 };
 
@@ -32,6 +36,37 @@ export function getMagicLinkRedirectUrl(origin: string, nextPath: string) {
   const callbackUrl = new URL("/auth/callback", origin);
   callbackUrl.searchParams.set("next", getSafeAuthNextPath(nextPath));
   return callbackUrl.toString();
+}
+
+export type PastedMagicLinkResult =
+  | { status: "callback"; callbackPath: string }
+  | { status: "otp"; tokenHash: string; type: "email" | "magiclink"; nextPath: string }
+  | { status: "invalid" };
+
+export function parsePastedMagicLink({
+  value,
+  requestOrigin,
+}: {
+  value: string | null | undefined;
+  requestOrigin: string;
+}): PastedMagicLinkResult {
+  const candidates = collectMagicLinkCandidates(value, requestOrigin);
+
+  for (const url of candidates) {
+    const callback = parseCallbackCandidate(url, requestOrigin);
+
+    if (callback) {
+      return callback;
+    }
+
+    const otp = parseOtpCandidate(url);
+
+    if (otp) {
+      return otp;
+    }
+  }
+
+  return { status: "invalid" };
 }
 
 export type MagicLinkRedirectHeaders = Pick<Headers, "get">;
@@ -70,6 +105,92 @@ export function getRequestOrigin(headers: MagicLinkRedirectHeaders) {
 
 function getFirstHeaderValue(value: string | null) {
   return value?.split(",")[0]?.trim() || null;
+}
+
+function collectMagicLinkCandidates(
+  value: string | null | undefined,
+  requestOrigin: string,
+) {
+  const candidates: URL[] = [];
+  const queue = [value?.trim() ?? ""];
+  const seen = new Set<string>();
+
+  while (queue.length > 0 && seen.size < 12) {
+    const candidate = queue.shift();
+
+    if (!candidate || seen.has(candidate)) {
+      continue;
+    }
+
+    seen.add(candidate);
+
+    let url: URL;
+
+    try {
+      url = new URL(candidate, requestOrigin);
+    } catch {
+      continue;
+    }
+
+    candidates.push(url);
+
+    for (const key of ["redirect_to", "redirectTo", "url", "q"]) {
+      const nested = url.searchParams.get(key);
+
+      if (nested) {
+        queue.push(nested);
+      }
+    }
+  }
+
+  return candidates;
+}
+
+function parseCallbackCandidate(
+  url: URL,
+  requestOrigin: string,
+): Extract<PastedMagicLinkResult, { status: "callback" }> | null {
+  if (url.origin !== requestOrigin || url.pathname !== "/auth/callback") {
+    return null;
+  }
+
+  if (!url.searchParams.get("code")) {
+    return null;
+  }
+
+  return { status: "callback", callbackPath: `${url.pathname}${url.search}` };
+}
+
+function parseOtpCandidate(
+  url: URL,
+): Extract<PastedMagicLinkResult, { status: "otp" }> | null {
+  if (!url.pathname.endsWith("/auth/v1/verify")) {
+    return null;
+  }
+
+  const tokenHash = url.searchParams.get("token_hash");
+
+  if (!tokenHash) {
+    return null;
+  }
+
+  const type = getSupportedOtpType(url.searchParams.get("type"));
+  const redirectTo = url.searchParams.get("redirect_to");
+  let nextPath = "/today";
+
+  if (redirectTo) {
+    try {
+      nextPath = getSafeAuthNextPath(new URL(redirectTo).searchParams.get("next"));
+    } catch {
+      nextPath = "/today";
+    }
+  }
+
+  return { status: "otp", tokenHash, type, nextPath };
+}
+
+function getSupportedOtpType(type: string | null): "email" | "magiclink" {
+  return type === "email" ? "email" : "magiclink";
 }
 
 export function maskEmail(email: string | null | undefined) {
