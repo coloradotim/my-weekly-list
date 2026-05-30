@@ -1,6 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useWeekGridLayout } from "@/components/use-week-grid-layout";
+import {
+  weekGridColumnsClassName,
+  weekGridScrollerClassName,
+} from "@/components/week-grid-layout";
 import {
   applyReviewCompletionToggle,
   buildReviewSummary,
@@ -174,10 +179,15 @@ function ReviewDetailGrid({
 
       return groups;
     }, []);
+  const gridLayout = useWeekGridLayout();
 
   return (
-    <div className="snap-x snap-mandatory scroll-pl-[112px] overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft sm:scroll-pl-[168px]">
-      <div className="grid min-w-[604px] grid-cols-[minmax(112px,0.9fr)_repeat(7,minmax(50px,1fr))] text-sm sm:min-w-[780px] sm:grid-cols-[minmax(168px,1.3fr)_repeat(7,minmax(64px,1fr))]">
+    <div
+      ref={gridLayout.scrollerRef}
+      className={weekGridScrollerClassName}
+      style={gridLayout.scrollerStyle}
+    >
+      <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
         <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3">
           Activity
         </div>

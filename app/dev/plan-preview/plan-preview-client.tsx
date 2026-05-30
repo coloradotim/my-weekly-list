@@ -619,21 +619,20 @@ function DraftListEditor({
             >
               <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-paper px-3 py-2">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-clay">
-                  <span
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
                     aria-label={`Drag ${category.name} category`}
-                    className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
+                    className="mr-1 inline-flex min-h-9 min-w-9 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-stone-400 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                     onPointerDown={(event) => {
                       event.preventDefault();
+                      event.stopPropagation();
                       setDragItem({ type: "category", id: category.name });
                     }}
                   >
                     ⋮⋮
-                  </span>
+                  </button>
                   {category.name}
                 </h3>
-                <span className="text-xs text-stone-500">Drag to reorder</span>
               </div>
               <div className="divide-y divide-stone-200">
                 {category.activities.map((activity) => (
@@ -769,13 +768,12 @@ function ActivitySummaryRow({
   onEdit: () => void;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] gap-2 text-sm sm:grid-cols-[1.2fr_1fr_auto_auto] sm:items-center">
-      <div className="font-semibold text-ink">
-        <span
-          role="button"
-          tabIndex={0}
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 text-sm">
+      <div className="flex min-w-0 items-center gap-1 font-semibold text-ink">
+        <button
+          type="button"
           aria-label={`Drag ${activity.activityName}`}
-          className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
+          className="inline-flex min-h-9 min-w-9 shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-stone-400 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -783,10 +781,9 @@ function ActivitySummaryRow({
           }}
         >
           ⋮⋮
-        </span>
-        {activity.activityName}
+        </button>
+        <span className="min-w-0 truncate">{activity.activityName}</span>
       </div>
-      <div className="text-stone-600 sm:col-auto">{activity.categoryName}</div>
       <div className="text-stone-700">{activity.targetCount}/wk</div>
       <button
         type="button"

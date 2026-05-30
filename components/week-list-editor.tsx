@@ -8,6 +8,7 @@ import {
   reorderWeekActivitiesAction,
   reorderWeekCategoriesAction,
   updateWeekActivityListItemAction,
+  updateWeekActivityListItemClientAction,
 } from "@/app/(app)/week/actions";
 import type { ThisWeekViewModel, WeekGridActivity } from "@/lib/week/current";
 
@@ -109,6 +110,73 @@ export function WeekListEditor({
           onCategoriesChange?.(previousCategories);
         });
     });
+  }
+
+  function updateActivityInList({
+    activityId,
+    activityName,
+    categoryName,
+    targetCount,
+  }: {
+    activityId: string;
+    activityName: string;
+    categoryName: string;
+    targetCount: number;
+  }) {
+    let editedActivity: WeekGridActivity | null = null;
+    const existingCategory = listCategories.find(
+      (category) => category.name.toLowerCase() === categoryName.toLowerCase(),
+    );
+    const categorySortOrder =
+      existingCategory?.sortOrder ??
+      Math.max(0, ...listCategories.map((category) => category.sortOrder)) + 10;
+    const normalizedCategoryName = existingCategory?.name ?? categoryName;
+    const nextCategories = listCategories
+      .map((category) => ({
+        ...category,
+        activities: category.activities.filter((activity) => {
+          if (activity.id !== activityId) {
+            return true;
+          }
+
+          editedActivity = {
+            ...activity,
+            activityName,
+            categoryName: normalizedCategoryName,
+            categorySortOrder,
+            targetCount,
+          };
+
+          return false;
+        }),
+      }))
+      .filter((category) => category.activities.length > 0);
+
+    if (!editedActivity) {
+      return null;
+    }
+
+    const destinationCategory = nextCategories.find(
+      (category) => category.name.toLowerCase() === normalizedCategoryName.toLowerCase(),
+    );
+
+    if (destinationCategory) {
+      destinationCategory.activities = [
+        ...destinationCategory.activities,
+        editedActivity,
+      ].toSorted(compareListActivities);
+    } else {
+      nextCategories.push({
+        name: normalizedCategoryName,
+        sortOrder: categorySortOrder,
+        activities: [editedActivity],
+      });
+    }
+
+    return nextCategories.toSorted(
+      (left, right) =>
+        left.sortOrder - right.sortOrder || left.name.localeCompare(right.name),
+    );
   }
 
   useEffect(() => {
@@ -236,18 +304,17 @@ export function WeekListEditor({
                 <h2 className="flex min-w-0 items-center gap-1 text-xs font-semibold uppercase tracking-wide text-clay">
                   <button
                     type="button"
-                    className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                    className="flex min-h-8 min-w-8 shrink-0 items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                     aria-expanded={!isCollapsed}
                     aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${category.name}`}
                     onClick={() => toggleCategory(category.name)}
                   >
                     <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
                   </button>
-                  <span
-                    role="button"
-                    tabIndex={0}
+                  <button
+                    type="button"
                     aria-label={`Drag ${category.name} category`}
-                    className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
+                    className="mr-1 inline-flex min-h-9 min-w-9 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-stone-400 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                     onPointerDown={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -255,16 +322,15 @@ export function WeekListEditor({
                     }}
                   >
                     ⋮⋮
-                  </span>
+                  </button>
                   <span className="truncate">{category.name}</span>
                 </h2>
-                <span className="shrink-0 text-xs text-stone-500">
-                  {isCollapsed
-                    ? `${category.activities.length} ${
-                        category.activities.length === 1 ? "activity" : "activities"
-                      } hidden`
-                    : "Drag to reorder"}
-                </span>
+                {isCollapsed ? (
+                  <span className="shrink-0 text-xs text-stone-500">
+                    {category.activities.length}{" "}
+                    {category.activities.length === 1 ? "activity" : "activities"} hidden
+                  </span>
+                ) : null}
               </div>
               {!isCollapsed ? (
                 <div className="divide-y divide-stone-200">
@@ -289,6 +355,49 @@ export function WeekListEditor({
                               value={activity.id}
                             />
                           }
+                          onOptimisticSave={({ formData, values }) => {
+                            const previousCategories = listCategories;
+                            const nextCategories = updateActivityInList({
+                              activityId: activity.id,
+                              activityName: values.activityName,
+                              categoryName: values.categoryName,
+                              targetCount: values.targetCount,
+                            });
+
+                            if (!nextCategories) {
+                              setSaveError("That activity could not be saved.");
+                              return;
+                            }
+
+                            setSaveError(null);
+                            setEditingId(null);
+                            setListCategories(nextCategories);
+                            onCategoriesChange?.(nextCategories);
+
+                            startTransition(() => {
+                              void updateWeekActivityListItemClientAction(formData)
+                                .then((response) => {
+                                  if (response.status === "updated") {
+                                    return;
+                                  }
+
+                                  setSaveError(
+                                    "message" in response
+                                      ? response.message
+                                      : "That activity could not be saved just now.",
+                                  );
+                                  setListCategories(previousCategories);
+                                  onCategoriesChange?.(previousCategories);
+                                })
+                                .catch(() => {
+                                  setSaveError(
+                                    "That activity could not be saved just now. Try again.",
+                                  );
+                                  setListCategories(previousCategories);
+                                  onCategoriesChange?.(previousCategories);
+                                });
+                            });
+                          }}
                           onDelete={() => deleteActivity(activity.id)}
                           canDelete
                         />
@@ -348,13 +457,12 @@ function ActivitySummaryRow({
   onEdit: () => void;
 }) {
   return (
-    <div className="grid grid-cols-[1fr_auto] gap-2 text-sm sm:grid-cols-[1.2fr_1fr_auto_auto] sm:items-center">
-      <div className="font-semibold text-ink">
-        <span
-          role="button"
-          tabIndex={0}
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 text-sm">
+      <div className="flex min-w-0 items-center gap-1 font-semibold text-ink">
+        <button
+          type="button"
           aria-label={`Drag ${activity.activityName}`}
-          className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
+          className="inline-flex min-h-9 min-w-9 shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-stone-400 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -362,10 +470,9 @@ function ActivitySummaryRow({
           }}
         >
           ⋮⋮
-        </span>
-        {activity.activityName}
+        </button>
+        <span className="min-w-0 truncate">{activity.activityName}</span>
       </div>
-      <div className="text-stone-600 sm:col-auto">{activity.categoryName}</div>
       <div className="text-stone-700">{activity.targetCount}/wk</div>
       <button
         type="button"
@@ -383,6 +490,7 @@ function ActivityEditForm({
   categories,
   action,
   extraFields,
+  onOptimisticSave,
   canDelete = false,
   onDelete,
   onCancel,
@@ -391,6 +499,13 @@ function ActivityEditForm({
   categories: { name: string; sortOrder: number }[];
   action: (formData: FormData) => Promise<void>;
   extraFields: ReactNode;
+  onOptimisticSave?: ({
+    formData,
+    values,
+  }: {
+    formData: FormData;
+    values: { activityName: string; categoryName: string; targetCount: number };
+  }) => void;
   canDelete?: boolean;
   onDelete?: () => void;
   onCancel: () => void;
@@ -405,7 +520,34 @@ function ActivityEditForm({
   const categoryLabel = categoryMode === "new" ? "New category" : selectedCategory;
 
   return (
-    <form action={action} className="space-y-3">
+    <form
+      action={action}
+      className="space-y-3"
+      onSubmit={(event) => {
+        if (!onOptimisticSave) {
+          return;
+        }
+
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        const activityName = String(formData.get("activityName") ?? "").trim();
+        const categoryName = String(formData.get("categoryName") ?? "").trim();
+        const targetCount = Number(formData.get("targetCount"));
+
+        if (!activityName || !categoryName || !Number.isFinite(targetCount)) {
+          return;
+        }
+
+        onOptimisticSave({
+          formData,
+          values: {
+            activityName,
+            categoryName,
+            targetCount: Math.max(0, Math.floor(targetCount)),
+          },
+        });
+      }}
+    >
       {extraFields}
       <label className={fieldLabelClassName}>
         Activity name
@@ -597,6 +739,13 @@ function moveActivity(
   });
 
   return next;
+}
+
+function compareListActivities(left: WeekGridActivity, right: WeekGridActivity) {
+  return (
+    left.sortOrder - right.sortOrder ||
+    left.activityName.localeCompare(right.activityName)
+  );
 }
 
 const fieldLabelClassName =

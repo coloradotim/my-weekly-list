@@ -31,3 +31,8 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+.weekly-grid-columns {
+  display: grid;
+  min-width: 100%;
+}

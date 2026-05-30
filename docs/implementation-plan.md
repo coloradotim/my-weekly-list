@@ -177,6 +177,15 @@ each cell or relying on a blind server-side toggle.
 
 Completion entry belongs to Today, and completion corrections belong to Review.
 
+Week and Review day-by-day details must share the same responsive grid geometry
+for sticky activity/category context, day-column widths, horizontal scroll
+snapping, and mobile spacing. On mobile, day columns should be calculated from
+the available scroll-container width so four complete days fit next to the
+sticky activity column. The current Week view should initially snap to today's
+column, while Review day-by-day details should start at Monday. Treat that
+layout as shared infrastructure rather than separate screen-specific CSS, and
+verify Week, Review, and their development previews together when changing it.
+
 ### Phase 5 — Today view
 
 - Get Tim's approval on a development-only interactive local preview before

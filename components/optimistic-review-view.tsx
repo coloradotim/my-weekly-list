@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { setReviewCellDoneAction } from "@/app/(app)/review/actions";
+import { useWeekGridLayout } from "@/components/use-week-grid-layout";
+import {
+  weekGridColumnsClassName,
+  weekGridScrollerClassName,
+} from "@/components/week-grid-layout";
 import {
   applyOptimisticReviewAction,
   buildReviewViewModel,
@@ -208,60 +213,15 @@ function ReviewDetailGrid({
   onSetCompletion: (activityId: string, cell: ReviewDayCell, done: boolean) => void;
 }) {
   const collapsedCategorySet = new Set(collapsedCategoryNames);
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const [gridMetrics, setGridMetrics] = useState({
-    stickyWidth: 112,
-    dayWidth: 56,
-    endSpacer: 166,
-  });
-
-  useEffect(() => {
-    const scroller = scrollerRef.current;
-
-    if (!scroller) {
-      return;
-    }
-
-    const scrollerElement = scroller;
-
-    function updateMetrics() {
-      const width = scrollerElement.clientWidth;
-      const isDesktop = window.matchMedia("(min-width: 640px)").matches;
-      const stickyWidth = isDesktop ? 168 : 112;
-      const visibleDays = isDesktop ? 7 : 4;
-      const dayWidth = Math.max(48, (width - stickyWidth) / visibleDays);
-      const endSpacer = Math.max(0, width - stickyWidth - dayWidth);
-
-      setGridMetrics({
-        stickyWidth,
-        dayWidth,
-        endSpacer,
-      });
-    }
-
-    updateMetrics();
-
-    const observer = new ResizeObserver(updateMetrics);
-    observer.observe(scrollerElement);
-
-    return () => observer.disconnect();
-  }, []);
-  const gridWidth = gridMetrics.stickyWidth + gridMetrics.dayWidth * 7;
+  const gridLayout = useWeekGridLayout();
 
   return (
     <div
-      ref={scrollerRef}
-      className="snap-x snap-mandatory overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft"
-      style={{ scrollPaddingLeft: gridMetrics.stickyWidth }}
+      ref={gridLayout.scrollerRef}
+      className={weekGridScrollerClassName}
+      style={gridLayout.scrollerStyle}
     >
-      <div
-        className="grid box-content text-sm"
-        style={{
-          gridTemplateColumns: `${gridMetrics.stickyWidth}px repeat(7, ${gridMetrics.dayWidth}px)`,
-          paddingRight: gridMetrics.endSpacer,
-          width: gridWidth,
-        }}
-      >
+      <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
         <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3">
           Activity
         </div>

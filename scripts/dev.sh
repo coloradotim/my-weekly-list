@@ -120,10 +120,10 @@ start_server() {
   fi
 
   echo "Starting dev server at $DEV_URL..."
-  (
-    cd "$ROOT_DIR"
-    exec npm run dev -- --hostname "$DEV_HOST" --port "$DEV_PORT"
-  ) >"$LOG_FILE" 2>&1 &
+  nohup bash -c '
+    cd "$1"
+    exec npm run dev -- --hostname "$2" --port "$3"
+  ' _ "$ROOT_DIR" "$DEV_HOST" "$DEV_PORT" >"$LOG_FILE" 2>&1 < /dev/null &
   echo "$!" >"$PID_FILE"
 
   wait_for_port "$DEV_PORT"

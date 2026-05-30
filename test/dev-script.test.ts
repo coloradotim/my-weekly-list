@@ -22,9 +22,9 @@ describe("dev server helper", () => {
   it("runs next dev with configurable host and port", () => {
     expect(devScript).toContain('DEV_HOST="${DEV_HOST:-127.0.0.1}"');
     expect(devScript).toContain('DEV_PORT="${DEV_PORT:-3000}"');
-    expect(devScript).toContain(
-      'npm run dev -- --hostname "$DEV_HOST" --port "$DEV_PORT"',
-    );
+    expect(devScript).toContain("nohup bash -c");
+    expect(devScript).toContain('exec npm run dev -- --hostname "$2" --port "$3"');
+    expect(devScript).toContain('"$ROOT_DIR" "$DEV_HOST" "$DEV_PORT"');
   });
 
   it("keeps local PID and log files out of git", () => {

@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  weekGridColumnsClassName,
+  weekGridScrollerClassName,
+} from "@/components/week-grid-layout";
+import {
   applyReviewCompletionToggle,
   buildReviewSummary,
   findReviewCell,
@@ -17,6 +21,10 @@ const previewPage = readFileSync(
 );
 const previewClient = readFileSync(
   join(process.cwd(), "app/dev/review-preview/review-preview-client.tsx"),
+  "utf8",
+);
+const gridLayoutHook = readFileSync(
+  join(process.cwd(), "components/use-week-grid-layout.ts"),
   "utf8",
 );
 
@@ -97,6 +105,17 @@ describe("development review preview", () => {
     expect(previewClient).toContain("border border-stone-300 bg-white");
     expect(previewClient).toContain("bg-meadow");
     expect(previewClient).not.toContain("bg-stone-100");
+  });
+
+  it("uses the same responsive grid geometry as Week", () => {
+    expect(previewClient).toContain("weekGridScrollerClassName");
+    expect(previewClient).toContain("weekGridColumnsClassName");
+    expect(weekGridScrollerClassName).toContain("weekly-grid-scroller");
+    expect(weekGridScrollerClassName).toContain("overscroll-x-contain");
+    expect(weekGridColumnsClassName).toContain("weekly-grid-columns");
+    expect(gridLayoutHook).toContain("mobileVisibleDayCount = 4");
+    expect(gridLayoutHook).toContain("desktopVisibleDayCount = 7");
+    expect(gridLayoutHook).toContain("availableDayWidth / visibleDayCount");
   });
 
   it("adds category context only inside day-by-day details", () => {
