@@ -3,10 +3,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { routeLabels } from "@/lib/routes";
 import { getSmartEntryDestination } from "@/lib/entry/smart-entry";
+import manifest from "@/app/manifest";
 
 const appShell = readFileSync(join(process.cwd(), "components/app-shell.tsx"), "utf8");
 const appLayout = readFileSync(join(process.cwd(), "app/(app)/layout.tsx"), "utf8");
+const rootLayout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
 const homePage = readFileSync(join(process.cwd(), "app/(app)/page.tsx"), "utf8");
+const installPage = readFileSync(join(process.cwd(), "app/install/page.tsx"), "utf8");
+const middleware = readFileSync(join(process.cwd(), "middleware.ts"), "utf8");
 const signOutRoute = readFileSync(
   join(process.cwd(), "app/auth/sign-out/route.ts"),
   "utf8",
@@ -27,20 +31,72 @@ describe("app routes", () => {
 
   it("renders mobile bottom navigation without in-app sign-out chrome", () => {
     expect(appLayout).toContain("AppShell");
-    expect(appShell).toContain("window.visualViewport");
-    expect(appShell).toContain("--mobile-browser-bottom-offset");
-    expect(appShell).toContain("bottom-[var(--mobile-browser-bottom-offset,0px)]");
+    expect(appShell).toContain("fixed inset-x-0 bottom-0");
     expect(appShell).toContain("touch-manipulation");
     expect(appShell).toContain("env(safe-area-inset-bottom)");
     expect(appShell).toContain('aria-label="Main navigation"');
     expect(appShell).toContain('aria-current={selected ? "page" : undefined}');
-    expect(appShell).toContain("fixed inset-x-0");
+    expect(appShell).not.toContain("visualViewport");
+    expect(appShell).not.toContain("--mobile-browser-bottom-offset");
     expect(appShell).not.toContain("h-[100dvh]");
     expect(appShell).not.toContain("overflow-y-auto overscroll-y-contain");
     expect(appShell).not.toContain("Account");
     expect(appShell).not.toContain("Sign out");
     expect(appShell).not.toContain('href="/plan"');
     expect(appShell).not.toContain(">Plan<");
+  });
+
+  it("provides a stable install route outside primary navigation", () => {
+    expect(installPage).toContain("Install My Weekly List");
+    expect(installPage).toContain("Open this page in Safari.");
+    expect(installPage).toContain("Tap Share.");
+    expect(installPage).toContain("Tap Add to Home Screen.");
+    expect(installPage).toContain('href="/"');
+    expect(installPage).not.toContain("redirect(");
+    expect(middleware).toContain('pathname === "/install"');
+    expect(middleware).toContain('pathname === "/manifest.webmanifest"');
+    expect(middleware).toContain('pathname === "/apple-touch-icon.png"');
+    expect(middleware).toContain('pathname === "/icon-192.png"');
+    expect(middleware).toContain('pathname === "/icon-512.png"');
+    expect(routeLabels()).not.toContain("Install");
+  });
+
+  it("defines standalone web app metadata and icons", () => {
+    const appManifest = manifest();
+
+    expect(appManifest).toMatchObject({
+      name: "My Weekly List",
+      short_name: "My Weekly List",
+      start_url: "/",
+      scope: "/",
+      display: "standalone",
+      background_color: "#fffaf2",
+      theme_color: "#fffaf2",
+    });
+    expect(appManifest.icons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ src: "/icon-192.png", sizes: "192x192" }),
+        expect.objectContaining({ src: "/icon-512.png", sizes: "512x512" }),
+      ]),
+    );
+    expect(rootLayout).toContain('manifest: "/manifest.webmanifest"');
+    expect(rootLayout).toContain('apple: [{ url: "/apple-touch-icon.png"');
+    expect(rootLayout).toContain("appleWebApp");
+    expect(rootLayout).toContain("capable: true");
+    expect(rootLayout).toContain('"mobile-web-app-capable": "yes"');
+    expect(rootLayout).toContain('viewportFit: "cover"');
+  });
+
+  it("includes real Home Screen icon assets", () => {
+    for (const iconPath of [
+      "public/apple-touch-icon.png",
+      "public/icon-192.png",
+      "public/icon-512.png",
+    ]) {
+      expect(readFileSync(join(process.cwd(), iconPath)).subarray(1, 4).toString()).toBe(
+        "PNG",
+      );
+    }
   });
 
   it("keeps sign-out available as an explicit utility instead of app chrome", () => {

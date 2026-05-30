@@ -8,13 +8,24 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
+  const pathname = request.nextUrl.pathname;
 
-  if (request.nextUrl.pathname.startsWith("/dev/")) {
+  if (pathname.startsWith("/dev/")) {
     if (isDevPreviewEnabled()) {
       return response;
     }
 
     return new Response(null, { status: 404 });
+  }
+
+  if (
+    pathname === "/install" ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/apple-touch-icon.png" ||
+    pathname === "/icon-192.png" ||
+    pathname === "/icon-512.png"
+  ) {
+    return response;
   }
 
   const config = getSupabaseConfig();

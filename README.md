@@ -250,12 +250,24 @@ Use this checklist after deployment:
 10. Revisit `/` and Week after refreshes; confirm no duplicate current week or
     duplicate week-activity snapshots appear.
 
-For iPhone Chrome acceptance, also confirm the bottom navigation remains above
-browser controls and has reliable tap targets on Today, Week, and Review. Week
-and Review use scroll-heavy weekly grids, so check them directly rather than
-assuming the Today shell behavior covers them. Also confirm Today opens directly
-into useful actions, current Week opens near today's column, Next/Past Week open
-at Monday, and Review remains readable and compact.
+For iPhone Home Screen acceptance, reinstall from the stable install page:
+
+1. Delete all existing Home Screen icons for My Weekly List.
+2. Open Safari.
+3. Go to `https://my-weekly-list.vercel.app/install`.
+4. Use Share -> Add to Home Screen.
+5. Confirm the icon is the real app icon, not a generic `M`.
+6. Launch the Home Screen icon.
+7. Confirm it opens the app through root smart-entry behavior.
+8. Test Today, Week, and Review.
+9. Navigate between Today / Week / Review using the app bottom nav.
+10. Close and reopen the Home Screen app after last visiting Today.
+11. Close and reopen after last visiting Week.
+12. Close and reopen after last visiting Review.
+13. Confirm browser chrome does not appear inconsistently by route.
+14. Confirm there is no giant top gap.
+15. Confirm bottom nav is at the bottom safe area and immediately tappable.
+16. Confirm Week still opens at today and grid scrolling works.
 
 ## Development notes
 
