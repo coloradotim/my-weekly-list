@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAllowedUserEmail } from "@/lib/auth/access";
 import {
   getMagicLinkRedirectUrlFromHeaders,
   getRequestOrigin,
@@ -60,7 +61,7 @@ export async function completePastedMagicLinkAction(formData: FormData) {
     redirect(parsed.callbackPath);
   }
 
-  if (parsed.status === "otp") {
+  if (parsed.status === "token-hash") {
     const { error } = await supabase.auth.verifyOtp({
       token_hash: parsed.tokenHash,
       type: parsed.type,
@@ -68,6 +69,22 @@ export async function completePastedMagicLinkAction(formData: FormData) {
 
     if (!error) {
       redirect(parsed.nextPath);
+    }
+  }
+
+  if (parsed.status === "token") {
+    const email = getAllowedUserEmail();
+
+    if (email) {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: parsed.token,
+        type: parsed.type,
+      });
+
+      if (!error) {
+        redirect(parsed.nextPath);
+      }
     }
   }
 
