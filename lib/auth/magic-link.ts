@@ -54,7 +54,7 @@ export type PastedMagicLinkResult =
       type: "email" | "magiclink";
       nextPath: string;
     }
-  | { status: "token"; token: string; type: "email" | "magiclink"; nextPath: string }
+  | { status: "verify-url"; verifyUrl: string; nextPath: string }
   | { status: "invalid" };
 
 export function parsePastedMagicLink({
@@ -163,8 +163,14 @@ function collectMagicLinkCandidates(
 function extractCandidateStrings(value: string | null | undefined) {
   const normalized = (value ?? "").trim().replaceAll("&amp;", "&").replace(/^<|>$/g, "");
   const urls = normalized.match(/https?:\/\/[^\s<>"']+/g) ?? [];
+  const directCandidate =
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://") ||
+    normalized.startsWith("/")
+      ? [normalized]
+      : [];
 
-  return [...new Set([normalized, ...urls].filter(Boolean))];
+  return [...new Set([...urls, ...directCandidate].filter(Boolean))];
 }
 
 function parseCallbackCandidate(
@@ -186,7 +192,7 @@ function parseVerifyCandidate(
   url: URL,
 ):
   | Extract<PastedMagicLinkResult, { status: "token-hash" }>
-  | Extract<PastedMagicLinkResult, { status: "token" }>
+  | Extract<PastedMagicLinkResult, { status: "verify-url" }>
   | null {
   if (!url.pathname.endsWith("/auth/v1/verify")) {
     return null;
@@ -194,7 +200,6 @@ function parseVerifyCandidate(
 
   const tokenHash = url.searchParams.get("token_hash");
   const token = url.searchParams.get("token");
-
   const type = getSupportedOtpType(url.searchParams.get("type"));
   const nextPath = getNextPathFromRedirectTo(url.searchParams.get("redirect_to"));
 
@@ -203,7 +208,7 @@ function parseVerifyCandidate(
   }
 
   if (token) {
-    return { status: "token", token, type, nextPath };
+    return { status: "verify-url", verifyUrl: url.toString(), nextPath };
   }
 
   return null;

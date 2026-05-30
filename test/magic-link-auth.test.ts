@@ -189,9 +189,9 @@ describe("owner magic-link auth", () => {
         requestOrigin: "https://my-weekly-list.vercel.app",
       }),
     ).toEqual({
-      status: "token",
-      token: "123456",
-      type: "magiclink",
+      status: "verify-url",
+      verifyUrl:
+        "https://project.supabase.co/auth/v1/verify?token=123456&type=magiclink&redirect_to=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fnext%3D%252Ftoday",
       nextPath: "/today",
     });
   });
