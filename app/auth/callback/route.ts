@@ -15,7 +15,14 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("magic", "callback-error");
+      loginUrl.searchParams.set("next", safeNext);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   const {
@@ -34,5 +41,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(unauthorizedUrl);
   }
 
-  return NextResponse.redirect(new URL("/login", request.url));
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set("magic", code ? "callback-error" : "missing-session");
+  loginUrl.searchParams.set("next", safeNext);
+  return NextResponse.redirect(loginUrl);
 }

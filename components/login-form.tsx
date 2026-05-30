@@ -110,5 +110,13 @@ function getLoginStatusMessage(status: string | undefined) {
     return "That sign-in link could not be used. Copy the full link from the latest email and try again.";
   }
 
+  if (status === "callback-error") {
+    return "That sign-in link reached the app, but Supabase could not finish the session. Request a fresh link and paste it here instead of opening it directly.";
+  }
+
+  if (status === "missing-session") {
+    return "The app does not have an active session yet. Request a fresh link and paste it here.";
+  }
+
   return "";
 }

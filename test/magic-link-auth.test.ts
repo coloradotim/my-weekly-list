@@ -15,6 +15,7 @@ import {
 const repoRoot = process.cwd();
 const loginAction = readFileSync(join(repoRoot, "app/login/actions.ts"), "utf8");
 const loginForm = readFileSync(join(repoRoot, "components/login-form.tsx"), "utf8");
+const authCallback = readFileSync(join(repoRoot, "app/auth/callback/route.ts"), "utf8");
 
 function createMagicLinkClient() {
   const calls: unknown[] = [];
@@ -147,6 +148,8 @@ describe("owner magic-link auth", () => {
     expect(loginAction).toContain('formData.get("magicLink")');
     expect(loginAction).toContain("parsePastedMagicLink");
     expect(loginAction).toContain("verifyOtp");
+    expect(loginAction).toContain("email,");
+    expect(loginAction).toContain("token: parsed.token");
     expect(loginAction).not.toContain('formData.get("email")');
     expect(loginAction).not.toContain("service_role");
     expect(loginForm).not.toContain('type="email"');
@@ -192,6 +195,8 @@ describe("owner magic-link auth", () => {
       status: "verify-url",
       verifyUrl:
         "https://project.supabase.co/auth/v1/verify?token=123456&type=magiclink&redirect_to=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fnext%3D%252Ftoday",
+      token: "123456",
+      type: "magiclink",
       nextPath: "/today",
     });
   });
@@ -216,5 +221,12 @@ describe("owner magic-link auth", () => {
         requestOrigin: "https://my-weekly-list.vercel.app",
       }),
     ).toEqual({ status: "invalid" });
+  });
+
+  it("reports callback exchange failures instead of silently returning to login", () => {
+    expect(authCallback).toContain("exchangeCodeForSession");
+    expect(authCallback).toContain("callback-error");
+    expect(authCallback).toContain("missing-session");
+    expect(loginForm).toContain("Supabase could not finish the session");
   });
 });
