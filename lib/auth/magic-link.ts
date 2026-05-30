@@ -57,7 +57,7 @@ export type PastedMagicLinkResult =
   | {
       status: "verify-url";
       verifyUrl: string;
-      token: string;
+      tokenHash: string;
       type: "email" | "magiclink";
       nextPath: string;
     }
@@ -205,7 +205,7 @@ function parseVerifyCandidate(
   }
 
   const tokenHash = url.searchParams.get("token_hash");
-  const token = url.searchParams.get("token");
+  const tokenHashFromActionLink = url.searchParams.get("token");
   const type = getSupportedOtpType(url.searchParams.get("type"));
   const nextPath = getNextPathFromRedirectTo(url.searchParams.get("redirect_to"));
 
@@ -213,8 +213,14 @@ function parseVerifyCandidate(
     return { status: "token-hash", tokenHash, type, nextPath };
   }
 
-  if (token) {
-    return { status: "verify-url", verifyUrl: url.toString(), token, type, nextPath };
+  if (tokenHashFromActionLink) {
+    return {
+      status: "verify-url",
+      verifyUrl: url.toString(),
+      tokenHash: tokenHashFromActionLink,
+      type,
+      nextPath,
+    };
   }
 
   return null;
