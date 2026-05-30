@@ -1,8 +1,7 @@
 export const appRoutes = [
   { href: "/today", label: "Today" },
-  { href: "/week", label: "This Week" },
+  { href: "/week", label: "Week" },
   { href: "/review", label: "Review" },
-  { href: "/plan", label: "Plan" },
 ] as const;
 
 export function routeLabels() {

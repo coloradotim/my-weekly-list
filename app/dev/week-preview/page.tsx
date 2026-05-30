@@ -16,7 +16,7 @@ export default function DevWeekPreviewPage() {
           Development preview
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-          This Week grid preview
+          Week preview
         </h1>
         <p className="mt-1 max-w-2xl text-sm leading-6 text-stone-700">
           Local fixture state only. This route is disabled in production and does not

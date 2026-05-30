@@ -34,6 +34,9 @@ describe("development week preview", () => {
   it("uses local fixture state without Supabase clients or service-role keys", () => {
     expect(previewClient).toContain("useState");
     expect(previewClient).toContain("getInitialWeekPreviewView");
+    expect(previewClient).toContain("PlanPreviewClient");
+    expect(previewClient).toContain("Draft/list editing");
+    expect(previewClient).toContain("Grid states");
     expect(previewClient).not.toContain("createSupabase");
     expect(previewClient).not.toContain("SERVICE_ROLE");
     expect(previewClient).not.toContain("service_role");

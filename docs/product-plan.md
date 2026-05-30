@@ -16,6 +16,15 @@ The current paper workflow is:
 
 The app should preserve that lightweight rhythm without turning it into a generic task manager, calendar replacement, streak tracker, or productivity framework. The core value is helping the user make a weekly plan, use it day by day, recover when the week changes, and review done days against weekly targets.
 
+The main product areas are:
+
+- `Today`: do and record today's activity.
+- `Week`: view, plan, and edit the current or future Monday-Sunday week.
+- `Review`: reflect on historical completion and make allowed corrections.
+
+There is no permanent top-level Plan workflow. Planning next week is launched
+from Week, and Draft list editing happens within that Week planning context.
+
 ## Design principles
 
 1. Keep the experience simple enough to use daily on an iPhone.
@@ -120,7 +129,7 @@ Important rules:
 
 The default weekly rhythm is:
 
-1. Sunday: finish any Sunday activities, review the current week, and plan next week.
+1. Sunday: finish any Sunday activities, review the current week, and plan next week from Week.
 2. Monday: start the new active week.
 3. Monday through Saturday: use Today view, mark activities done, move unfinished items, and adjust planned days as needed.
 4. During the week: mark an activity done on any day, even if it was not originally planned for that day.
@@ -293,9 +302,11 @@ the expanded `+ Something else` picker.
 
 The Today view should be fast. The user should be able to open the app, mark something done, and leave within seconds.
 
-### This Week
+### Week
 
-This Week is the digital version of the paper sheet.
+Week is the digital version of the paper sheet and owns weekly planning. It
+shows the current active week by default, can open a future Draft week for
+next-week planning, and is where Draft list editing lives.
 
 It should show:
 
@@ -310,19 +321,22 @@ It should show:
 The grid is a planning and weekly-overview surface. Completion entry belongs in
 Today, while correction of forgotten prior-day completions belongs in Review.
 
-### Edit List / Draft Week Planning
+### Draft List Editing Inside Week
 
-For MVP, list editing should focus on draft/future weeks rather than active weeks.
+For MVP, list editing should focus on draft/future weeks rather than active
+weeks. It is accessed from Week, not from a separate primary Plan destination.
+Use copy like `Edit next week's list` when viewing a future Draft.
 
 It should support for Draft weeks:
 
 - add activity
 - edit activity name
 - edit category
+- create a new category when adding or editing an activity
 - edit weekly target count
 - remove from future weeks by marking inactive
 - adjust planned days
-- reorder later, not required for first MVP unless easy
+- reorder categories and activities when supported by the implementation
 
 The UI should say "Remove from future weeks" rather than "Archive" in normal use.
 
@@ -427,6 +441,8 @@ correction of forgotten prior-day completions.
 - Weeks run Monday through Sunday.
 - Sunday is the preferred review and next-week planning day.
 - Monday is the start of the active week.
+- Week owns current-week viewing, future Draft planning, and Draft list editing.
+- There is no permanent top-level Plan workflow in the product model.
 - Copy previous week should default to copying activities, target counts, categories, and planned days when planning before the new week starts.
 - If creating the current week late, copy activities and target counts but default to planned days from today forward only.
 - The user can then adjust the copied Draft week.
