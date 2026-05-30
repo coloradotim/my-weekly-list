@@ -148,14 +148,15 @@ describe("owner magic-link auth", () => {
     expect(loginAction).toContain('formData.get("magicLink")');
     expect(loginAction).toContain("parsePastedMagicLink");
     expect(loginAction).toContain("verifyOtp");
-    expect(loginAction).toContain("verifyPastedEmailToken");
-    expect(loginAction).toContain("email,");
-    expect(loginAction).toContain("token: parsed.token");
+    expect(loginAction).toContain("verifyPastedTokenHash");
+    expect(loginAction).toContain("token_hash: tokenHash");
+    expect(loginAction).toContain("tokenHash: parsed.tokenHash");
     expect(loginAction).toContain('["magiclink", "email"]');
     expect(loginAction).toContain("token-error");
     expect(loginAction).not.toContain("resolveSupabaseVerifyUrl");
     expect(loginAction).not.toContain("fetch(verifyUrl");
     expect(loginAction).not.toContain("redirect(callbackPath)");
+    expect(loginAction).not.toContain("token: parsed.token");
     expect(loginAction).not.toContain('formData.get("email")');
     expect(loginAction).not.toContain("service_role");
     expect(loginForm).not.toContain('type="email"');
@@ -201,7 +202,7 @@ describe("owner magic-link auth", () => {
       status: "verify-url",
       verifyUrl:
         "https://project.supabase.co/auth/v1/verify?token=123456&type=magiclink&redirect_to=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fnext%3D%252Ftoday",
-      token: "123456",
+      tokenHash: "123456",
       type: "magiclink",
       nextPath: "/today",
     });
@@ -218,7 +219,7 @@ describe("owner magic-link auth", () => {
       status: "verify-url",
       verifyUrl:
         "https://dtauepnsjsdrxbphryhc.supabase.co/auth/v1/verify?token=abc123&type=magiclink&redirect_to=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fnext%3D%252Ftoday",
-      token: "abc123",
+      tokenHash: "abc123",
       type: "magiclink",
       nextPath: "/today",
     });

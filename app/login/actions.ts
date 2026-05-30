@@ -2,7 +2,6 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getAllowedUserEmail } from "@/lib/auth/access";
 import {
   getMagicLinkRedirectUrlFromHeaders,
   getRequestOrigin,
@@ -62,28 +61,24 @@ export async function completePastedMagicLinkAction(formData: FormData) {
   }
 
   if (parsed.status === "token-hash") {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: parsed.tokenHash,
+    const verified = await verifyPastedTokenHash({
+      supabase,
       type: parsed.type,
+      tokenHash: parsed.tokenHash,
     });
 
-    if (!error) {
+    if (verified) {
       redirect(parsed.nextPath);
     }
+
+    redirect(`/login?magic=token-error&next=${encodeURIComponent(parsed.nextPath)}`);
   }
 
   if (parsed.status === "verify-url") {
-    const email = getAllowedUserEmail();
-
-    if (!email) {
-      redirect("/login?magic=missing-config");
-    }
-
-    const verified = await verifyPastedEmailToken({
+    const verified = await verifyPastedTokenHash({
       supabase,
-      email,
-      token: parsed.token,
       type: parsed.type,
+      tokenHash: parsed.tokenHash,
     });
 
     if (verified) {
@@ -97,16 +92,14 @@ export async function completePastedMagicLinkAction(formData: FormData) {
   redirect(`/login?magic=invalid-link&next=${encodeURIComponent(safeNext)}`);
 }
 
-async function verifyPastedEmailToken({
+async function verifyPastedTokenHash({
   supabase,
-  email,
-  token,
   type,
+  tokenHash,
 }: {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
-  email: string;
-  token: string;
   type: "email" | "magiclink";
+  tokenHash: string;
 }) {
   if (!supabase) {
     return false;
@@ -117,8 +110,7 @@ async function verifyPastedEmailToken({
 
   for (const candidateType of types) {
     const { error } = await supabase.auth.verifyOtp({
-      email,
-      token,
+      token_hash: tokenHash,
       type: candidateType,
     });
 
