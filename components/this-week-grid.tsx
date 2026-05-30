@@ -199,7 +199,7 @@ function WeekCell({
         })
       ) : (
         <div
-          className="flex min-h-10 min-w-10 items-center justify-center rounded-full opacity-80 sm:min-h-11 sm:min-w-11"
+          className="flex min-h-10 min-w-10 items-center justify-center rounded-full sm:min-h-11 sm:min-w-11"
           aria-label={ariaLabel}
         >
           {mark}
@@ -230,8 +230,8 @@ function CellMark({ editable, state }: { editable: boolean; state: CellVisualSta
 
   if (state === "missed") {
     return (
-      <span className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 bg-stone-100 text-lg leading-none text-stone-500 sm:h-8 sm:w-8">
-        /
+      <span className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 bg-stone-100 text-base font-semibold leading-none text-stone-500 sm:h-8 sm:w-8 sm:text-lg">
+        ×
       </span>
     );
   }

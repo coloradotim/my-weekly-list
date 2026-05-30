@@ -25,6 +25,10 @@ const optimisticGrid = readFileSync(
   join(process.cwd(), "components/optimistic-this-week-grid.tsx"),
   "utf8",
 );
+const weekPageClient = readFileSync(
+  join(process.cwd(), "components/week-page-client.tsx"),
+  "utf8",
+);
 const weekListEditor = readFileSync(
   join(process.cwd(), "components/week-list-editor.tsx"),
   "utf8",
@@ -557,7 +561,8 @@ describe("week action guardrails", () => {
   });
 
   it("uses an optimistic client grid instead of per-cell form navigation", () => {
-    expect(weekPage).toContain("OptimisticThisWeekGrid");
+    expect(weekPage).toContain("WeekPageClient");
+    expect(weekPageClient).toContain("OptimisticThisWeekGrid");
     expect(weekPage).not.toContain("toggleWeekPlanningCellAction");
     expect(optimisticGrid).toContain("applyOptimisticPlanningCell");
     expect(optimisticGrid).toContain("setWeekPlanningCellAction");
@@ -579,11 +584,15 @@ describe("week action guardrails", () => {
   });
 
   it("renders the real Week list editor on the production Week page", () => {
-    expect(weekPage).toContain("WeekListEditor");
+    expect(weekPageClient).toContain("WeekListEditor");
     expect(weekListEditor).toContain("Edit this week’s list");
     expect(weekListEditor).toContain("Edit next week’s list");
     expect(weekListEditor).toContain("+ Add activity");
-    expect(weekListEditor).toContain("Remove from future weeks");
+    expect(weekListEditor).toContain("Delete");
+    expect(weekListEditor).not.toContain(
+      "<form action={removeWeekActivityFromFutureAction}",
+    );
+    expect(weekListEditor).not.toContain("Remove from future weeks");
     expect(weekListEditor).toContain("updateWeekActivityListItemAction");
     expect(weekListEditor).toContain("addWeekActivityListItemAction");
     expect(weekListEditor).toContain("removeWeekActivityFromFutureAction");
@@ -600,6 +609,7 @@ describe("week action guardrails", () => {
     expect(weekListEditor).toContain("collapsedCategoryNames");
     expect(weekListEditor).toContain("aria-expanded={!isCollapsed}");
     expect(weekListEditor).toContain("event.stopPropagation()");
+    expect(weekPageClient).toContain("onCategoriesChange");
     expect(weekListEditor).toContain("fromIndex < targetIndex");
     expect(weekListEditor).toContain("sourceIndex < targetIndex");
     expect(weekListEditor).toContain("} hidden");

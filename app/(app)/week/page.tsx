@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { startThisWeekAction } from "@/app/(app)/week/actions";
-import { OptimisticThisWeekGrid } from "@/components/optimistic-this-week-grid";
 import { ScreenShell } from "@/components/screen-shell";
 import { formatDateRange, Notice } from "@/components/this-week-grid";
-import { WeekListEditor } from "@/components/week-list-editor";
+import { WeekPageClient } from "@/components/week-page-client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadThisWeek } from "@/lib/week/current";
 
@@ -100,8 +99,7 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
           {formatDateRange(state.view.week.weekStartDate, state.view.week.weekEndDate)}
         </p>
       )}
-      <OptimisticThisWeekGrid initialView={state.view} initialNotice={notice} />
-      <WeekListEditor view={state.view} />
+      <WeekPageClient initialView={state.view} initialNotice={notice} />
     </section>
   );
 }

@@ -125,6 +125,12 @@ describe("optimistic week planning", () => {
       'data-initial-scroll={view.week.status === "active" ? "today" : "monday"}',
     );
   });
+
+  it("uses a muted x rather than a slash for missed or skipped Week cells", () => {
+    expect(thisWeekGrid).toContain("×");
+    expect(thisWeekGrid).not.toContain(">\n        /\n");
+    expect(thisWeekGrid).not.toContain("opacity-80");
+  });
 });
 
 function getCell(view: ThisWeekViewModel, activityId: string, cellDate: string) {

@@ -13,7 +13,13 @@ import type { ThisWeekViewModel, WeekGridActivity } from "@/lib/week/current";
 
 type WeekListCategory = ThisWeekViewModel["categories"][number];
 
-export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
+export function WeekListEditor({
+  view,
+  onCategoriesChange,
+}: {
+  view: ThisWeekViewModel;
+  onCategoriesChange?: (categories: WeekListCategory[]) => void;
+}) {
   const [listCategories, setListCategories] = useState(view.categories);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -93,6 +99,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
       }
 
       setListCategories(nextCategories);
+      onCategoriesChange?.(nextCategories);
       startTransition(() => {
         const result =
           currentDragItem.type === "category"
@@ -116,12 +123,14 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
                   : "That order could not be saved just now. Try again.",
               );
               setListCategories(previousCategories);
+              onCategoriesChange?.(previousCategories);
               return;
             }
           })
           .catch(() => {
             setSaveError("That order could not be saved just now. Try again.");
             setListCategories(previousCategories);
+            onCategoriesChange?.(previousCategories);
           });
       });
     }
@@ -133,7 +142,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [dragItem, listCategories, view.week.id]);
+  }, [dragItem, listCategories, onCategoriesChange, view.week.id]);
 
   if (!canEditList) {
     return null;
@@ -223,18 +232,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
                               value={activity.id}
                             />
                           }
-                          removeForm={
-                            <form action={removeWeekActivityFromFutureAction}>
-                              <input
-                                type="hidden"
-                                name="weekActivityId"
-                                value={activity.id}
-                              />
-                              <button type="submit" className={secondaryButtonClassName}>
-                                Remove from future weeks
-                              </button>
-                            </form>
-                          }
+                          canDelete
                         />
                       ) : (
                         <ActivitySummaryRow
@@ -327,20 +325,24 @@ function ActivityEditForm({
   categories,
   action,
   extraFields,
-  removeForm,
+  canDelete = false,
   onCancel,
 }: {
   activity?: WeekGridActivity;
   categories: { name: string; sortOrder: number }[];
   action: (formData: FormData) => Promise<void>;
   extraFields: ReactNode;
-  removeForm?: ReactNode;
+  canDelete?: boolean;
   onCancel: () => void;
 }) {
   const [categoryMode, setCategoryMode] = useState<"existing" | "new">("existing");
   const [selectedCategory, setSelectedCategory] = useState(
     activity?.categoryName ?? categories[0]?.name ?? "",
   );
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [targetCount, setTargetCount] = useState(activity?.targetCount ?? 1);
+  const categoryLabel = categoryMode === "new" ? "New category" : selectedCategory;
 
   return (
     <form action={action} className="space-y-3">
@@ -355,61 +357,111 @@ function ActivityEditForm({
         />
       </label>
 
-      <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
-        <label className={fieldLabelClassName}>
-          Category
-          <select
-            className={textInputClassName}
-            value={categoryMode === "new" ? "__new" : selectedCategory}
-            onChange={(event) => {
-              if (event.target.value === "__new") {
-                setCategoryMode("new");
-                return;
-              }
-
-              setCategoryMode("existing");
-              setSelectedCategory(event.target.value);
-            }}
+      <div>
+        <p className={fieldLabelClassName}>Category</p>
+        <div className="relative mt-1">
+          <button
+            type="button"
+            className={`${textInputClassName} flex items-center justify-between text-left`}
+            aria-expanded={isCategoryOpen}
+            onClick={() => setIsCategoryOpen((open) => !open)}
           >
-            {categories.map((category) => (
-              <option key={category.name} value={category.name}>
-                {category.name}
-              </option>
-            ))}
-            <option value="__new">New category</option>
-          </select>
-        </label>
+            <span>{categoryLabel}</span>
+            <span aria-hidden="true" className="text-stone-500">
+              ▾
+            </span>
+          </button>
+          {isCategoryOpen ? (
+            <div className="absolute left-0 right-0 z-30 mt-1 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-soft">
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm font-medium text-stone-700 transition hover:bg-paper focus:bg-paper focus:outline-none"
+                  onClick={() => {
+                    setCategoryMode("existing");
+                    setSelectedCategory(category.name);
+                    setIsCategoryOpen(false);
+                  }}
+                >
+                  {category.name}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="block w-full border-t border-stone-200 px-3 py-2 text-left text-sm font-semibold text-clay transition hover:bg-paper focus:bg-paper focus:outline-none"
+                onClick={() => {
+                  setCategoryMode("new");
+                  setIsCategoryOpen(false);
+                }}
+              >
+                New category
+              </button>
+            </div>
+          ) : null}
+        </div>
         {categoryMode === "new" ? (
           <label className={fieldLabelClassName}>
             New category
-            <input className={textInputClassName} name="categoryName" required />
+            <input
+              className={textInputClassName}
+              name="categoryName"
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              required
+            />
           </label>
         ) : (
           <input type="hidden" name="categoryName" value={selectedCategory} />
         )}
       </div>
 
-      <label className={fieldLabelClassName}>
-        Weekly target
-        <input
-          className={textInputClassName}
-          name="targetCount"
-          type="number"
-          min="0"
-          step="1"
-          defaultValue={activity?.targetCount ?? 1}
-          required
-        />
-      </label>
+      <div>
+        <p className={fieldLabelClassName}>Weekly target</p>
+        <input type="hidden" name="targetCount" value={targetCount} />
+        <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-stone-200 bg-white">
+          <button
+            type="button"
+            className="min-h-10 px-4 text-sm font-semibold text-stone-600 disabled:opacity-40"
+            disabled={targetCount <= 0}
+            onClick={() => setTargetCount((value) => Math.max(0, value - 1))}
+          >
+            -
+          </button>
+          <span className="min-w-16 px-2 text-center text-sm font-semibold text-ink">
+            {targetCount}/wk
+          </span>
+          <button
+            type="button"
+            className="min-h-10 px-4 text-sm font-semibold text-stone-600"
+            onClick={() => setTargetCount((value) => value + 1)}
+          >
+            +
+          </button>
+        </div>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" className={primaryButtonClassName}>
-          Save
-        </button>
-        <button type="button" className={secondaryButtonClassName} onClick={onCancel}>
-          Cancel
-        </button>
-        {removeForm}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          {canDelete ? (
+            <button
+              type="submit"
+              formAction={removeWeekActivityFromFutureAction}
+              formNoValidate
+              className="rounded-full border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+            >
+              Delete
+            </button>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={secondaryButtonClassName} onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className={primaryButtonClassName}>
+            Save
+          </button>
+        </div>
       </div>
     </form>
   );
