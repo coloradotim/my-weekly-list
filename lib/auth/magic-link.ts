@@ -10,10 +10,18 @@ export type MagicLinkAuthClient = {
         shouldCreateUser: false;
       };
     }): Promise<{ error: { message: string } | null }>;
-    verifyOtp?(options: {
-      token_hash: string;
-      type: "email" | "magiclink";
-    }): Promise<{ error: { message: string } | null }>;
+    verifyOtp?(
+      options:
+        | {
+            token_hash: string;
+            type: "email" | "magiclink";
+          }
+        | {
+            email: string;
+            token: string;
+            type: "email" | "magiclink";
+          },
+    ): Promise<{ error: { message: string } | null }>;
   };
 };
 
@@ -40,7 +48,13 @@ export function getMagicLinkRedirectUrl(origin: string, nextPath: string) {
 
 export type PastedMagicLinkResult =
   | { status: "callback"; callbackPath: string }
-  | { status: "otp"; tokenHash: string; type: "email" | "magiclink"; nextPath: string }
+  | {
+      status: "token-hash";
+      tokenHash: string;
+      type: "email" | "magiclink";
+      nextPath: string;
+    }
+  | { status: "token"; token: string; type: "email" | "magiclink"; nextPath: string }
   | { status: "invalid" };
 
 export function parsePastedMagicLink({
@@ -59,7 +73,7 @@ export function parsePastedMagicLink({
       return callback;
     }
 
-    const otp = parseOtpCandidate(url);
+    const otp = parseVerifyCandidate(url);
 
     if (otp) {
       return otp;
@@ -112,7 +126,7 @@ function collectMagicLinkCandidates(
   requestOrigin: string,
 ) {
   const candidates: URL[] = [];
-  const queue = [value?.trim() ?? ""];
+  const queue = extractCandidateStrings(value);
   const seen = new Set<string>();
 
   while (queue.length > 0 && seen.size < 12) {
@@ -134,7 +148,7 @@ function collectMagicLinkCandidates(
 
     candidates.push(url);
 
-    for (const key of ["redirect_to", "redirectTo", "url", "q"]) {
+    for (const key of ["redirect_to", "redirectTo", "url", "q", "u"]) {
       const nested = url.searchParams.get(key);
 
       if (nested) {
@@ -144,6 +158,13 @@ function collectMagicLinkCandidates(
   }
 
   return candidates;
+}
+
+function extractCandidateStrings(value: string | null | undefined) {
+  const normalized = (value ?? "").trim().replaceAll("&amp;", "&").replace(/^<|>$/g, "");
+  const urls = normalized.match(/https?:\/\/[^\s<>"']+/g) ?? [];
+
+  return [...new Set([normalized, ...urls].filter(Boolean))];
 }
 
 function parseCallbackCandidate(
@@ -161,36 +182,47 @@ function parseCallbackCandidate(
   return { status: "callback", callbackPath: `${url.pathname}${url.search}` };
 }
 
-function parseOtpCandidate(
+function parseVerifyCandidate(
   url: URL,
-): Extract<PastedMagicLinkResult, { status: "otp" }> | null {
+):
+  | Extract<PastedMagicLinkResult, { status: "token-hash" }>
+  | Extract<PastedMagicLinkResult, { status: "token" }>
+  | null {
   if (!url.pathname.endsWith("/auth/v1/verify")) {
     return null;
   }
 
   const tokenHash = url.searchParams.get("token_hash");
-
-  if (!tokenHash) {
-    return null;
-  }
+  const token = url.searchParams.get("token");
 
   const type = getSupportedOtpType(url.searchParams.get("type"));
-  const redirectTo = url.searchParams.get("redirect_to");
-  let nextPath = "/today";
+  const nextPath = getNextPathFromRedirectTo(url.searchParams.get("redirect_to"));
 
-  if (redirectTo) {
-    try {
-      nextPath = getSafeAuthNextPath(new URL(redirectTo).searchParams.get("next"));
-    } catch {
-      nextPath = "/today";
-    }
+  if (tokenHash) {
+    return { status: "token-hash", tokenHash, type, nextPath };
   }
 
-  return { status: "otp", tokenHash, type, nextPath };
+  if (token) {
+    return { status: "token", token, type, nextPath };
+  }
+
+  return null;
 }
 
 function getSupportedOtpType(type: string | null): "email" | "magiclink" {
   return type === "email" ? "email" : "magiclink";
+}
+
+function getNextPathFromRedirectTo(redirectTo: string | null) {
+  if (!redirectTo) {
+    return "/today";
+  }
+
+  try {
+    return getSafeAuthNextPath(new URL(redirectTo).searchParams.get("next"));
+  } catch {
+    return "/today";
+  }
 }
 
 export function maskEmail(email: string | null | undefined) {
