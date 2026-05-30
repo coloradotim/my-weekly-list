@@ -119,8 +119,8 @@ describe("optimistic week planning", () => {
   it("only scrolls the current active week to today on initial mobile entry", () => {
     expect(optimisticGrid).toContain('initialView.week.status !== "active"');
     expect(optimisticGrid).toContain('window.matchMedia("(min-width: 640px)")');
-    expect(optimisticGrid).toContain("scrollIntoView");
-    expect(optimisticGrid).toContain('inline: "start"');
+    expect(optimisticGrid).toContain("todayHeader.offsetLeft - stickyColumn.offsetWidth");
+    expect(optimisticGrid).toContain("grid.scrollLeft = Math.min");
     expect(thisWeekGrid).toContain(
       'data-initial-scroll={view.week.status === "active" ? "today" : "monday"}',
     );

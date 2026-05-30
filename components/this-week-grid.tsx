@@ -1,4 +1,11 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useWeekGridLayout } from "@/components/use-week-grid-layout";
+import {
+  weekGridColumnsClassName,
+  weekGridScrollerClassName,
+} from "@/components/week-grid-layout";
 import {
   weekDayLabels,
   type CellVisualState,
@@ -43,6 +50,7 @@ export function ThisWeekGrid({
 }) {
   const collapsedCategorySet = new Set(collapsedCategoryNames);
   const canCollapseCategories = Boolean(onToggleCategory);
+  const gridLayout = useWeekGridLayout();
 
   return (
     <section className="space-y-2 sm:space-y-3">
@@ -63,11 +71,13 @@ export function ThisWeekGrid({
       ) : null}
 
       <div
+        ref={gridLayout.scrollerRef}
         data-week-grid-scroll
         data-initial-scroll={view.week.status === "active" ? "today" : "monday"}
-        className="snap-x snap-mandatory scroll-pl-[116px] overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft sm:scroll-pl-[172px]"
+        className={weekGridScrollerClassName}
+        style={gridLayout.scrollerStyle}
       >
-        <div className="grid min-w-[620px] grid-cols-[minmax(116px,0.9fr)_repeat(7,minmax(52px,1fr))] pr-12 text-sm sm:min-w-[800px] sm:grid-cols-[minmax(172px,1.35fr)_repeat(7,minmax(66px,1fr))] sm:pr-0">
+        <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
           <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3 sm:py-3">
             Activity
           </div>

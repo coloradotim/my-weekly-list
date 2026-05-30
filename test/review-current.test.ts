@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  weekGridColumnsClassName,
+  weekGridScrollerClassName,
+} from "@/components/week-grid-layout";
+import {
   applyOptimisticReviewAction,
   buildReviewState,
   buildReviewViewModel,
@@ -21,6 +25,10 @@ const reviewClient = readFileSync(
   "utf8",
 );
 const reviewModel = readFileSync(join(process.cwd(), "lib/review/current.ts"), "utf8");
+const gridLayoutHook = readFileSync(
+  join(process.cwd(), "components/use-week-grid-layout.ts"),
+  "utf8",
+);
 
 describe("persisted Review model", () => {
   it("builds the required summary sentence and target groupings", () => {
@@ -60,6 +68,17 @@ describe("persisted Review model", () => {
     expect(getReviewDetailDisplayState(yoga.cells[1])).toBe("blank");
     expect(getReviewDetailDisplayState(journal.cells[2])).toBe("blank");
     expect(getReviewDetailDisplayState(walk.cells[1])).toBe("blank");
+  });
+
+  it("uses the shared Week grid geometry for Review day-by-day details", () => {
+    expect(reviewClient).toContain("weekGridScrollerClassName");
+    expect(reviewClient).toContain("weekGridColumnsClassName");
+    expect(weekGridScrollerClassName).toContain("weekly-grid-scroller");
+    expect(weekGridScrollerClassName).toContain("overscroll-x-contain");
+    expect(weekGridColumnsClassName).toContain("weekly-grid-columns");
+    expect(gridLayoutHook).toContain("mobileVisibleDayCount = 4");
+    expect(gridLayoutHook).toContain("desktopVisibleDayCount = 7");
+    expect(gridLayoutHook).toContain("availableDayWidth / visibleDayCount");
   });
 
   it("marks planned, skipped, and unplanned blank cells done", () => {

@@ -462,7 +462,7 @@ export function buildThisWeekViewModel({
   const categoryMap = new Map<string, WeekGridCategory>();
 
   activities.toSorted(compareWeekActivities).forEach((activity) => {
-    const categoryKey = `${activity.categorySortOrder}:${activity.categoryName}`;
+    const categoryKey = normalizeCategoryKey(activity.categoryName);
     const category =
       categoryMap.get(categoryKey) ??
       ({
@@ -470,6 +470,7 @@ export function buildThisWeekViewModel({
         sortOrder: activity.categorySortOrder,
         activities: [],
       } satisfies WeekGridCategory);
+    category.sortOrder = Math.min(category.sortOrder, activity.categorySortOrder);
     const cellMap = new Map(activity.cells.map((cell) => [cell.cellDate, cell]));
     const cells = dayDates.map((date) => {
       const cell = cellMap.get(date);
@@ -1035,12 +1036,23 @@ export async function updateWeekActivityListItem({
     return category;
   }
 
+  const categorySortOrder = await getWeekCategorySortOrder({
+    supabase,
+    weekId: activity.activity.weekId,
+    categoryName: category.category.name,
+    fallbackSortOrder: category.category.sortOrder,
+  });
+
+  if (categorySortOrder.status !== "success") {
+    return categorySortOrder;
+  }
+
   const { error: weekActivityError } = await supabase
     .from("week_activities")
     .update({
       category_id: category.category.id,
       category_name: category.category.name,
-      category_sort_order: category.category.sortOrder,
+      category_sort_order: categorySortOrder.sortOrder,
       activity_name: input.activityName,
       target_count: input.targetCount,
     })
@@ -1190,6 +1202,17 @@ export async function removeWeekActivityFromFuture({
 
     if (error) {
       return { status: "error", message: error.message };
+    }
+
+    if (activity.activity.categoryId) {
+      const categoryCleanup = await deactivateCategoryIfEmpty({
+        supabase,
+        categoryId: activity.activity.categoryId,
+      });
+
+      if (categoryCleanup.status !== "success") {
+        return categoryCleanup;
+      }
     }
   }
 
@@ -1910,6 +1933,47 @@ function uniqueCategoryOrder(activities: EditableWeekActivity[]) {
   );
 }
 
+async function getWeekCategorySortOrder({
+  supabase,
+  weekId,
+  categoryName,
+  fallbackSortOrder,
+}: {
+  supabase: SupabaseClient;
+  weekId: string;
+  categoryName: string;
+  fallbackSortOrder: number;
+}) {
+  const { data, error } = await supabase
+    .from("week_activities")
+    .select("category_name, category_sort_order")
+    .eq("week_id", weekId);
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  const normalizedCategoryName = normalizeCategoryKey(categoryName);
+  const matchingSortOrders = (
+    (data ?? []) as Pick<WeekActivityEditRow, "category_name" | "category_sort_order">[]
+  )
+    .filter(
+      (activity) =>
+        normalizeCategoryKey(activity.category_name) === normalizedCategoryName,
+    )
+    .map((activity) => activity.category_sort_order);
+
+  return {
+    status: "success" as const,
+    sortOrder:
+      matchingSortOrders.length > 0 ? Math.min(...matchingSortOrders) : fallbackSortOrder,
+  };
+}
+
+function normalizeCategoryKey(categoryName: string) {
+  return categoryName.trim().toLowerCase();
+}
+
 function moveNamedItem<T extends { name: string }>(
   items: T[],
   itemName: string,
@@ -1958,6 +2022,40 @@ function normalizeListInput({
     categoryName: normalizedCategoryName,
     targetCount: normalizedTargetCount,
   };
+}
+
+async function deactivateCategoryIfEmpty({
+  supabase,
+  categoryId,
+}: {
+  supabase: SupabaseClient;
+  categoryId: string;
+}) {
+  const { data: activeTemplates, error: countError } = await supabase
+    .from("activity_templates")
+    .select("id")
+    .eq("category_id", categoryId)
+    .eq("is_active", true)
+    .limit(1);
+
+  if (countError) {
+    return { status: "error" as const, message: countError.message };
+  }
+
+  if ((activeTemplates ?? []).length > 0) {
+    return { status: "success" as const };
+  }
+
+  const { error } = await supabase
+    .from("categories")
+    .update({ is_active: false })
+    .eq("id", categoryId);
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  return { status: "success" as const };
 }
 
 function toActivityTemplateEdit(row: ActivityTemplateEditRow) {

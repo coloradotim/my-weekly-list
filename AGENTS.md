@@ -152,6 +152,18 @@ Use this MVP visual language:
 
 Avoid heavy red failure styling. Preserve a calm, non-punitive feel.
 
+## Shared weekly grid layout
+
+The Week grid and Review day-by-day grid should use the same responsive grid
+geometry for sticky activity/category context, day-column widths, horizontal
+scroll snapping, and mobile spacing. On mobile, the shared grid should size day
+columns from the available container width so four complete day columns fit next
+to the sticky activity column. The current Week view should initially scroll so
+today is the first useful visible day; Review day-by-day details should start at
+Monday. Do not tune Review and Week as separate almost-matching grids; update
+the shared grid layout helper and verify both screens together on an
+iPhone-sized viewport.
+
 ## Platform target
 
 MVP is a responsive web app.

@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  weekGridColumnsClassName,
+  weekGridScrollerClassName,
+} from "@/components/week-grid-layout";
+import {
   applyPreviewPlanningToggle,
   getInitialWeekPreviewView,
   isDevWeekPreviewEnabled,
@@ -17,6 +21,10 @@ const previewClient = readFileSync(
 );
 const gridComponent = readFileSync(
   join(process.cwd(), "components/this-week-grid.tsx"),
+  "utf8",
+);
+const gridLayoutHook = readFileSync(
+  join(process.cwd(), "components/use-week-grid-layout.ts"),
   "utf8",
 );
 const middleware = readFileSync(join(process.cwd(), "middleware.ts"), "utf8");
@@ -117,8 +125,14 @@ describe("development week preview", () => {
     expect(gridComponent).toContain("sticky left-0 z-20");
     expect(gridComponent).toContain("col-span-7");
     expect(gridComponent).toContain("h-2 w-2 bg-stone-200/70");
-    expect(gridComponent).toContain("snap-x snap-mandatory");
-    expect(gridComponent).toContain("scroll-pl-[116px]");
+    expect(weekGridScrollerClassName).toContain("snap-x snap-mandatory");
+    expect(weekGridScrollerClassName).toContain("overscroll-x-contain");
+    expect(weekGridScrollerClassName).toContain("weekly-grid-scroller");
+    expect(weekGridColumnsClassName).toContain("weekly-grid-columns");
+    expect(gridLayoutHook).toContain("mobileVisibleDayCount = 4");
+    expect(gridLayoutHook).toContain("desktopVisibleDayCount = 7");
+    expect(gridLayoutHook).toContain("availableDayWidth / visibleDayCount");
+    expect(gridComponent).not.toContain("pr-12");
   });
 
   it("uses keyboard-only focus rings for editable planning cells", () => {

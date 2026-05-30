@@ -68,11 +68,15 @@ export function OptimisticThisWeekGrid({
       `[data-week-day-index="${todayIndex}"]`,
     );
 
-    todayHeader?.scrollIntoView({
-      block: "nearest",
-      inline: "start",
-      behavior: "auto",
-    });
+    const stickyColumn = todayHeader?.previousElementSibling as HTMLElement | null;
+
+    if (grid && todayHeader && stickyColumn) {
+      const maxScrollLeft = grid.scrollWidth - grid.clientWidth;
+      grid.scrollLeft = Math.min(
+        Math.max(0, todayHeader.offsetLeft - stickyColumn.offsetWidth),
+        maxScrollLeft,
+      );
+    }
 
     if (grid && todayIndex === 0) {
       grid.scrollLeft = 0;

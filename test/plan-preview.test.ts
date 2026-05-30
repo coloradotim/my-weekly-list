@@ -38,8 +38,8 @@ describe("development Week planning preview", () => {
     expect(previewClient).toContain("Next week");
     expect(previewClient).toContain("Edit next week’s list");
     expect(previewClient).toContain("Preview weekly grid");
-    expect(previewClient).toContain("Drag to reorder");
     expect(previewClient).toContain("Undo");
+    expect(previewClient).not.toContain("Drag to reorder");
     expect(previewClient).not.toContain("Done editing");
     expect(previewClient).not.toContain("Ready for next week");
     expect(previewClient).not.toContain("Finalize");

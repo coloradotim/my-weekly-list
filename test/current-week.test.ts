@@ -589,11 +589,14 @@ describe("week action guardrails", () => {
     expect(weekListEditor).toContain("Edit next week’s list");
     expect(weekListEditor).toContain("+ Add activity");
     expect(weekListEditor).toContain("Delete");
+    expect(weekListEditor).toContain("min-h-9 min-w-9");
     expect(weekListEditor).not.toContain(
       "<form action={removeWeekActivityFromFutureAction}",
     );
     expect(weekListEditor).not.toContain("Remove from future weeks");
+    expect(weekListEditor).not.toContain("Drag to reorder");
     expect(weekListEditor).toContain("updateWeekActivityListItemAction");
+    expect(weekListEditor).toContain("updateWeekActivityListItemClientAction");
     expect(weekListEditor).toContain("addWeekActivityListItemAction");
     expect(weekListEditor).toContain("removeWeekActivityFromFutureClientAction");
     expect(weekListEditor).toContain('type="button"');
@@ -601,7 +604,6 @@ describe("week action guardrails", () => {
     expect(weekListEditor).toContain("reorderWeekActivitiesAction");
     expect(weekListEditor).toContain("data-week-list-category");
     expect(weekListEditor).toContain("data-week-list-activity");
-    expect(weekListEditor).toContain("Drag to reorder");
   });
 
   it("keeps Week category collapse and reorder interactions local", () => {
@@ -629,6 +631,46 @@ describe("week action guardrails", () => {
     expect(weekActions).not.toContain(
       'reorderWeekActivities({\n    supabase,\n    weekActivityId,\n    targetWeekActivityId,\n  });\n\n  revalidatePath("/week");',
     );
+  });
+
+  it("keeps categories visually merged even when a row has stale category order", () => {
+    const view = buildThisWeekViewModel({
+      week: activeWeek,
+      today: "2026-06-03",
+      activities: [
+        activity({
+          id: "walk",
+          activityName: "Walk",
+          categoryName: "Physical Health",
+          categorySortOrder: 10,
+          sortOrder: 10,
+        }),
+        activity({
+          id: "run",
+          activityName: "Walk or Run",
+          categoryName: "Physical Health",
+          categorySortOrder: 40,
+          sortOrder: 20,
+        }),
+      ],
+    });
+
+    expect(view.categories).toHaveLength(1);
+    expect(view.categories[0]).toMatchObject({
+      name: "Physical Health",
+      sortOrder: 10,
+    });
+    expect(
+      view.categories[0]?.activities.map((activity) => activity.activityName),
+    ).toEqual(["Walk", "Walk or Run"]);
+  });
+
+  it("uses current week category order during list edits and cleans empty categories", () => {
+    expect(weekModel).toContain("getWeekCategorySortOrder");
+    expect(weekModel).toContain("fallbackSortOrder: category.category.sortOrder");
+    expect(weekModel).toContain("deactivateCategoryIfEmpty");
+    expect(weekModel).toContain('.from("categories")');
+    expect(weekModel).toContain(".update({ is_active: false })");
   });
 });
 
