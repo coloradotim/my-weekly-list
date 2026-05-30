@@ -123,6 +123,7 @@ One-time Supabase dashboard setup:
 7. Go to **Authentication > URL Configuration**.
 8. Configure the production Site URL and add allowed redirect URLs for
    production Vercel and local development:
+   - `https://my-weekly-list.vercel.app/auth/callback`
    - `https://<production-vercel-domain>/auth/callback`
    - `http://localhost:3000/auth/callback`
    - `http://127.0.0.1:3000/auth/callback`
@@ -134,6 +135,73 @@ One-time Supabase dashboard setup:
 No Google Cloud OAuth setup is required. Do not add a Before User Created hook
 unless the existing-user-plus-signups-disabled approach proves blocked. Do not
 put service-role keys in browser code.
+
+Magic Link email delivery can be rate-limited by Supabase Auth. During testing,
+prefer using an existing logged-in browser session when possible. If email links
+stop arriving, wait for the provider limit window to clear and avoid repeated
+login attempts. Local login requests should generate callback URLs using the
+local request origin, such as `http://localhost:3000/auth/callback` or
+`http://127.0.0.1:3000/auth/callback`, not the production Site URL.
+
+## Vercel Runtime Environment
+
+The Vercel app runtime needs exactly these app variables:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `ALLOWED_USER_EMAIL`
+
+Do not document or configure `NEXT_PUBLIC_SUPABASE_ANON_KEY` as a required app
+variable. The app code reads `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+
+`NEXT_PUBLIC_` values are exposed to browser code and must remain public-safe.
+Do not add Supabase service-role keys as public Vercel variables. No
+service-role key is required for normal app screens, setup, Week, Today, or
+Review.
+
+Production URL:
+
+```text
+https://my-weekly-list.vercel.app
+```
+
+After deploys, verify development preview routes are unavailable in production:
+
+```bash
+curl -I https://my-weekly-list.vercel.app/dev/week-preview
+curl -I https://my-weekly-list.vercel.app/dev/today-preview
+curl -I https://my-weekly-list.vercel.app/dev/review-preview
+```
+
+Each preview route should return a not-found response in production. Authenticated
+production users should not be able to use fixture-only preview surfaces.
+
+## Production Smoke Test
+
+Use this checklist for a production release:
+
+1. Owner can sign in with the email Magic Link.
+2. Unauthorized/non-owner access is blocked or cannot create/use an account.
+3. `/` routes into Today when the current week exists.
+4. If setup is complete and no current week exists, `/` safely ensures the
+   current week from the saved list when possible, then lands on Today.
+5. Late current-week assurance does not create elapsed-day planned, missed,
+   skipped, or done history.
+6. Today can mark a planned item done.
+7. Today can record unplanned completion through `+ Something else`.
+8. Today can move a planned item to a valid later day.
+9. Today can skip a planned item and later mark it done.
+10. Week reflects Today changes after refresh.
+11. Week current/next-week planning and list editing work.
+12. Review summary loads and counts completed activity-days correctly.
+13. Review day-by-day correction toggles completion truth only.
+14. Past-week Review does not require Close or Finalize.
+15. Repeated navigation and refresh do not create duplicate current weeks or
+    duplicate week-activity snapshots.
+
+iPhone Chrome acceptance should confirm bottom navigation, touch targets,
+current Week opening near today, Week scroll preservation after planning
+changes, Next/Past Week opening at Monday, and compact readable Review.
 
 ## Seed Function
 

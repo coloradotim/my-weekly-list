@@ -9,8 +9,12 @@ export async function middleware(request: NextRequest) {
     request,
   });
 
-  if (request.nextUrl.pathname.startsWith("/dev/") && isDevPreviewEnabled()) {
-    return response;
+  if (request.nextUrl.pathname.startsWith("/dev/")) {
+    if (isDevPreviewEnabled()) {
+      return response;
+    }
+
+    return new Response(null, { status: 404 });
   }
 
   const config = getSupabaseConfig();
