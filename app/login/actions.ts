@@ -1,123 +1,80 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  getMagicLinkRedirectUrlFromHeaders,
-  getRequestOrigin,
+  getDatabaseUserAccess,
   getSafeAuthNextPath,
-  parsePastedMagicLink,
-  sendOwnerMagicLink,
-} from "@/lib/auth/magic-link";
+  getUnauthorizedEmail,
+} from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export async function sendOwnerMagicLinkAction(formData: FormData) {
-  const nextPath = formData.get("next");
+export async function signInWithPasswordAction(formData: FormData) {
+  const email = getFormString(formData, "email");
+  const password = getFormString(formData, "password");
+  const nextPath = getSafeAuthNextPath(getFormString(formData, "next"));
+  const failureUrl = getLoginFailureUrl({ email, nextPath });
   const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
-    redirect("/login?magic=missing-config");
+    redirect("/login?login=missing-config");
   }
 
-  const requestHeaders = await headers();
-  const redirectTo = getMagicLinkRedirectUrlFromHeaders({
-    headers: requestHeaders,
-    nextPath: typeof nextPath === "string" ? nextPath : null,
+  if (!email || !password) {
+    redirect(failureUrl);
+  }
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   });
-  const result = await sendOwnerMagicLink({
-    supabase,
-    redirectTo,
-  });
 
-  if (result.status === "sent") {
-    redirect("/login?magic=sent");
+  if (error) {
+    redirect(failureUrl);
   }
 
-  if (result.status === "missing-allowed-email") {
-    redirect("/login?magic=missing-config");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(failureUrl);
   }
 
-  redirect("/login?magic=error");
+  const access = await getDatabaseUserAccess({ supabase, user });
+
+  if (access.status === "must-change-password") {
+    redirect("/change-password");
+  }
+
+  if (access.status !== "allowed") {
+    await supabase.auth.signOut();
+    const unauthorizedUrl = new URLSearchParams();
+    const unauthorizedEmail = getUnauthorizedEmail(access);
+
+    if (unauthorizedEmail) {
+      unauthorizedUrl.set("email", unauthorizedEmail);
+    }
+
+    redirect(`/unauthorized?${unauthorizedUrl.toString()}`);
+  }
+
+  redirect(nextPath);
 }
 
-export async function completePastedMagicLinkAction(formData: FormData) {
-  const pastedLink = formData.get("magicLink");
-  const requestHeaders = await headers();
-  const origin = getRequestOrigin(requestHeaders);
-  const nextPath = formData.get("next");
-  const supabase = await createSupabaseServerClient();
-
-  if (!supabase) {
-    redirect("/login?magic=missing-config");
-  }
-
-  const parsed = parsePastedMagicLink({
-    value: typeof pastedLink === "string" ? pastedLink : null,
-    requestOrigin: origin,
+function getLoginFailureUrl({ email, nextPath }: { email: string; nextPath: string }) {
+  const params = new URLSearchParams({
+    login: "error",
+    next: nextPath,
   });
 
-  if (parsed.status === "callback") {
-    redirect(parsed.callbackPath);
+  if (email) {
+    params.set("email", email);
   }
 
-  if (parsed.status === "token-hash") {
-    const verified = await verifyPastedTokenHash({
-      supabase,
-      type: parsed.type,
-      tokenHash: parsed.tokenHash,
-    });
-
-    if (verified) {
-      redirect(parsed.nextPath);
-    }
-
-    redirect(`/login?magic=token-error&next=${encodeURIComponent(parsed.nextPath)}`);
-  }
-
-  if (parsed.status === "verify-url") {
-    const verified = await verifyPastedTokenHash({
-      supabase,
-      type: parsed.type,
-      tokenHash: parsed.tokenHash,
-    });
-
-    if (verified) {
-      redirect(parsed.nextPath);
-    }
-
-    redirect(`/login?magic=token-error&next=${encodeURIComponent(parsed.nextPath)}`);
-  }
-
-  const safeNext = getSafeAuthNextPath(typeof nextPath === "string" ? nextPath : null);
-  redirect(`/login?magic=invalid-link&next=${encodeURIComponent(safeNext)}`);
+  return `/login?${params.toString()}`;
 }
 
-async function verifyPastedTokenHash({
-  supabase,
-  type,
-  tokenHash,
-}: {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
-  type: "email" | "magiclink";
-  tokenHash: string;
-}) {
-  if (!supabase) {
-    return false;
-  }
-
-  const types: Array<"email" | "magiclink"> =
-    type === "email" ? ["email"] : ["magiclink", "email"];
-
-  for (const candidateType of types) {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: candidateType,
-    });
-
-    if (!error) {
-      return true;
-    }
-  }
-
-  return false;
+function getFormString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
 }

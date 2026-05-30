@@ -111,7 +111,7 @@ describe("setup notices", () => {
 describe("setup action guardrails", () => {
   it("runs the seed RPC behind user and allowed-email checks", () => {
     expect(setupAction).toContain("supabase.auth.getUser()");
-    expect(setupAction).toContain("checkAllowedUser(user.email)");
+    expect(setupAction).toContain("getDatabaseUserAccess");
     expect(setupAction).toContain('supabase.rpc("seed_initial_weekly_list")');
     expect(setupAction).not.toContain("SERVICE_ROLE");
     expect(setupAction).not.toContain("service_role");

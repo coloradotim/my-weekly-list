@@ -125,10 +125,15 @@ approves auto-merge.
 ### Phase 1 — Auth and environment
 
 - Add Supabase client setup.
-- Add owner-only Supabase email Magic Link auth.
-- Add `ALLOWED_USER_EMAIL` environment variable.
-- Send magic links only to the configured owner email, with `shouldCreateUser: false`.
-- Reject users whose authenticated email does not match.
+- Add Supabase email/password auth.
+- Disable public signup and do not add in-app registration.
+- Store app access on the user's database profile.
+- Add local admin scripts for creating users, resetting temporary passwords, and
+  disabling app access.
+- Force users with temporary passwords to change them before accessing Today,
+  Week, or Review.
+- Keep service-role credentials local to admin scripts; never expose them to
+  browser code or public Vercel runtime env vars.
 - Document required environment variables.
 
 ### Phase 2 — Database and seed data
@@ -304,8 +309,7 @@ visual language where appropriate.
 - Verify Vercel production deploys from `main` and uses the expected Supabase
   project.
 - Keep runtime environment requirements limited to
-  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
-  `ALLOWED_USER_EMAIL`.
+  `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - Do not require or expose a Supabase service-role key for normal app screens.
 - Verify remote Supabase migrations match repo migrations before relying on
   production data behavior.
@@ -328,7 +332,7 @@ Unit tests should cover:
 - missed-state derivation
 - moving planned cells
 - past-week planning/structure immutability
-- allowed-user access checks where practical
+- database-backed access checks where practical
 
 Browser or integration tests should eventually cover:
 
@@ -357,7 +361,8 @@ Update docs when changing:
 
 MVP is done when Tim can:
 
-1. Log in with a Supabase email Magic Link and only his email can access the app.
+1. Log in with Supabase email/password, with app access controlled by the
+   database.
 2. See or create the current Monday-Sunday week.
 3. Open Week for current-week planning and next-week list preparation.
 4. Plan days for activities.

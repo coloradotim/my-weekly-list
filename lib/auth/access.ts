@@ -1,39 +1,85 @@
+import { appRoutes } from "@/lib/routes";
+
 export type AuthAccess =
   | { status: "allowed"; email: string }
-  | { status: "missing-allowed-email" }
-  | { status: "missing-user-email" }
-  | { status: "unauthorized"; email: string; allowedEmail: string };
+  | { status: "must-change-password"; email: string }
+  | { status: "unauthorized"; email: string }
+  | { status: "missing-profile"; email: string };
+
+export type AuthenticatedUser = {
+  id: string;
+  email?: string | null;
+};
+
+export type AccessProfileClient = {
+  from(table: "profiles"): {
+    select(columns: string): {
+      eq(
+        column: "id",
+        value: string,
+      ): {
+        maybeSingle(): PromiseLike<{
+          data: {
+            email: string | null;
+            is_allowed: boolean | null;
+            must_change_password: boolean | null;
+          } | null;
+          error: { message: string } | null;
+        }>;
+      };
+    };
+  };
+};
+
+const allowedAuthNextPaths = new Set([
+  "/",
+  "/setup",
+  "/change-password",
+  ...appRoutes.map((route) => route.href),
+]);
 
 export function normalizeEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() ?? "";
 }
 
-export function getAllowedUserEmail() {
-  return normalizeEmail(process.env.ALLOWED_USER_EMAIL);
+export function getSafeAuthNextPath(nextPath: string | null | undefined) {
+  return nextPath && allowedAuthNextPaths.has(nextPath) ? nextPath : "/";
 }
 
-export function checkAllowedUser(
-  userEmail: string | null | undefined,
-  allowedEmail = getAllowedUserEmail(),
-): AuthAccess {
-  const normalizedAllowedEmail = normalizeEmail(allowedEmail);
-  const normalizedUserEmail = normalizeEmail(userEmail);
+export async function getDatabaseUserAccess({
+  supabase,
+  user,
+}: {
+  supabase: unknown;
+  user: AuthenticatedUser;
+}): Promise<AuthAccess> {
+  const accessClient = supabase as AccessProfileClient;
+  const fallbackEmail = normalizeEmail(user.email);
+  const { data: profile, error } = await accessClient
+    .from("profiles")
+    .select("email,is_allowed,must_change_password")
+    .eq("id", user.id)
+    .maybeSingle();
 
-  if (!normalizedAllowedEmail) {
-    return { status: "missing-allowed-email" };
+  if (error || !profile) {
+    return { status: "missing-profile", email: fallbackEmail };
   }
 
-  if (!normalizedUserEmail) {
-    return { status: "missing-user-email" };
+  const email = normalizeEmail(profile.email) || fallbackEmail;
+
+  if (!profile.is_allowed) {
+    return { status: "unauthorized", email };
   }
 
-  if (normalizedUserEmail !== normalizedAllowedEmail) {
-    return {
-      status: "unauthorized",
-      email: normalizedUserEmail,
-      allowedEmail: normalizedAllowedEmail,
-    };
+  if (profile.must_change_password) {
+    return { status: "must-change-password", email };
   }
 
-  return { status: "allowed", email: normalizedUserEmail };
+  return { status: "allowed", email };
+}
+
+export function getUnauthorizedEmail(access: AuthAccess) {
+  return access.status === "unauthorized" || access.status === "missing-profile"
+    ? access.email
+    : "";
 }

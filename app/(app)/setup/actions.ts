@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { checkAllowedUser } from "@/lib/auth/access";
+import { getDatabaseUserAccess, getUnauthorizedEmail } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function seedInitialWeeklyListAction() {
@@ -20,12 +20,17 @@ export async function seedInitialWeeklyListAction() {
     redirect("/login?next=/setup");
   }
 
-  const access = checkAllowedUser(user.email);
+  const access = await getDatabaseUserAccess({ supabase, user });
+
+  if (access.status === "must-change-password") {
+    redirect("/change-password");
+  }
 
   if (access.status !== "allowed") {
     const params = new URLSearchParams();
-    if (access.status === "unauthorized") {
-      params.set("email", access.email);
+    const unauthorizedEmail = getUnauthorizedEmail(access);
+    if (unauthorizedEmail) {
+      params.set("email", unauthorizedEmail);
     }
     redirect(`/unauthorized?${params.toString()}`);
   }
