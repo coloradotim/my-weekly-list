@@ -103,12 +103,13 @@ Use the visual status language from `docs/product-plan.md` and `AGENTS.md`:
 Do not invent a new visual language without approval.
 
 For material UI, interaction, responsive-layout, or mobile usability changes,
-create a reviewable local app state before calling the PR complete. If auth or
-persisted setup makes direct review difficult, use a development-only preview
-harness with representative fixture state. Preview harnesses must be disabled in
-production, avoid production data, avoid auth bypasses, and cover the states and
-interactions needed for Tim to review mobile and desktop behavior. High-impact
-screens should stay open for Tim's local interaction review unless he explicitly
+create a reviewable app state before calling the PR complete. Prefer
+authenticated local or production-like testing against the real persisted Today,
+Week, Review, and install flows. Use unit/component tests for behavior that does
+not require a live session. Temporary fixture-only prototype routes should be
+used only when explicitly requested or when production-like review is genuinely blocked,
+and they should be removed once the persisted flow is stable. High-impact
+screens should stay open for Tim's interaction review unless he explicitly
 approves auto-merge.
 
 ## Build sequence
@@ -189,14 +190,14 @@ the available scroll-container width so four complete days fit next to the
 sticky activity column. The current Week view should initially snap to today's
 column, while Review day-by-day details should start at Monday. Treat that
 layout as shared infrastructure rather than separate screen-specific CSS, and
-verify Week, Review, and their development previews together when changing it.
+verify Week and Review production screens/tests together when changing it.
 The weekday/date header row should be sticky during vertical scrolling on both
 Week and Review detail grids while staying aligned with horizontal scroll.
 
 ### Phase 5 — Today view
 
-- Get Tim's approval on a development-only interactive local preview before
-  implementing persistence.
+- Preserve the approved production Today interaction model and verify changes
+  against the real route or focused component tests.
 - Show open planned items for today first, with fast `Mark done`.
 - Record unplanned same-day completion through `+ Something else`.
 - Show one unified Done today section for planned and unplanned completions.
@@ -310,7 +311,7 @@ visual language where appropriate.
 - Do not require or expose a Supabase service-role key for normal app screens.
 - Verify remote Supabase migrations match repo migrations before relying on
   production data behavior.
-- Keep development-only preview routes unavailable in production.
+- Do not ship obsolete development preview routes.
 - Maintain a concise production smoke-test and iPhone Chrome acceptance
   checklist in the README/Supabase operations docs.
 

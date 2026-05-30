@@ -2,21 +2,12 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { checkAllowedUser } from "@/lib/auth/access";
 import { getSupabaseConfig } from "@/lib/supabase/env";
-import { isDevPreviewEnabled } from "@/lib/week/preview";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
   const pathname = request.nextUrl.pathname;
-
-  if (pathname.startsWith("/dev/")) {
-    if (isDevPreviewEnabled()) {
-      return response;
-    }
-
-    return new Response(null, { status: 404 });
-  }
 
   if (
     pathname === "/install" ||
