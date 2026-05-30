@@ -30,16 +30,19 @@ for `Today`, `Week`, and `Review` only. Because this is a private single-user
 app, Sign out does not need to appear in the app chrome; it can remain available
 through a deliberate utility route/script when needed.
 
-On mobile, the app shell should keep normal document scrolling so iPhone Chrome
-can hide and show its own controls naturally. The bottom navigation should
-remain fixed for app use, but it must account for the current visual viewport so
-Chrome controls do not cover the nav or make taps unreliable on the scroll-heavy
-Week and Review screens.
+The app should support iPhone Home Screen installation from a stable `/install`
+page. The install page is not a product destination and is not part of primary
+navigation; it exists so Add to Home Screen always uses the same manifest scope
+and launches through `/`, where smart entry sends the user to the right app
+state. Installed app metadata should use `display: standalone`, `start_url: "/"`,
+and `scope: "/"` so `Today`, `Week`, and `Review` stay inside the installed app
+context.
 
-The Week and Review grids should keep horizontal day scrolling without trapping
-normal vertical page scrolling. They should behave like regular page content
-when the user scrolls up or down, even though the day columns can still pan
-horizontally.
+On mobile, the app shell should keep normal document scrolling. The bottom
+navigation should sit at the bottom safe area and content should reserve enough
+bottom padding for that nav. Avoid route-specific browser-chrome workarounds
+unless a concrete device test proves they are still needed after install
+metadata is correct.
 
 ## Design principles
 

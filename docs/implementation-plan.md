@@ -253,15 +253,18 @@ visual language where appropriate.
   and no current week exists.
 - Use compact app navigation focused on Today, Week, and Review. Do not expose
   Plan, Home, Setup, or Sign out as primary navigation items.
-- On mobile, preserve normal document scrolling so iPhone Chrome can collapse
-  its browser controls naturally. Keep the bottom nav fixed for app use, but
-  offset it from the current `visualViewport` when Chrome controls are visible
-  and include that offset in bottom content padding. Week and Review are
-  scroll-heavy because of the weekly grids, so verify them alongside Today when
-  changing shell spacing or navigation hit targets. The shared weekly grid
-  scroller should explicitly allow both horizontal grid panning and normal
-  vertical page panning; avoid scroll containment that prevents the page from
-  behaving like the Today screen in iPhone Chrome.
+- Provide a stable `/install` route for iPhone Safari Add to Home Screen. It
+  should not smart-route away, should not be primary navigation, and should link
+  back to `/` so launches still use smart entry.
+- Provide standalone web app metadata: manifest `start_url: "/"`, `scope: "/"`,
+  `display: "standalone"`, warm theme/background colors, real PNG icons, and
+  iOS Home Screen metadata. Use `/install` for installation rather than
+  installing from route-specific pages such as `/today`, `/week`, or `/review`.
+- On mobile, preserve normal document scrolling. Keep the bottom nav fixed to
+  the bottom safe area with content padding for the nav height and safe area.
+  Avoid `100dvh` app frames, visual-viewport browser-control offsets, fake top
+  spacers, or route-specific Week/Review padding unless a concrete device test
+  proves they are still required after standalone install metadata is correct.
 - Keep `/plan`, if retained, as a compatibility redirect/internal route rather
   than a primary app destination.
 - Keep Sign out out of normal app chrome; use a deliberate utility route/script

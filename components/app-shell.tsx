@@ -2,40 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { appRoutes } from "@/lib/routes";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    const visualViewport = window.visualViewport;
-
-    function updateBrowserControlOffset() {
-      const viewport = window.visualViewport;
-      const offset = viewport
-        ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
-        : 0;
-
-      root.style.setProperty("--mobile-browser-bottom-offset", `${Math.round(offset)}px`);
-    }
-
-    updateBrowserControlOffset();
-    visualViewport?.addEventListener("resize", updateBrowserControlOffset);
-    visualViewport?.addEventListener("scroll", updateBrowserControlOffset);
-    window.addEventListener("resize", updateBrowserControlOffset);
-    window.addEventListener("orientationchange", updateBrowserControlOffset);
-
-    return () => {
-      visualViewport?.removeEventListener("resize", updateBrowserControlOffset);
-      visualViewport?.removeEventListener("scroll", updateBrowserControlOffset);
-      window.removeEventListener("resize", updateBrowserControlOffset);
-      window.removeEventListener("orientationchange", updateBrowserControlOffset);
-      root.style.removeProperty("--mobile-browser-bottom-offset");
-    };
-  }, []);
 
   return (
     <>
@@ -48,13 +19,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5.5rem+env(safe-area-inset-bottom)+var(--mobile-browser-bottom-offset,0px))] pt-3 sm:px-6 sm:pb-8 sm:pt-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-8 sm:pt-6 lg:px-8">
         {children}
       </main>
 
       <nav
         aria-label="Main navigation"
-        className="fixed inset-x-0 bottom-[var(--mobile-browser-bottom-offset,0px)] z-40 border-t border-stone-200 bg-paper/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(47,48,43,0.08)] backdrop-blur transition-[bottom] duration-150 sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-paper/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(47,48,43,0.08)] backdrop-blur sm:hidden"
       >
         <ul className="mx-auto grid max-w-md grid-cols-3 gap-2">
           {appRoutes.map((item) => {
