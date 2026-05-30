@@ -2,7 +2,6 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getAllowedUserEmail } from "@/lib/auth/access";
 import {
   getMagicLinkRedirectUrlFromHeaders,
   getRequestOrigin,
@@ -72,22 +71,50 @@ export async function completePastedMagicLinkAction(formData: FormData) {
     }
   }
 
-  if (parsed.status === "token") {
-    const email = getAllowedUserEmail();
+  if (parsed.status === "verify-url") {
+    const callbackPath = await resolveSupabaseVerifyUrl({
+      verifyUrl: parsed.verifyUrl,
+      requestOrigin: origin,
+    });
 
-    if (email) {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: parsed.token,
-        type: parsed.type,
-      });
-
-      if (!error) {
-        redirect(parsed.nextPath);
-      }
+    if (callbackPath) {
+      redirect(callbackPath);
     }
   }
 
   const safeNext = getSafeAuthNextPath(typeof nextPath === "string" ? nextPath : null);
   redirect(`/login?magic=invalid-link&next=${encodeURIComponent(safeNext)}`);
+}
+
+async function resolveSupabaseVerifyUrl({
+  verifyUrl,
+  requestOrigin,
+}: {
+  verifyUrl: string;
+  requestOrigin: string;
+}) {
+  const response = await fetch(verifyUrl, { redirect: "manual" });
+  const location = response.headers.get("location");
+
+  if (!location) {
+    return null;
+  }
+
+  let callbackUrl: URL;
+
+  try {
+    callbackUrl = new URL(location, verifyUrl);
+  } catch {
+    return null;
+  }
+
+  if (callbackUrl.origin !== requestOrigin || callbackUrl.pathname !== "/auth/callback") {
+    return null;
+  }
+
+  if (!callbackUrl.searchParams.get("code")) {
+    return null;
+  }
+
+  return `${callbackUrl.pathname}${callbackUrl.search}`;
 }
