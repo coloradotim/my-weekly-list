@@ -4,7 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { checkAllowedUser } from "@/lib/auth/access";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { createCurrentWeekFromTemplates, setWeekCellPlanned } from "@/lib/week/current";
+import {
+  addWeekActivityListItem,
+  createCurrentWeekFromTemplates,
+  removeWeekActivityFromFuture,
+  reorderWeekActivities,
+  reorderWeekCategories,
+  setWeekCellPlanned,
+  updateWeekActivityListItem,
+} from "@/lib/week/current";
 import type { DateOnly } from "@/lib/week/date";
 
 export async function startThisWeekAction() {
@@ -55,6 +63,136 @@ export async function setWeekPlanningCellAction({
   return { status: "updated" as const };
 }
 
+export async function updateWeekActivityListItemAction(formData: FormData) {
+  const weekActivityId = getFormString(formData, "weekActivityId");
+  const activityName = getFormString(formData, "activityName");
+  const categoryName = getFormString(formData, "categoryName");
+  const targetCount = getFormNumber(formData, "targetCount");
+
+  if (!weekActivityId || !activityName || !categoryName || targetCount === null) {
+    redirect("/week?list=blocked");
+  }
+
+  const { supabase, userId } = await requireAllowedUser("/week");
+  const result = await updateWeekActivityListItem({
+    supabase,
+    userId,
+    weekActivityId,
+    activityName,
+    categoryName,
+    targetCount,
+  });
+
+  revalidatePath("/week");
+  redirect(`/week?list=${toListNotice(result.status)}`);
+}
+
+export async function addWeekActivityListItemAction(formData: FormData) {
+  const weekId = getFormString(formData, "weekId");
+  const activityName = getFormString(formData, "activityName");
+  const categoryName = getFormString(formData, "categoryName");
+  const targetCount = getFormNumber(formData, "targetCount");
+
+  if (!weekId || !activityName || !categoryName || targetCount === null) {
+    redirect("/week?list=blocked");
+  }
+
+  const { supabase, userId } = await requireAllowedUser("/week");
+  const result = await addWeekActivityListItem({
+    supabase,
+    userId,
+    weekId,
+    activityName,
+    categoryName,
+    targetCount,
+  });
+
+  revalidatePath("/week");
+  redirect(`/week?list=${toListNotice(result.status)}`);
+}
+
+export async function removeWeekActivityFromFutureAction(formData: FormData) {
+  const weekActivityId = getFormString(formData, "weekActivityId");
+
+  if (!weekActivityId) {
+    redirect("/week?list=blocked");
+  }
+
+  const { supabase } = await requireAllowedUser("/week");
+  const result = await removeWeekActivityFromFuture({
+    supabase,
+    weekActivityId,
+  });
+
+  revalidatePath("/week");
+  redirect(`/week?list=${toListNotice(result.status)}`);
+}
+
+export async function reorderWeekCategoriesAction({
+  weekId,
+  categoryName,
+  targetCategoryName,
+}: {
+  weekId: string;
+  categoryName: string;
+  targetCategoryName: string;
+}) {
+  if (!weekId || !categoryName || !targetCategoryName) {
+    return { status: "blocked" as const };
+  }
+
+  const { supabase } = await requireAllowedUser("/week");
+  const result = await reorderWeekCategories({
+    supabase,
+    weekId,
+    categoryName,
+    targetCategoryName,
+  });
+
+  if (result.status !== "updated") {
+    console.error("Week category reorder failed", result);
+  }
+
+  revalidatePath("/week");
+  return result.status === "updated"
+    ? { status: "updated" as const }
+    : {
+        status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
+        message: "message" in result ? result.message : "That order could not be saved.",
+      };
+}
+
+export async function reorderWeekActivitiesAction({
+  weekActivityId,
+  targetWeekActivityId,
+}: {
+  weekActivityId: string;
+  targetWeekActivityId: string;
+}) {
+  if (!weekActivityId || !targetWeekActivityId) {
+    return { status: "blocked" as const };
+  }
+
+  const { supabase } = await requireAllowedUser("/week");
+  const result = await reorderWeekActivities({
+    supabase,
+    weekActivityId,
+    targetWeekActivityId,
+  });
+
+  if (result.status !== "updated") {
+    console.error("Week activity reorder failed", result);
+  }
+
+  revalidatePath("/week");
+  return result.status === "updated"
+    ? { status: "updated" as const }
+    : {
+        status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
+        message: "message" in result ? result.message : "That order could not be saved.",
+      };
+}
+
 async function requireAllowedUser(nextPath: string) {
   const supabase = await createSupabaseServerClient();
 
@@ -81,4 +219,36 @@ async function requireAllowedUser(nextPath: string) {
   }
 
   return { supabase, userId: user.id };
+}
+
+function getFormString(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getFormNumber(formData: FormData, key: string) {
+  const value = getFormString(formData, key);
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function toListNotice(status: string) {
+  if (status === "updated" || status === "removed") {
+    return "updated";
+  }
+
+  if (status === "kept-history") {
+    return "kept-history";
+  }
+
+  if (status === "blocked") {
+    return "blocked";
+  }
+
+  return "error";
 }

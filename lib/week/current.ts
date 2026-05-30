@@ -87,6 +87,10 @@ export type WeekGridCell = {
 
 export type WeekGridActivity = {
   id: string;
+  activityTemplateId: string | null;
+  categoryId: string | null;
+  categoryName: string;
+  categorySortOrder: number;
   activityName: string;
   targetCount: number;
   doneCount: number;
@@ -182,6 +186,65 @@ type WeekActivityOwnerRow = {
         week_end_date: string;
       }[]
     | null;
+};
+
+type WeekActivityEditRow = {
+  id: string;
+  week_id: string;
+  activity_template_id: string | null;
+  category_id: string | null;
+  category_name: string;
+  category_sort_order: number;
+  activity_name: string;
+  target_count: number;
+  sort_order: number;
+  activity_day_cells?: { id: string }[] | null;
+  weeks:
+    | {
+        status: WeekStatus;
+        week_start_date: string;
+        week_end_date: string;
+      }
+    | {
+        status: WeekStatus;
+        week_start_date: string;
+        week_end_date: string;
+      }[]
+    | null;
+};
+
+type CategoryQueryRow = {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type ActivityTemplateEditRow = {
+  id: string;
+  category_id: string;
+  name: string;
+  default_target_count: number;
+  sort_order: number;
+  is_active: boolean;
+};
+
+type EditableWeekActivity = {
+  id: string;
+  weekId: string;
+  activityTemplateId: string | null;
+  categoryId: string | null;
+  categoryName: string;
+  categorySortOrder: number;
+  activityName: string;
+  targetCount: number;
+  sortOrder: number;
+  hasCells: boolean;
+  week: {
+    status: WeekStatus;
+    weekStartDate: string;
+    weekEndDate: string;
+  };
 };
 
 export function getTodayDateOnly() {
@@ -429,6 +492,10 @@ export function buildThisWeekViewModel({
 
     category.activities.push({
       id: activity.id,
+      activityTemplateId: activity.activityTemplateId,
+      categoryId: activity.categoryId,
+      categoryName: activity.categoryName,
+      categorySortOrder: activity.categorySortOrder,
       activityName: activity.activityName,
       targetCount: activity.targetCount,
       doneCount: cells.filter((cell) => cell.done).length,
@@ -900,6 +967,411 @@ export async function moveWeekActivityPlanDate({
   return setDestination;
 }
 
+export type WeekListMutationResult =
+  | { status: "updated" }
+  | { status: "removed" }
+  | { status: "kept-history" }
+  | { status: "blocked"; message: string }
+  | { status: "error"; message: string };
+
+export async function updateWeekActivityListItem({
+  supabase,
+  userId,
+  weekActivityId,
+  activityName,
+  categoryName,
+  targetCount,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  weekActivityId: string;
+  activityName: string;
+  categoryName: string;
+  targetCount: number;
+}): Promise<WeekListMutationResult> {
+  const input = normalizeListInput({ activityName, categoryName, targetCount });
+
+  if (!input) {
+    return {
+      status: "blocked",
+      message: "Activity name, category, and target are required.",
+    };
+  }
+
+  const activity = await getWeekActivityForEdit(supabase, weekActivityId);
+
+  if (activity.status !== "success") {
+    return activity;
+  }
+
+  if (!activity.activity) {
+    return { status: "error", message: "Activity not found." };
+  }
+
+  if (!canEditWeekList(activity.activity.week.status)) {
+    return { status: "blocked", message: "That week list is view-only." };
+  }
+
+  const category = await getOrCreateCategory({
+    supabase,
+    userId,
+    categoryName: input.categoryName,
+  });
+
+  if (category.status !== "success") {
+    return category;
+  }
+
+  const { error: weekActivityError } = await supabase
+    .from("week_activities")
+    .update({
+      category_id: category.category.id,
+      category_name: category.category.name,
+      category_sort_order: category.category.sortOrder,
+      activity_name: input.activityName,
+      target_count: input.targetCount,
+    })
+    .eq("id", weekActivityId);
+
+  if (weekActivityError) {
+    return { status: "error", message: weekActivityError.message };
+  }
+
+  if (activity.activity.activityTemplateId) {
+    const { error: templateError } = await supabase
+      .from("activity_templates")
+      .update({
+        category_id: category.category.id,
+        name: input.activityName,
+        default_target_count: input.targetCount,
+        is_active: true,
+      })
+      .eq("id", activity.activity.activityTemplateId);
+
+    if (templateError) {
+      return { status: "error", message: templateError.message };
+    }
+  }
+
+  return { status: "updated" };
+}
+
+export async function addWeekActivityListItem({
+  supabase,
+  userId,
+  weekId,
+  activityName,
+  categoryName,
+  targetCount,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  weekId: string;
+  activityName: string;
+  categoryName: string;
+  targetCount: number;
+}): Promise<WeekListMutationResult> {
+  const input = normalizeListInput({ activityName, categoryName, targetCount });
+
+  if (!input) {
+    return {
+      status: "blocked",
+      message: "Activity name, category, and target are required.",
+    };
+  }
+
+  const week = await getWeekById(supabase, weekId);
+
+  if (week.status !== "success") {
+    return week;
+  }
+
+  if (!week.week) {
+    return { status: "error", message: "Week not found." };
+  }
+
+  if (!canEditWeekList(week.week.status)) {
+    return { status: "blocked", message: "That week list is view-only." };
+  }
+
+  const category = await getOrCreateCategory({
+    supabase,
+    userId,
+    categoryName: input.categoryName,
+  });
+
+  if (category.status !== "success") {
+    return category;
+  }
+
+  const template = await getOrCreateActivityTemplate({
+    supabase,
+    userId,
+    categoryId: category.category.id,
+    activityName: input.activityName,
+    targetCount: input.targetCount,
+  });
+
+  if (template.status !== "success") {
+    return template;
+  }
+
+  const sortOrder = await getNextWeekActivitySortOrder({
+    supabase,
+    weekId,
+    categoryName: category.category.name,
+  });
+
+  if (sortOrder.status !== "success") {
+    return sortOrder;
+  }
+
+  const { error } = await supabase.from("week_activities").insert({
+    week_id: weekId,
+    activity_template_id: template.template.id,
+    category_id: category.category.id,
+    category_name: category.category.name,
+    category_sort_order: category.category.sortOrder,
+    activity_name: input.activityName,
+    target_count: input.targetCount,
+    sort_order: sortOrder.sortOrder,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { status: "updated" };
+    }
+
+    return { status: "error", message: error.message };
+  }
+
+  return { status: "updated" };
+}
+
+export async function removeWeekActivityFromFuture({
+  supabase,
+  weekActivityId,
+}: {
+  supabase: SupabaseClient;
+  weekActivityId: string;
+}): Promise<WeekListMutationResult> {
+  const activity = await getWeekActivityForEdit(supabase, weekActivityId);
+
+  if (activity.status !== "success") {
+    return activity;
+  }
+
+  if (!activity.activity) {
+    return { status: "error", message: "Activity not found." };
+  }
+
+  if (!canEditWeekList(activity.activity.week.status)) {
+    return { status: "blocked", message: "That week list is view-only." };
+  }
+
+  if (activity.activity.activityTemplateId) {
+    const { error } = await supabase
+      .from("activity_templates")
+      .update({ is_active: false })
+      .eq("id", activity.activity.activityTemplateId);
+
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+  }
+
+  if (activity.activity.hasCells) {
+    return { status: "kept-history" };
+  }
+
+  const { error } = await supabase
+    .from("week_activities")
+    .delete()
+    .eq("id", weekActivityId);
+
+  if (error) {
+    return { status: "error", message: error.message };
+  }
+
+  return { status: "removed" };
+}
+
+export async function reorderWeekCategories({
+  supabase,
+  weekId,
+  categoryName,
+  targetCategoryName,
+}: {
+  supabase: SupabaseClient;
+  weekId: string;
+  categoryName: string;
+  targetCategoryName: string;
+}): Promise<WeekListMutationResult> {
+  if (categoryName === targetCategoryName) {
+    return { status: "updated" };
+  }
+
+  const week = await getWeekById(supabase, weekId);
+
+  if (week.status !== "success") {
+    return week;
+  }
+
+  if (!week.week) {
+    return { status: "error", message: "Week not found." };
+  }
+
+  if (!canEditWeekList(week.week.status)) {
+    return { status: "blocked", message: "That week list is view-only." };
+  }
+
+  const activities = await getWeekActivitiesForListEdit(supabase, weekId);
+
+  if (activities.status !== "success") {
+    return activities;
+  }
+
+  const categories = uniqueCategoryOrder(activities.activities);
+  const nextCategories = moveNamedItem(categories, categoryName, targetCategoryName);
+
+  if (!nextCategories) {
+    return { status: "blocked", message: "Category not found." };
+  }
+
+  for (const [index, category] of nextCategories.entries()) {
+    const sortOrder = (index + 1) * 10;
+    const { error } = await supabase
+      .from("week_activities")
+      .update({ category_sort_order: sortOrder })
+      .eq("week_id", weekId)
+      .eq("category_name", category.name);
+
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+
+    if (category.categoryId) {
+      const { error: categoryError } = await supabase
+        .from("categories")
+        .update({ sort_order: sortOrder })
+        .eq("id", category.categoryId);
+
+      if (categoryError) {
+        return { status: "error", message: categoryError.message };
+      }
+    }
+  }
+
+  return { status: "updated" };
+}
+
+export async function reorderWeekActivities({
+  supabase,
+  weekActivityId,
+  targetWeekActivityId,
+}: {
+  supabase: SupabaseClient;
+  weekActivityId: string;
+  targetWeekActivityId: string;
+}): Promise<WeekListMutationResult> {
+  if (weekActivityId === targetWeekActivityId) {
+    return { status: "updated" };
+  }
+
+  const dragged = await getWeekActivityForEdit(supabase, weekActivityId);
+  const target = await getWeekActivityForEdit(supabase, targetWeekActivityId);
+
+  if (dragged.status !== "success") {
+    return dragged;
+  }
+
+  if (target.status !== "success") {
+    return target;
+  }
+
+  if (!dragged.activity || !target.activity) {
+    return { status: "error", message: "Activity not found." };
+  }
+
+  if (dragged.activity.weekId !== target.activity.weekId) {
+    return { status: "blocked", message: "Activities must be in the same week." };
+  }
+
+  if (!canEditWeekList(dragged.activity.week.status)) {
+    return { status: "blocked", message: "That week list is view-only." };
+  }
+
+  const activities = await getWeekActivitiesForListEdit(
+    supabase,
+    dragged.activity.weekId,
+  );
+
+  if (activities.status !== "success") {
+    return activities;
+  }
+
+  const targetCategoryActivities = activities.activities.filter(
+    (activity) =>
+      activity.categoryName === target.activity!.categoryName &&
+      activity.id !== dragged.activity!.id,
+  );
+  const targetIndex = targetCategoryActivities.findIndex(
+    (activity) => activity.id === target.activity!.id,
+  );
+
+  if (targetIndex < 0) {
+    return { status: "blocked", message: "Target activity not found." };
+  }
+
+  targetCategoryActivities.splice(targetIndex, 0, {
+    ...dragged.activity,
+    categoryId: target.activity.categoryId,
+    categoryName: target.activity.categoryName,
+    categorySortOrder: target.activity.categorySortOrder,
+  });
+
+  for (const [index, activity] of targetCategoryActivities.entries()) {
+    const sortOrder = (index + 1) * 10;
+    const update: {
+      sort_order: number;
+      category_id?: string | null;
+      category_name?: string;
+      category_sort_order?: number;
+    } = { sort_order: sortOrder };
+
+    if (activity.id === dragged.activity.id) {
+      update.category_id = target.activity.categoryId;
+      update.category_name = target.activity.categoryName;
+      update.category_sort_order = target.activity.categorySortOrder;
+    }
+
+    const { error } = await supabase
+      .from("week_activities")
+      .update(update)
+      .eq("id", activity.id);
+
+    if (error) {
+      return { status: "error", message: error.message };
+    }
+
+    if (activity.id === dragged.activity.id && dragged.activity.activityTemplateId) {
+      const { error: templateError } = await supabase
+        .from("activity_templates")
+        .update({
+          category_id: target.activity.categoryId,
+          sort_order: sortOrder,
+        })
+        .eq("id", dragged.activity.activityTemplateId);
+
+      if (templateError) {
+        return { status: "error", message: templateError.message };
+      }
+    }
+  }
+
+  return { status: "updated" };
+}
+
 function compareWeekActivities(
   left: PersistedWeekActivity,
   right: PersistedWeekActivity,
@@ -967,6 +1439,37 @@ async function getWeekByStartDate(supabase: SupabaseClient, weekStartDate: DateO
       status: row.status,
     } satisfies WeekRecord,
     activities: (row.week_activities ?? []).map(toPersistedWeekActivity),
+  };
+}
+
+async function getWeekById(supabase: SupabaseClient, weekId: string) {
+  const { data, error } = await supabase
+    .from("weeks")
+    .select("id, week_start_date, week_end_date, status")
+    .eq("id", weekId)
+    .maybeSingle();
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  if (!data) {
+    return { status: "success" as const, week: null };
+  }
+
+  const row = data as Pick<
+    WeekQueryRow,
+    "id" | "week_start_date" | "week_end_date" | "status"
+  >;
+
+  return {
+    status: "success" as const,
+    week: {
+      id: row.id,
+      weekStartDate: row.week_start_date,
+      weekEndDate: row.week_end_date,
+      status: row.status,
+    } satisfies WeekRecord,
   };
 }
 
@@ -1062,6 +1565,283 @@ async function getWeekActivityOwner(supabase: SupabaseClient, weekActivityId: st
   };
 }
 
+async function getWeekActivityForEdit(supabase: SupabaseClient, weekActivityId: string) {
+  const { data, error } = await supabase
+    .from("week_activities")
+    .select(
+      "id, week_id, activity_template_id, category_id, category_name, category_sort_order, activity_name, target_count, sort_order, activity_day_cells(id), weeks(status, week_start_date, week_end_date)",
+    )
+    .eq("id", weekActivityId)
+    .maybeSingle();
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  if (!data) {
+    return { status: "success" as const, activity: null };
+  }
+
+  const row = data as WeekActivityEditRow;
+  const week = Array.isArray(row.weeks) ? row.weeks[0] : row.weeks;
+
+  if (!week) {
+    return { status: "error" as const, message: "Week not found." };
+  }
+
+  return {
+    status: "success" as const,
+    activity: {
+      id: row.id,
+      weekId: row.week_id,
+      activityTemplateId: row.activity_template_id,
+      categoryId: row.category_id,
+      categoryName: row.category_name,
+      categorySortOrder: row.category_sort_order,
+      activityName: row.activity_name,
+      targetCount: row.target_count,
+      sortOrder: row.sort_order,
+      hasCells: (row.activity_day_cells ?? []).length > 0,
+      week: {
+        status: week.status,
+        weekStartDate: week.week_start_date,
+        weekEndDate: week.week_end_date,
+      },
+    },
+  };
+}
+
+async function getWeekActivitiesForListEdit(supabase: SupabaseClient, weekId: string) {
+  const { data, error } = await supabase
+    .from("week_activities")
+    .select(
+      "id, week_id, activity_template_id, category_id, category_name, category_sort_order, activity_name, target_count, sort_order, activity_day_cells(id), weeks(status, week_start_date, week_end_date)",
+    )
+    .eq("week_id", weekId);
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  const activities = ((data ?? []) as WeekActivityEditRow[])
+    .map((row) => {
+      const week = Array.isArray(row.weeks) ? row.weeks[0] : row.weeks;
+
+      if (!week) {
+        return null;
+      }
+
+      return {
+        id: row.id,
+        weekId: row.week_id,
+        activityTemplateId: row.activity_template_id,
+        categoryId: row.category_id,
+        categoryName: row.category_name,
+        categorySortOrder: row.category_sort_order,
+        activityName: row.activity_name,
+        targetCount: row.target_count,
+        sortOrder: row.sort_order,
+        hasCells: (row.activity_day_cells ?? []).length > 0,
+        week: {
+          status: week.status,
+          weekStartDate: week.week_start_date,
+          weekEndDate: week.week_end_date,
+        },
+      } satisfies EditableWeekActivity;
+    })
+    .filter((activity): activity is NonNullable<typeof activity> => Boolean(activity))
+    .toSorted(
+      (left, right) =>
+        left.categorySortOrder - right.categorySortOrder ||
+        left.categoryName.localeCompare(right.categoryName) ||
+        left.sortOrder - right.sortOrder ||
+        left.activityName.localeCompare(right.activityName),
+    );
+
+  return { status: "success" as const, activities };
+}
+
+async function getUserCategories(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, sort_order, is_active")
+    .eq("is_active", true);
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  return {
+    status: "success" as const,
+    categories: ((data ?? []) as CategoryQueryRow[])
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        sortOrder: category.sort_order,
+        isActive: category.is_active,
+      }))
+      .toSorted(
+        (left, right) =>
+          left.sortOrder - right.sortOrder || left.name.localeCompare(right.name),
+      ),
+  };
+}
+
+async function getOrCreateCategory({
+  supabase,
+  userId,
+  categoryName,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  categoryName: string;
+}) {
+  const categories = await getUserCategories(supabase);
+
+  if (categories.status !== "success") {
+    return categories;
+  }
+
+  const existing = categories.categories.find(
+    (category) => category.name.toLowerCase() === categoryName.toLowerCase(),
+  );
+
+  if (existing) {
+    return { status: "success" as const, category: existing };
+  }
+
+  const nextSortOrder =
+    Math.max(0, ...categories.categories.map((category) => category.sortOrder)) + 10;
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({
+      user_id: userId,
+      name: categoryName,
+      sort_order: nextSortOrder,
+      is_active: true,
+    })
+    .select("id, name, sort_order, is_active")
+    .single();
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  const row = data as CategoryQueryRow;
+
+  return {
+    status: "success" as const,
+    category: {
+      id: row.id,
+      name: row.name,
+      sortOrder: row.sort_order,
+      isActive: row.is_active,
+    },
+  };
+}
+
+async function getOrCreateActivityTemplate({
+  supabase,
+  userId,
+  categoryId,
+  activityName,
+  targetCount,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  categoryId: string;
+  activityName: string;
+  targetCount: number;
+}) {
+  const { data: existingData, error: existingError } = await supabase
+    .from("activity_templates")
+    .select("id, category_id, name, default_target_count, sort_order, is_active")
+    .eq("category_id", categoryId);
+
+  if (existingError) {
+    return { status: "error" as const, message: existingError.message };
+  }
+
+  const existingRows = (existingData ?? []) as ActivityTemplateEditRow[];
+  const existing = existingRows.find(
+    (template) => template.name.toLowerCase() === activityName.toLowerCase(),
+  );
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("activity_templates")
+      .update({
+        name: activityName,
+        default_target_count: targetCount,
+        is_active: true,
+      })
+      .eq("id", existing.id)
+      .select("id, category_id, name, default_target_count, sort_order, is_active")
+      .single();
+
+    if (error) {
+      return { status: "error" as const, message: error.message };
+    }
+
+    return {
+      status: "success" as const,
+      template: toActivityTemplateEdit((data as ActivityTemplateEditRow) ?? existing),
+    };
+  }
+
+  const nextSortOrder = Math.max(0, ...existingRows.map((row) => row.sort_order)) + 10;
+  const { data, error } = await supabase
+    .from("activity_templates")
+    .insert({
+      user_id: userId,
+      category_id: categoryId,
+      name: activityName,
+      default_target_count: targetCount,
+      sort_order: nextSortOrder,
+      is_active: true,
+    })
+    .select("id, category_id, name, default_target_count, sort_order, is_active")
+    .single();
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  return {
+    status: "success" as const,
+    template: toActivityTemplateEdit(data as ActivityTemplateEditRow),
+  };
+}
+
+async function getNextWeekActivitySortOrder({
+  supabase,
+  weekId,
+  categoryName,
+}: {
+  supabase: SupabaseClient;
+  weekId: string;
+  categoryName: string;
+}) {
+  const { data, error } = await supabase
+    .from("week_activities")
+    .select("sort_order")
+    .eq("week_id", weekId)
+    .eq("category_name", categoryName);
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  return {
+    status: "success" as const,
+    sortOrder:
+      Math.max(
+        0,
+        ...((data ?? []) as { sort_order: number }[]).map((row) => row.sort_order),
+      ) + 10,
+  };
+}
+
 async function getDayCell(
   supabase: SupabaseClient,
   weekActivityId: string,
@@ -1093,6 +1873,93 @@ async function getDayCell(
       done: row.done,
       skipped: row.skipped,
     } satisfies PersistedDayCell,
+  };
+}
+
+function canEditWeekList(status: WeekStatus) {
+  return status === "active" || status === "draft";
+}
+
+function uniqueCategoryOrder(activities: EditableWeekActivity[]) {
+  const categories = new Map<
+    string,
+    { name: string; sortOrder: number; categoryId: string | null }
+  >();
+
+  activities.forEach((activity) => {
+    if (!categories.has(activity.categoryName)) {
+      categories.set(activity.categoryName, {
+        name: activity.categoryName,
+        sortOrder: activity.categorySortOrder,
+        categoryId: activity.categoryId,
+      });
+    }
+  });
+
+  return Array.from(categories.values()).toSorted(
+    (left, right) =>
+      left.sortOrder - right.sortOrder || left.name.localeCompare(right.name),
+  );
+}
+
+function moveNamedItem<T extends { name: string }>(
+  items: T[],
+  itemName: string,
+  targetItemName: string,
+) {
+  const itemIndex = items.findIndex((item) => item.name === itemName);
+  const targetIndex = items.findIndex((item) => item.name === targetItemName);
+
+  if (itemIndex < 0 || targetIndex < 0) {
+    return null;
+  }
+
+  const next = [...items];
+  const [item] = next.splice(itemIndex, 1);
+  const nextTargetIndex = next.findIndex(
+    (candidate) => candidate.name === targetItemName,
+  );
+  next.splice(nextTargetIndex, 0, item);
+
+  return next;
+}
+
+function normalizeListInput({
+  activityName,
+  categoryName,
+  targetCount,
+}: {
+  activityName: string;
+  categoryName: string;
+  targetCount: number;
+}) {
+  const normalizedActivityName = activityName.trim();
+  const normalizedCategoryName = categoryName.trim();
+  const normalizedTargetCount = Math.max(0, Math.floor(targetCount));
+
+  if (
+    normalizedActivityName.length === 0 ||
+    normalizedCategoryName.length === 0 ||
+    Number.isNaN(normalizedTargetCount)
+  ) {
+    return null;
+  }
+
+  return {
+    activityName: normalizedActivityName,
+    categoryName: normalizedCategoryName,
+    targetCount: normalizedTargetCount,
+  };
+}
+
+function toActivityTemplateEdit(row: ActivityTemplateEditRow) {
+  return {
+    id: row.id,
+    categoryId: row.category_id,
+    name: row.name,
+    targetCount: row.default_target_count,
+    sortOrder: row.sort_order,
+    isActive: row.is_active,
   };
 }
 

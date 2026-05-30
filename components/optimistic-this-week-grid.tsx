@@ -39,6 +39,29 @@ export function OptimisticThisWeekGrid({
     setSaveStatus("idle");
   }, [initialView]);
 
+  useEffect(() => {
+    const todayIndex = initialView.dayDates.indexOf(initialView.today);
+
+    if (todayIndex < 0) {
+      return;
+    }
+
+    const grid = document.querySelector<HTMLElement>("[data-week-grid-scroll]");
+    const todayHeader = document.querySelector<HTMLElement>(
+      `[data-week-day-index="${todayIndex}"]`,
+    );
+
+    todayHeader?.scrollIntoView({
+      block: "nearest",
+      inline: "start",
+      behavior: "auto",
+    });
+
+    if (grid && todayIndex === 0) {
+      grid.scrollLeft = 0;
+    }
+  }, [initialView.dayDates, initialView.today]);
+
   const notice = useMemo<WeekNotice>(() => {
     if (saveStatus === "error") {
       return { tone: "error", body: "Couldn’t save that change. Try again." };
