@@ -1262,17 +1262,6 @@ export async function reorderWeekCategories({
     if (error) {
       return { status: "error", message: error.message };
     }
-
-    if (category.categoryId) {
-      const { error: categoryError } = await supabase
-        .from("categories")
-        .update({ sort_order: sortOrder })
-        .eq("id", category.categoryId);
-
-      if (categoryError) {
-        return { status: "error", message: categoryError.message };
-      }
-    }
   }
 
   return { status: "updated" };

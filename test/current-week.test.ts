@@ -619,6 +619,9 @@ describe("week action guardrails", () => {
     );
     expect(weekModel).toContain("itemIndex < targetIndex");
     expect(weekModel).toContain("dragged.activity.sortOrder < target.activity.sortOrder");
+    expect(weekModel).not.toContain(
+      '.from("categories")\n        .update({ sort_order: sortOrder })',
+    );
     expect(weekActions).not.toContain(
       'reorderWeekCategories({\n    supabase,\n    weekId,\n    categoryName,\n    targetCategoryName,\n  });\n\n  revalidatePath("/week");',
     );
