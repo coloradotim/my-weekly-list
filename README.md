@@ -127,16 +127,14 @@ pasting SQL into the Supabase dashboard. The full operations workflow is in
 Check linked-project status with:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
+cp supabase.env.example .env.supabase.local
+# Fill in .env.supabase.local, then run:
 scripts/supabase-status.sh
 ```
 
 Preview pending migrations with:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
 SUPABASE_MIGRATION_MODE=dry-run \
 scripts/supabase-migrate.sh
 ```
@@ -144,8 +142,6 @@ scripts/supabase-migrate.sh
 Apply pending migrations with:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
 SUPABASE_MIGRATION_MODE=apply \
 scripts/supabase-migrate.sh
 ```
