@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   applyOptimisticPlanningCell,
   getOptimisticPlannedValue,
   getPlanningCellKey,
 } from "@/lib/week/optimistic";
 import type { ThisWeekViewModel } from "@/lib/week/current";
+
+const optimisticGrid = readFileSync(
+  join(process.cwd(), "components/optimistic-this-week-grid.tsx"),
+  "utf8",
+);
+const thisWeekGrid = readFileSync(
+  join(process.cwd(), "components/this-week-grid.tsx"),
+  "utf8",
+);
 
 describe("optimistic week planning", () => {
   it("applies a permitted blank to planned transition immediately", () => {
@@ -103,6 +114,22 @@ describe("optimistic week planning", () => {
     expect(getOptimisticPlannedValue(getCell(fixtureView(), "walk", "2026-06-03"))).toBe(
       false,
     );
+  });
+
+  it("only scrolls the current active week to today on initial mobile entry", () => {
+    expect(optimisticGrid).toContain('initialView.week.status !== "active"');
+    expect(optimisticGrid).toContain('window.matchMedia("(min-width: 640px)")');
+    expect(optimisticGrid).toContain("scrollIntoView");
+    expect(optimisticGrid).toContain('inline: "start"');
+    expect(thisWeekGrid).toContain(
+      'data-initial-scroll={view.week.status === "active" ? "today" : "monday"}',
+    );
+  });
+
+  it("uses a muted x rather than a slash for missed or skipped Week cells", () => {
+    expect(thisWeekGrid).toContain("×");
+    expect(thisWeekGrid).not.toContain(">\n        /\n");
+    expect(thisWeekGrid).not.toContain("opacity-80");
   });
 });
 

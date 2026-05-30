@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { setReviewCellDoneAction } from "@/app/(app)/review/actions";
 import {
   applyOptimisticReviewAction,
@@ -18,6 +18,7 @@ const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function OptimisticReviewView({ initialState }: { initialState: ReviewState }) {
   const [state, setState] = useState(initialState);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [collapsedCategoryNames, setCollapsedCategoryNames] = useState<string[]>([]);
   const [pendingCellKeys, setPendingCellKeys] = useState<Set<string>>(() => new Set());
   const [saveStatus, setSaveStatus] = useState<"idle" | "error">("idle");
   const [, startTransition] = useTransition();
@@ -93,15 +94,18 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
     });
   }
 
+  function toggleCategory(categoryName: string) {
+    setCollapsedCategoryNames((current) =>
+      current.includes(categoryName)
+        ? current.filter((name) => name !== categoryName)
+        : [...current, categoryName],
+    );
+  }
+
   return (
     <section className="space-y-3">
-      <article className="rounded-lg border border-stone-200 bg-white/90 p-4 shadow-soft">
-        <p className="text-sm font-semibold uppercase tracking-wide text-clay">
-          Review this week
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink sm:text-3xl">
-          {view.rangeLabel}
-        </h1>
+      <article className="rounded-lg border border-stone-200 bg-white/90 p-3 shadow-soft sm:p-4">
+        <p className="text-sm font-semibold text-clay">Review · {view.rangeLabel}</p>
 
         {view.isSundayCurrentWeek ? (
           <p className="mt-3 rounded-lg border border-mist bg-mist/20 px-3 py-2 text-sm leading-6 text-stone-700">
@@ -143,7 +147,9 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
             groups={view.categoryGroups}
             isSundayCurrentWeek={view.isSundayCurrentWeek}
             pendingCellKeys={pendingCellKeys}
+            collapsedCategoryNames={collapsedCategoryNames}
             today={view.today}
+            onToggleCategory={toggleCategory}
             onSetCompletion={setCompletion}
           />
         </div>
@@ -187,19 +193,75 @@ function ReviewDetailGrid({
   groups,
   isSundayCurrentWeek,
   pendingCellKeys,
+  collapsedCategoryNames,
   today,
+  onToggleCategory,
   onSetCompletion,
 }: {
   dayDates: DateOnly[];
   groups: { categoryName: string; activities: ReviewActivityRecord[] }[];
   isSundayCurrentWeek: boolean;
   pendingCellKeys: Set<string>;
+  collapsedCategoryNames: string[];
   today: DateOnly;
+  onToggleCategory: (categoryName: string) => void;
   onSetCompletion: (activityId: string, cell: ReviewDayCell, done: boolean) => void;
 }) {
+  const collapsedCategorySet = new Set(collapsedCategoryNames);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [gridMetrics, setGridMetrics] = useState({
+    stickyWidth: 112,
+    dayWidth: 56,
+    endSpacer: 166,
+  });
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+
+    if (!scroller) {
+      return;
+    }
+
+    const scrollerElement = scroller;
+
+    function updateMetrics() {
+      const width = scrollerElement.clientWidth;
+      const isDesktop = window.matchMedia("(min-width: 640px)").matches;
+      const stickyWidth = isDesktop ? 168 : 112;
+      const visibleDays = isDesktop ? 7 : 4;
+      const dayWidth = Math.max(48, (width - stickyWidth) / visibleDays);
+      const endSpacer = Math.max(0, width - stickyWidth - dayWidth);
+
+      setGridMetrics({
+        stickyWidth,
+        dayWidth,
+        endSpacer,
+      });
+    }
+
+    updateMetrics();
+
+    const observer = new ResizeObserver(updateMetrics);
+    observer.observe(scrollerElement);
+
+    return () => observer.disconnect();
+  }, []);
+  const gridWidth = gridMetrics.stickyWidth + gridMetrics.dayWidth * 7;
+
   return (
-    <div className="snap-x snap-mandatory scroll-pl-[112px] overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft sm:scroll-pl-[168px]">
-      <div className="grid min-w-[604px] grid-cols-[minmax(112px,0.9fr)_repeat(7,minmax(50px,1fr))] text-sm sm:min-w-[780px] sm:grid-cols-[minmax(168px,1.3fr)_repeat(7,minmax(64px,1fr))]">
+    <div
+      ref={scrollerRef}
+      className="snap-x snap-mandatory overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft"
+      style={{ scrollPaddingLeft: gridMetrics.stickyWidth }}
+    >
+      <div
+        className="grid box-content text-sm"
+        style={{
+          gridTemplateColumns: `${gridMetrics.stickyWidth}px repeat(7, ${gridMetrics.dayWidth}px)`,
+          paddingRight: gridMetrics.endSpacer,
+          width: gridWidth,
+        }}
+      >
         <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3">
           Activity
         </div>
@@ -219,37 +281,58 @@ function ReviewDetailGrid({
           </div>
         ))}
 
-        {groups.map((group) => (
-          <div key={group.categoryName} className="contents">
-            <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
-              {group.categoryName}
-            </div>
-            <div className="col-span-7 border-b border-stone-200 bg-paper" />
+        {groups.map((group) => {
+          const isCollapsed = collapsedCategorySet.has(group.categoryName);
 
-            {group.activities.map((activity) => (
-              <div key={activity.id} className="contents">
-                <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
-                  <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
-                    {activity.activityName}
-                  </div>
-                </div>
-                {activity.cells.map((cell) => {
-                  const cellKey = `${activity.id}:${cell.date}`;
-                  return (
-                    <ReviewDayButton
-                      key={cellKey}
-                      activityName={activity.activityName}
-                      cell={cell}
-                      isPending={pendingCellKeys.has(cellKey)}
-                      isToday={isSundayCurrentWeek && cell.date === today}
-                      onClick={() => onSetCompletion(activity.id, cell, !cell.done)}
-                    />
-                  );
-                })}
+          return (
+            <div key={group.categoryName} className="contents">
+              <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                  aria-expanded={!isCollapsed}
+                  aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
+                    group.categoryName
+                  }`}
+                  onClick={() => onToggleCategory(group.categoryName)}
+                >
+                  <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                  <span>{group.categoryName}</span>
+                </button>
               </div>
-            ))}
-          </div>
-        ))}
+              <div className="col-span-7 border-b border-stone-200 bg-paper" />
+
+              {!isCollapsed
+                ? group.activities.map((activity) => (
+                    <div key={activity.id} className="contents">
+                      <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
+                        <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
+                          {activity.activityName}
+                        </div>
+                        <div className="mt-0.5 text-[11px] leading-4 text-stone-500 sm:text-xs">
+                          {activity.cells.filter((cell) => cell.done).length}/
+                          {activity.targetCount} done
+                        </div>
+                      </div>
+                      {activity.cells.map((cell) => {
+                        const cellKey = `${activity.id}:${cell.date}`;
+                        return (
+                          <ReviewDayButton
+                            key={cellKey}
+                            activityName={activity.activityName}
+                            cell={cell}
+                            isPending={pendingCellKeys.has(cellKey)}
+                            isToday={isSundayCurrentWeek && cell.date === today}
+                            onClick={() => onSetCompletion(activity.id, cell, !cell.done)}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))
+                : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -275,10 +358,11 @@ function ReviewDayButton({
   return (
     <button
       type="button"
-      className={`flex min-h-11 snap-start items-center justify-center border-b border-stone-200 px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`flex min-h-11 snap-start items-center justify-center border-b border-stone-200 px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-inset disabled:cursor-not-allowed ${
         isToday ? "bg-mist/35" : "bg-white"
       }`}
       aria-label={label}
+      aria-busy={isPending}
       disabled={!cell.isCorrectionEditable || isPending}
       onClick={onClick}
     >
@@ -290,13 +374,15 @@ function ReviewDayButton({
 function ReviewCellMark({ cell }: { cell: ReviewDayCell }) {
   if (getReviewDetailDisplayState(cell) === "done") {
     return (
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-meadow text-sm font-bold text-white">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-meadow text-sm font-bold text-white sm:h-8 sm:w-8">
         ✓
       </span>
     );
   }
 
-  return <span className="h-7 w-7 rounded-full border border-stone-300 bg-white" />;
+  return (
+    <span className="h-7 w-7 rounded-full border border-stone-300 bg-white sm:h-8 sm:w-8" />
+  );
 }
 
 function formatShortDate(date: string) {

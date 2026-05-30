@@ -13,8 +13,8 @@ This index tracks the intended MVP issue sequence.
 | 5 | #5 | Build first current-week setup flow and persisted This Week grid | Create the current week from seeded templates, persist snapshots, and implement the planning-only weekly grid with immediate toggles. | Closed |
 | 6 | #6 | Build Today view for same-day completion and plan resolution | State-ordered Today: open planned items, `+ Something else` unplanned same-day completion, Done today, today's plan movement, explicit Skip, and no prior-missed backlog queue. | Closed |
 | 7 | #7 | Build next-week Draft planning and copy-forward flow | Add Draft/copy-forward planning inside Week, remove Plan as a primary app area, edit the future weekly list, and support late current-week creation without ghost weeks. | Closed |
-| 8 | #8 | Build Review and historical completion-correction flow | Add summary-first Review with target-met/short-of-target sections and day-by-day completion correction. Review details show final completion truth only: checks for completed days and blank cells for all not-completed days, while stored planned/skipped/missed facts remain available for future reporting. | Open |
-| 9 | #9 | Mobile browser polish and acceptance pass | Tune iPhone Chrome UX, accessibility, empty states, and visual polish. | Open |
+| 8 | #8 | Build Review and historical completion-correction flow | Add summary-first Review with target-met/short-of-target sections and day-by-day completion correction. Review details show final completion truth only: checks for completed days and blank cells for all not-completed days, while stored planned/skipped/missed facts remain available for future reporting. | Closed |
+| 9 | #9 | Replace scaffold navigation with mobile-first app entry and usability polish | Remove the scaffold home, add smart `/` entry and current-week assurance, use compact Today/Week/Review navigation without in-app Sign out chrome, tighten screen context, and position current Week at today on mobile. | Open |
 | 10 | #10 | Deployment and production readiness | Verify Vercel/Supabase setup, env docs, and production checks. | Open |
 
 ## Label suggestions
@@ -55,7 +55,7 @@ For non-trivial changes, inspect impact on:
 - Today view
 - This Week grid
 - Review
-- Draft planning
+- next-week planning
 - Sunday/Monday/late-start behavior
 - mobile browser layout
 - accessibility
@@ -69,7 +69,7 @@ For non-trivial changes, inspect impact on:
 
 - Keep PRs small and issue-scoped.
 - Do not implement native iOS, React Native, push notifications, offline-first behavior, streaks, badges, or AI coaching in MVP.
-- Do not edit closed weeks.
+- Do not edit planning or structure for past weeks.
 - Do not add brand-new activities to already-active weeks in MVP.
-- Main navigation should stay focused on Today, Week, and Review; Draft
+- Main navigation should stay focused on Today, Week, and Review; next-week
   planning lives inside Week rather than as a permanent Plan destination.

@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck source=scripts/supabase-env.sh
+source "$(dirname "$0")/supabase-env.sh"
+load_supabase_env
+
 if ! command -v supabase >/dev/null 2>&1; then
   echo "Supabase CLI is not installed or is not on PATH." >&2
   echo "Install it, then rerun this script." >&2

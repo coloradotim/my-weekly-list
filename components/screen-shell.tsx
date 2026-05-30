@@ -18,14 +18,14 @@ export function ScreenShell({
   children,
 }: ScreenShellProps) {
   return (
-    <section className="space-y-6">
-      <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 shadow-soft sm:p-8">
+    <section className="space-y-4 sm:space-y-6">
+      <div className="rounded-lg border border-stone-200 bg-white/80 p-4 shadow-soft sm:rounded-2xl sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-wide text-clay">
           {eyebrow}
         </p>
-        <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mt-2 flex flex-col gap-4 sm:mt-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl space-y-3">
-            <h1 className="text-3xl font-semibold tracking-normal text-ink sm:text-4xl">
+            <h1 className="text-2xl font-semibold tracking-normal text-ink sm:text-4xl">
               {title}
             </h1>
             <p className="text-base leading-7 text-stone-700">{description}</p>

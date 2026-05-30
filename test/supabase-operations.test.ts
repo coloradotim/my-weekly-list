@@ -6,11 +6,15 @@ const repoRoot = process.cwd();
 const workflowPath = join(repoRoot, ".github/workflows/supabase-migrations.yml");
 const statusScriptPath = join(repoRoot, "scripts/supabase-status.sh");
 const migrateScriptPath = join(repoRoot, "scripts/supabase-migrate.sh");
+const envScriptPath = join(repoRoot, "scripts/supabase-env.sh");
+const envExamplePath = join(repoRoot, "supabase.env.example");
 const operationsDocPath = join(repoRoot, "docs/supabase-operations.md");
 
 const workflow = readFileSync(workflowPath, "utf8");
 const statusScript = readFileSync(statusScriptPath, "utf8");
 const migrateScript = readFileSync(migrateScriptPath, "utf8");
+const envScript = readFileSync(envScriptPath, "utf8");
+const envExample = readFileSync(envExamplePath, "utf8");
 const operationsDoc = readFileSync(operationsDocPath, "utf8");
 
 describe("Supabase migration operations", () => {
@@ -39,6 +43,17 @@ describe("Supabase migration operations", () => {
     expect(statusScript).toContain("supabase migration list");
     expect(migrateScript).toContain("supabase db push");
     expect(migrateScript).toContain("--dry-run");
+  });
+
+  it("loads local-only Supabase operation env without using app runtime env", () => {
+    expect(statusScript).toContain("load_supabase_env");
+    expect(migrateScript).toContain("load_supabase_env");
+    expect(envScript).toContain(".env.supabase.local");
+    expect(envScript).toContain("SUPABASE_ENV_FILE");
+    expect(envExample).toContain("SUPABASE_PROJECT_REF=");
+    expect(envExample).toContain("SUPABASE_DB_PASSWORD=");
+    expect(operationsDoc).toContain(".env.supabase.local");
+    expect(operationsDoc).toContain("Keep these operations secrets out of `.env.local`");
   });
 
   it("keeps dashboard SQL edits exceptional and documents seed usage", () => {

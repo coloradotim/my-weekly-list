@@ -268,7 +268,7 @@ describe("development today preview", () => {
     });
   });
 
-  it("handles Sunday without move options or Adjust plan", () => {
+  it("handles Sunday without move options", () => {
     const view = getTodayPreviewView(getInitialTodayPreviewState("sunday"));
 
     expect(view.status).toBe("ready");
@@ -281,19 +281,25 @@ describe("development today preview", () => {
     ]);
   });
 
-  it("uses approved copy and removes old backlog actions", () => {
+  it("uses approved direct-action copy and removes old backlog actions", () => {
     expect(previewClient).toContain("+ Something else");
     expect(previewClient).toContain("Mark done");
     expect(previewClient).toContain("Mark done today");
     expect(previewClient).toContain("Cancel");
     expect(previewClient).toContain("Done today");
     expect(previewClient).toContain("Skipped");
-    expect(previewClient).toContain("Move to another day");
+    expect(previewClient).toContain("Move");
     expect(previewClient).toContain("moveDates.length > 0");
     expect(previewClient).toContain("Skip");
+    expect(previewClient).toContain("Collapse");
+    expect(previewClient).toContain("Expand");
     expect(previewClient).not.toContain("What did you do today?");
     expect(previewClient).not.toContain("Recorded ");
     expect(previewClient).not.toContain("Also done today");
+    expect(previewClient).not.toContain(">Hide<");
+    expect(previewClient).not.toContain(">Show<");
+    expect(previewClient).not.toContain("Adjust plan");
+    expect(previewClient).not.toContain("Move to another day");
     expect(previewClient).not.toContain("Earlier this week");
     expect(previewClient).not.toContain("Move to today");
     expect(previewClient).not.toContain("Leave missed");
@@ -301,11 +307,12 @@ describe("development today preview", () => {
     expect(previewModel).toContain("skipped: boolean");
   });
 
-  it("keeps Adjust plan dismissible without a required move or Skip action", () => {
-    expect(previewClient).toContain("onCancelAdjust");
-    expect(previewClient).toContain("setAdjustingActivityId(null)");
-    expect(previewClient).toContain('setAdjustStep("choices")');
+  it("opens one direct move panel at a time and keeps it cancellable", () => {
+    expect(previewClient).toContain("onCancelMove");
+    expect(previewClient).toContain("setMovingActivityId(null)");
     expect(previewClient).toContain("current === activity.id ? null : activity.id");
+    expect(previewClient).not.toContain("adjustStep");
+    expect(previewClient).not.toContain("adjustingActivityId");
   });
 
   it("shows no-current-week and setup-needed prompt states", () => {

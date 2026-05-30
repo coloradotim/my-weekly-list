@@ -6,17 +6,23 @@ This is a private/single-user app built for personal use.
 
 ## Current foundation
 
-This repository contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the first persisted This Week workflow.
+This repository contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the persisted weekly planning workflow.
 
 - Today
 - This Week
 - Review
-- Plan
 
-The This Week screen can create the current Monday-Sunday week from the seeded
-starter list, snapshot reusable templates into week activities, and persist
-planning day-cell facts. Today completion behavior, future Draft planning, and
-Review behavior are planned for later issues.
+The root route sends the authenticated owner into Today whenever possible. Week
+owns current-week planning, next-week list preparation, and list editing; Review
+summarizes and corrects completion truth. `/plan` is retained only as a
+compatibility redirect to Week, not as a primary app area.
+
+Sign out is intentionally not shown in the normal app chrome. To clear the
+current browser session and ask Supabase to invalidate refresh tokens, run:
+
+```bash
+scripts/sign-out.sh
+```
 
 ## Local setup
 
@@ -121,16 +127,14 @@ pasting SQL into the Supabase dashboard. The full operations workflow is in
 Check linked-project status with:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
+cp supabase.env.example .env.supabase.local
+# Fill in .env.supabase.local, then run:
 scripts/supabase-status.sh
 ```
 
 Preview pending migrations with:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
 SUPABASE_MIGRATION_MODE=dry-run \
 scripts/supabase-migrate.sh
 ```
@@ -138,8 +142,6 @@ scripts/supabase-migrate.sh
 Apply pending migrations with:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
 SUPABASE_MIGRATION_MODE=apply \
 scripts/supabase-migrate.sh
 ```

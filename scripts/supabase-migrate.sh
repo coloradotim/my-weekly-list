@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# shellcheck source=scripts/supabase-env.sh
+source "$(dirname "$0")/supabase-env.sh"
+load_supabase_env
+
 MODE="${SUPABASE_MIGRATION_MODE:-dry-run}"
 
 if [[ "${MODE}" != "dry-run" && "${MODE}" != "apply" ]]; then

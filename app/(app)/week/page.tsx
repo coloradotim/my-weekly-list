@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { startThisWeekAction } from "@/app/(app)/week/actions";
-import { OptimisticThisWeekGrid } from "@/components/optimistic-this-week-grid";
 import { ScreenShell } from "@/components/screen-shell";
 import { formatDateRange, Notice } from "@/components/this-week-grid";
-import { WeekListEditor } from "@/components/week-list-editor";
+import { WeekPageClient } from "@/components/week-page-client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadThisWeek } from "@/lib/week/current";
 
@@ -94,18 +93,13 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
 
   return (
     <section className="space-y-3">
-      <header className="flex flex-col gap-2 px-1 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-wide text-clay">
-            This Week
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink sm:text-3xl">
-            {formatDateRange(state.view.week.weekStartDate, state.view.week.weekEndDate)}
-          </h1>
-        </div>
-      </header>
-      <OptimisticThisWeekGrid initialView={state.view} initialNotice={notice} />
-      <WeekListEditor view={state.view} />
+      {state.view.week.status === "active" ? null : (
+        <p className="px-1 text-sm font-semibold text-clay">
+          {state.view.week.status === "draft" ? "Next week" : "Past"} ·{" "}
+          {formatDateRange(state.view.week.weekStartDate, state.view.week.weekEndDate)}
+        </p>
+      )}
+      <WeekPageClient initialView={state.view} initialNotice={notice} />
     </section>
   );
 }

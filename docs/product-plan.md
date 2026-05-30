@@ -23,7 +23,12 @@ The main product areas are:
 - `Review`: reflect on historical completion and make allowed corrections.
 
 There is no permanent top-level Plan workflow. Planning next week is launched
-from Week, and Draft list editing happens within that Week planning context.
+from Week, and future list editing happens within that Week planning context.
+
+The normal mobile app shell should reflect that hierarchy: compact navigation
+for `Today`, `Week`, and `Review` only. Because this is a private single-user
+app, Sign out does not need to appear in the app chrome; it can remain available
+through a deliberate utility route/script when needed.
 
 ## Design principles
 
@@ -31,7 +36,7 @@ from Week, and Draft list editing happens within that Week planning context.
 2. Make the weekly grid feel familiar to the paper sheet.
 3. Treat planned days as helpful structure, not a contract.
 4. Count completed days toward weekly goals whether or not the activity was planned for that day.
-5. Unfinished items should be easy to move, leave missed, or resolve without making the user rebuild the weekly plan.
+5. Today's unfinished planned items should be easy to move or skip without making the user rebuild the weekly plan.
 6. Keep missed items calm and informational, not shamey.
 7. Do not create missed items for a week the user had not actually planned.
 8. Prefer clear, durable data modeling over clever UI shortcuts.
@@ -133,76 +138,34 @@ The default weekly rhythm is:
 2. Monday: start the new active week.
 3. Monday through Saturday: use Today view, mark activities done, move unfinished items, and adjust planned days as needed.
 4. During the week: mark an activity done on any day, even if it was not originally planned for that day.
-5. End of week: review done days against weekly targets.
-6. Once a week is marked closed, it becomes locked.
+5. End of week: review done days against weekly targets and correct completion truth if needed.
 
 The app should know the current day and use that context. Sunday should gently suggest review and planning, but it must still allow the user to mark Sunday activities done or leave them missed. Monday should start the new week if a planned week exists, or help the user create the current week if it does not.
 
-## Week states
+The root route `/` should not show a content-free dashboard. For an
+authenticated allowed user, it should route into the app: setup if the starter
+list is missing, Today if the current week exists, or current-week assurance
+using the established Week list rules when setup is complete and the current
+week can be created safely. It must not route to Review just because a past week
+has not been reviewed, and it must not require Close or Finalize.
 
-Weeks should have clear lifecycle states.
+## Week timing model
 
-### Draft
+User-facing week context should be date based:
 
-A future week that is being planned.
+- This week: the current Monday-Sunday week.
+- Next week: the upcoming Monday-Sunday week prepared from Week.
+- Past week: an ended week that Review can summarize and correct.
 
-Allowed:
+There is no required Close, Finalize, or user-facing Draft ceremony in MVP.
+Internal status values may remain for implementation compatibility, but normal
+product copy should use human labels such as `This week`, `Next week`, and
+`Past`.
 
-- edit activities for the week
-- edit categories for the week
-- edit weekly target counts
-- edit planned days
-- copy from the most recent week/list
-
-### Active
-
-The current Monday-Sunday week.
-
-Allowed:
-
-- mark day cells done
-- mark unplanned day cells done
-- move planned items to another day in the same week
-- leave prior planned items missed
-- adjust planned days within the active week if needed
-
-Not allowed in MVP:
-
-- add brand-new activities to the active week
-- delete activities from the active week
-- change category structure for the active week
-- change weekly target counts for the active week
-
-This keeps the active week as a working record rather than a constantly changing master list.
-
-### Needs Review
-
-A prior week that has ended but has not been closed.
-
-Allowed:
-
-- review the week
-- mark remaining unresolved items missed, if needed
-- close the week
-
-The app should not block the user from planning or using the current week just because a prior week still needs review.
-
-### Closed
-
-A week that has been reviewed and marked done.
-
-Allowed:
-
-- view only
-
-Not allowed:
-
-- edit planned days
-- change done/missed states
-- change targets
-- change activities
-
-Once the week is closed, it is done.
+Current-week activity/category/target structure should remain stable in MVP.
+Day planning can be adjusted from Week, completion belongs in Today, and
+completion correction belongs in Review. Past weeks do not allow planning or
+structure edits, but Review may correct completion truth.
 
 ## Missed Sunday or Monday behavior
 
@@ -216,27 +179,13 @@ The app should show a gentle prompt such as:
 
 > Today is Sunday. You can finish today's items, review this week, or start planning next week.
 
-Actions:
-
-- Go to Today
-- Review this week
-- Plan next week
+Actions should stay within the three main areas: Today, Week, and Review.
 
 ### If the user does not open the app Sunday
 
-On Monday, the previous week becomes Needs Review.
-
-The app should show a prompt such as:
-
-> Last week is ready to review. You can close it now or plan this week first.
-
-Actions:
-
-- Review and close last week
-- Plan this week
-- Skip review and start this week
-
-The app should not block Monday use because Sunday review did not happen.
+On Monday, the app should use or create the new current week without requiring
+the previous week to be reviewed first. The app should not block Monday use
+because Sunday review did not happen.
 
 ### If the user does not open the app Monday
 
@@ -248,11 +197,14 @@ If no active week exists for the current Monday-Sunday period, it should show a 
 
 Actions:
 
-- Copy last week and plan the rest of this week
-- Start a blank week
-- Review previous week first
+- Start or open this week from the saved list
+- Adjust this week in Week
+- Review a previous week later
 
-If the user creates the current week late, the default should copy activities and targets but only copy planned days from today forward. This avoids creating missed items for days before the user actually planned the week.
+If the user creates the current week late, the app should preserve the reusable
+list and avoid creating elapsed-day planned, missed, skipped, or done history.
+This avoids creating missed items for days before the user actually planned the
+week.
 
 ### If the user misses several weeks
 
@@ -276,7 +228,6 @@ Today is the primary mobile execution screen.
 
 It should show:
 
-- current date and week context
 - open items planned for today
 - each item's weekly progress, such as `2/4`
 - a fast `Mark done` action for activities planned today
@@ -284,7 +235,6 @@ It should show:
 - a compact `+ Something else` picker for unplanned same-day completion
 - one unified Done today section for all activities completed today
 - a Skipped section for planned-today occurrences intentionally skipped today
-- Sunday review/planning prompt when the current day is Sunday
 - current-week setup prompt when no active week exists
 
 Today is same-day execution and same-day plan resolution. It should not become
@@ -302,16 +252,18 @@ the expanded `+ Something else` picker.
 
 The Today view should be fast. The user should be able to open the app, mark something done, and leave within seconds.
 
+The normal Today screen should begin directly with Today content. It should not
+spend mobile space on a large date/week header card.
+
 ### Week
 
 Week is the digital version of the paper sheet and owns weekly planning. It
-shows the current active week by default, can open a future Draft week for
-next-week planning, and is where Draft list editing lives.
+shows the current week by default, can open next week for planning, and is where
+future list editing lives.
 
 It should show:
 
-- week of date
-- week state: Draft, Active, Needs Review, or Closed
+- compact week context only when needed, such as `Next week` or `May 25–31 · Past`
 - categories grouped vertically
 - activity rows
 - target count per activity
@@ -321,13 +273,17 @@ It should show:
 The grid is a planning and weekly-overview surface. Completion entry belongs in
 Today, while correction of forgotten prior-day completions belongs in Review.
 
-### Draft List Editing Inside Week
+For the current Week on mobile, the grid should open near today's column once on
+initial entry. Manual horizontal scrolling should be respected afterward, and
+planning toggles must not reset the scroll position. Next Week and Past Week
+views can open at Monday.
 
-For MVP, list editing should focus on draft/future weeks rather than active
-weeks. It is accessed from Week, not from a separate primary Plan destination.
-Use copy like `Edit next week's list` when viewing a future Draft.
+### List Editing Inside Week
 
-It should support for Draft weeks:
+For MVP, list editing is accessed from Week, not from a separate primary Plan
+destination. Use compact copy like `Edit list` or `Edit next week's list`.
+
+It should support future-week list editing:
 
 - add activity
 - edit activity name
@@ -378,7 +334,7 @@ Backend facts:
 
 Derived state:
 
-- missed: planned is true, done is false, the cell date is before today, and the week is not Draft
+- missed: planned is true, done is false, the cell date is before today, and the week is not a future week being planned
 
 UI states:
 
@@ -408,7 +364,7 @@ If an item was planned for a prior day and was not completed, that past day
 derives as missed and remains visible in This Week. Today should not turn prior
 missed planned days into an overdue-task queue. If the user actually completed a
 prior-day activity but forgot to enter it, Review owns that correction before
-the week is closed.
+the app relies on the week as history.
 
 Moving an item should affect the planned marker, not the done marker. For
 example, moving an unfinished plan from today to Saturday removes today's planned
@@ -426,16 +382,15 @@ completions can be recorded quickly.
 today's completion: planned items return to open Planned for today, while
 unplanned completions become eligible again in the picker.
 
-Before Sunday, `Adjust plan` on an open planned-today item offers exactly:
-
-- Move to another day
-- Skip
+Before Sunday, an open planned-today item shows direct `Mark done`, `Move`, and
+`Skip` actions. `Move` appears only when at least one valid later day remains in
+the same week.
 
 Move destinations are later day names in the same current week where that same
 week activity is not already planned and not already done. Moving today's plan
 must not overwrite or merge with an existing destination cell. Sunday has no
 cross-week movement; open planned Sunday rows show direct `Mark done` and `Skip`
-actions instead of `Adjust plan`.
+actions.
 
 Skip means the user intentionally decided not to complete an occurrence planned
 for today. It preserves the original planned occurrence, does not change the
@@ -448,11 +403,11 @@ correction of forgotten prior-day completions.
 - Weeks run Monday through Sunday.
 - Sunday is the preferred review and next-week planning day.
 - Monday is the start of the active week.
-- Week owns current-week viewing, future Draft planning, and Draft list editing.
+- Week owns current-week viewing, next-week planning, and future list editing.
 - There is no permanent top-level Plan workflow in the product model.
 - Copy previous week should default to copying activities, target counts, categories, and planned days when planning before the new week starts.
 - If creating the current week late, copy activities and target counts but default to planned days from today forward only.
-- The user can then adjust the copied Draft week.
+- The user can then adjust the copied future week.
 - The user may plan more days than the target count.
 - Done-day count alone determines whether an activity's weekly target was met.
 - An activity can count only once per day.
@@ -570,7 +525,7 @@ Do not build these in the first MVP unless they fall out naturally:
 - completion notes as a required flow
 - multiple completions per day
 - adding brand-new activities to an already-active week
-- editing closed weeks
+- editing planning/structure for past weeks
 - native iOS app
 - App Store distribution
 - React Native app
@@ -597,7 +552,7 @@ Important test areas:
 - enforcing at most one done count per activity per day
 - deriving missed past planned items
 - moving a planned item from one day to another
-- locking closed weeks against edits
+- locking past weeks against planning and structure edits
 - review calculations by activity and category
 - access-control behavior for non-allowed users
 
@@ -606,11 +561,11 @@ Important test areas:
 1. Responsive web foundation: Next.js, TypeScript, linting, test setup, basic app shell, and mobile browser layout baseline.
 2. Supabase setup: client, environment variables, auth guard, allowed-user check.
 3. Database schema: weeks, categories, activities, week activities, day cells, seed data.
-4. Week lifecycle logic: Draft, Active, Needs Review, Closed; Monday-Sunday dates; Sunday/Monday/late-start behavior.
+4. Week lifecycle/date logic: current, next, and past week behavior; Monday-Sunday dates; Sunday/Monday/late-start behavior.
 5. This Week grid: display seeded week and support planning-only cell changes with defined visual status language.
 6. Today view: show open planned items, mark same-day completions, record unplanned same-day completions, move today's plan to another remaining day, and explicitly Skip today's planned occurrence.
-7. Copy previous week: create Draft or Active weeks from the prior week with correct planned-day behavior.
-8. Draft week planning / Edit List: add/edit/remove-from-future-weeks for future weeks; keep active weeks constrained.
+7. Copy previous week: create next/current weeks from the prior saved list with correct planned-day behavior.
+8. Week planning / Edit List: add/edit/remove-from-future-weeks for future weeks; keep active weeks constrained.
 9. Review: target vs done summaries by activity, with completion-only day-by-day correction and no required Close Week action.
 10. Mobile polish: make iPhone Chrome the primary acceptance target.
 11. Test hardening: add/expand unit and integration coverage around the core workflow.

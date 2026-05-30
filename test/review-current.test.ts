@@ -136,6 +136,18 @@ describe("persisted Review model", () => {
     expect(fixtureState("2026-05-31").isSundayCurrentWeek).toBe(true);
     expect(fixtureState("2026-05-30").isSundayCurrentWeek).toBe(false);
   });
+
+  it("uses in-progress summary copy while the week is still current", () => {
+    const view = buildReviewViewModel(fixtureState("2026-05-30"));
+
+    expect(view.isCurrentWeek).toBe(true);
+    expect(view.summarySentence).toBe(
+      "You have completed 8 activities so far this week.",
+    );
+    expect(getReviewSummarySentence(3, true)).toBe(
+      "You have completed 3 activities so far this week.",
+    );
+  });
 });
 
 describe("persisted Review implementation guardrails", () => {
@@ -160,6 +172,9 @@ describe("persisted Review implementation guardrails", () => {
     expect(reviewClient).toContain("applyOptimisticReviewAction");
     expect(reviewClient).toContain("Couldn’t save that change. Try again.");
     expect(reviewClient).toContain("pendingCellKeys");
+    expect(reviewClient).toContain("collapsedCategoryNames");
+    expect(reviewClient).toContain("onToggleCategory");
+    expect(reviewClient).not.toContain("disabled:opacity");
     expect(reviewClient).not.toContain("router.refresh");
   });
 

@@ -17,9 +17,13 @@ Local CLI migration commands need:
 - `SUPABASE_ACCESS_TOKEN`: optional locally if `supabase login` has already
   authenticated the CLI, but required for GitHub Actions.
 
-Do not commit these values. Put local values in your shell environment or a
-private password manager, not in `.env.local` unless the value is already meant
-for the app runtime. Never expose service-role keys to browser code.
+Do not commit these values. For local migration work, copy
+`supabase.env.example` to `.env.supabase.local` and fill in the project ref and
+database password there, or put the values in your shell environment. The
+`.env.supabase.local` file is ignored by git and is loaded only by the Supabase
+operation scripts. Keep these operations secrets out of `.env.local` unless the
+value is already meant for the app runtime. Never expose service-role keys to
+browser code.
 
 ## Local CLI Workflow
 
@@ -27,16 +31,14 @@ Check CLI availability, link the project, and show local/remote migration
 state:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
+cp supabase.env.example .env.supabase.local
+# Fill in .env.supabase.local, then run:
 scripts/supabase-status.sh
 ```
 
 Preview what would be applied:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
 SUPABASE_MIGRATION_MODE=dry-run \
 scripts/supabase-migrate.sh
 ```
@@ -44,8 +46,6 @@ scripts/supabase-migrate.sh
 Apply pending repo migrations:
 
 ```bash
-SUPABASE_PROJECT_REF=<project-ref> \
-SUPABASE_DB_PASSWORD=<database-password> \
 SUPABASE_MIGRATION_MODE=apply \
 scripts/supabase-migrate.sh
 ```

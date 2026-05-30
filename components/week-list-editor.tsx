@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   addWeekActivityListItemAction,
-  removeWeekActivityFromFutureAction,
+  removeWeekActivityFromFutureClientAction,
   reorderWeekActivitiesAction,
   reorderWeekCategoriesAction,
   updateWeekActivityListItemAction,
@@ -13,7 +13,13 @@ import type { ThisWeekViewModel, WeekGridActivity } from "@/lib/week/current";
 
 type WeekListCategory = ThisWeekViewModel["categories"][number];
 
-export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
+export function WeekListEditor({
+  view,
+  onCategoriesChange,
+}: {
+  view: ThisWeekViewModel;
+  onCategoriesChange?: (categories: WeekListCategory[]) => void;
+}) {
   const [listCategories, setListCategories] = useState(view.categories);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
@@ -22,6 +28,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
   >(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [collapsedCategoryNames, setCollapsedCategoryNames] = useState<string[]>([]);
   const [, startTransition] = useTransition();
   const canEditList = view.week.status === "active" || view.week.status === "draft";
   const title =
@@ -38,6 +45,71 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
   useEffect(() => {
     setListCategories(view.categories);
   }, [view.categories]);
+
+  function toggleCategory(categoryName: string) {
+    setCollapsedCategoryNames((current) =>
+      current.includes(categoryName)
+        ? current.filter((name) => name !== categoryName)
+        : [...current, categoryName],
+    );
+  }
+
+  function removeActivityFromList(activityId: string) {
+    let removed = false;
+    const nextCategories = listCategories
+      .map((category) => ({
+        ...category,
+        activities: category.activities.filter((activity) => {
+          if (activity.id === activityId) {
+            removed = true;
+            return false;
+          }
+
+          return true;
+        }),
+      }))
+      .filter((category) => category.activities.length > 0);
+
+    if (!removed) {
+      return null;
+    }
+
+    return nextCategories;
+  }
+
+  function deleteActivity(activityId: string) {
+    const previousCategories = listCategories;
+    const nextCategories = removeActivityFromList(activityId);
+
+    if (!nextCategories) {
+      return;
+    }
+
+    setSaveError(null);
+    setEditingId(null);
+    setListCategories(nextCategories);
+    onCategoriesChange?.(nextCategories);
+
+    startTransition(() => {
+      void removeWeekActivityFromFutureClientAction(activityId)
+        .then((response) => {
+          if (response.status !== "removed") {
+            setSaveError(
+              "message" in response
+                ? (response.message ?? "That activity could not be deleted just now.")
+                : "That activity could not be deleted just now.",
+            );
+            setListCategories(previousCategories);
+            onCategoriesChange?.(previousCategories);
+          }
+        })
+        .catch(() => {
+          setSaveError("That activity could not be deleted just now. Try again.");
+          setListCategories(previousCategories);
+          onCategoriesChange?.(previousCategories);
+        });
+    });
+  }
 
   useEffect(() => {
     if (!dragItem) {
@@ -84,6 +156,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
       }
 
       setListCategories(nextCategories);
+      onCategoriesChange?.(nextCategories);
       startTransition(() => {
         const result =
           currentDragItem.type === "category"
@@ -107,12 +180,14 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
                   : "That order could not be saved just now. Try again.",
               );
               setListCategories(previousCategories);
+              onCategoriesChange?.(previousCategories);
               return;
             }
           })
           .catch(() => {
             setSaveError("That order could not be saved just now. Try again.");
             setListCategories(previousCategories);
+            onCategoriesChange?.(previousCategories);
           });
       });
     }
@@ -124,7 +199,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [dragItem, listCategories, view.week.id]);
+  }, [dragItem, listCategories, onCategoriesChange, view.week.id]);
 
   if (!canEditList) {
     return null;
@@ -144,82 +219,98 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
             {saveError}
           </p>
         ) : null}
-        {listCategories.map((category) => (
-          <section
-            key={category.name}
-            data-week-list-category={category.name}
-            className={`overflow-hidden rounded-lg border bg-white transition ${
-              dragOverId === category.name
-                ? "border-clay shadow-soft"
-                : "border-stone-200"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-paper px-3 py-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-clay">
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Drag ${category.name} category`}
-                  className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    setDragItem({ type: "category", id: category.name });
-                  }}
-                >
-                  ⋮⋮
+        {listCategories.map((category) => {
+          const isCollapsed = collapsedCategoryNames.includes(category.name);
+
+          return (
+            <section
+              key={category.name}
+              data-week-list-category={category.name}
+              className={`overflow-hidden rounded-lg border bg-white transition ${
+                dragOverId === category.name
+                  ? "border-clay shadow-soft"
+                  : "border-stone-200"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-paper px-3 py-2">
+                <h2 className="flex min-w-0 items-center gap-1 text-xs font-semibold uppercase tracking-wide text-clay">
+                  <button
+                    type="button"
+                    className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                    aria-expanded={!isCollapsed}
+                    aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${category.name}`}
+                    onClick={() => toggleCategory(category.name)}
+                  >
+                    <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                  </button>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Drag ${category.name} category`}
+                    className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      setDragItem({ type: "category", id: category.name });
+                    }}
+                  >
+                    ⋮⋮
+                  </span>
+                  <span className="truncate">{category.name}</span>
+                </h2>
+                <span className="shrink-0 text-xs text-stone-500">
+                  {isCollapsed
+                    ? `${category.activities.length} ${
+                        category.activities.length === 1 ? "activity" : "activities"
+                      } hidden`
+                    : "Drag to reorder"}
                 </span>
-                {category.name}
-              </h2>
-              <span className="text-xs text-stone-500">Drag to reorder</span>
-            </div>
-            <div className="divide-y divide-stone-200">
-              {category.activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  data-week-list-activity={activity.id}
-                  className={`p-2 transition ${
-                    dragOverId === activity.id ? "bg-mist/35" : ""
-                  }`}
-                >
-                  {editingId === activity.id ? (
-                    <ActivityEditForm
-                      activity={activity}
-                      categories={categories}
-                      action={updateWeekActivityListItemAction}
-                      onCancel={() => setEditingId(null)}
-                      extraFields={
-                        <input type="hidden" name="weekActivityId" value={activity.id} />
-                      }
-                      removeForm={
-                        <form action={removeWeekActivityFromFutureAction}>
-                          <input
-                            type="hidden"
-                            name="weekActivityId"
-                            value={activity.id}
-                          />
-                          <button type="submit" className={secondaryButtonClassName}>
-                            Remove from future weeks
-                          </button>
-                        </form>
-                      }
-                    />
-                  ) : (
-                    <ActivitySummaryRow
-                      activity={activity}
-                      onStartDrag={() =>
-                        setDragItem({ type: "activity", id: activity.id })
-                      }
-                      onEdit={() => {
-                        setIsAdding(false);
-                        setEditingId(activity.id);
-                      }}
-                    />
-                  )}
+              </div>
+              {!isCollapsed ? (
+                <div className="divide-y divide-stone-200">
+                  {category.activities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      data-week-list-activity={activity.id}
+                      className={`p-2 transition ${
+                        dragOverId === activity.id ? "bg-mist/35" : ""
+                      }`}
+                    >
+                      {editingId === activity.id ? (
+                        <ActivityEditForm
+                          activity={activity}
+                          categories={categories}
+                          action={updateWeekActivityListItemAction}
+                          onCancel={() => setEditingId(null)}
+                          extraFields={
+                            <input
+                              type="hidden"
+                              name="weekActivityId"
+                              value={activity.id}
+                            />
+                          }
+                          onDelete={() => deleteActivity(activity.id)}
+                          canDelete
+                        />
+                      ) : (
+                        <ActivitySummaryRow
+                          activity={activity}
+                          onStartDrag={() =>
+                            setDragItem({ type: "activity", id: activity.id })
+                          }
+                          onEdit={() => {
+                            setIsAdding(false);
+                            setEditingId(activity.id);
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        ))}
+              ) : null}
+            </section>
+          );
+        })}
 
         {isAdding ? (
           <div className="rounded-lg border border-stone-200 bg-paper p-3">
@@ -292,20 +383,26 @@ function ActivityEditForm({
   categories,
   action,
   extraFields,
-  removeForm,
+  canDelete = false,
+  onDelete,
   onCancel,
 }: {
   activity?: WeekGridActivity;
   categories: { name: string; sortOrder: number }[];
   action: (formData: FormData) => Promise<void>;
   extraFields: ReactNode;
-  removeForm?: ReactNode;
+  canDelete?: boolean;
+  onDelete?: () => void;
   onCancel: () => void;
 }) {
   const [categoryMode, setCategoryMode] = useState<"existing" | "new">("existing");
   const [selectedCategory, setSelectedCategory] = useState(
     activity?.categoryName ?? categories[0]?.name ?? "",
   );
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [targetCount, setTargetCount] = useState(activity?.targetCount ?? 1);
+  const categoryLabel = categoryMode === "new" ? "New category" : selectedCategory;
 
   return (
     <form action={action} className="space-y-3">
@@ -320,61 +417,110 @@ function ActivityEditForm({
         />
       </label>
 
-      <div className="grid gap-2 sm:grid-cols-[1fr_1fr]">
-        <label className={fieldLabelClassName}>
-          Category
-          <select
-            className={textInputClassName}
-            value={categoryMode === "new" ? "__new" : selectedCategory}
-            onChange={(event) => {
-              if (event.target.value === "__new") {
-                setCategoryMode("new");
-                return;
-              }
-
-              setCategoryMode("existing");
-              setSelectedCategory(event.target.value);
-            }}
+      <div>
+        <p className={fieldLabelClassName}>Category</p>
+        <div className="relative mt-1">
+          <button
+            type="button"
+            className={`${textInputClassName} flex items-center justify-between text-left`}
+            aria-expanded={isCategoryOpen}
+            onClick={() => setIsCategoryOpen((open) => !open)}
           >
-            {categories.map((category) => (
-              <option key={category.name} value={category.name}>
-                {category.name}
-              </option>
-            ))}
-            <option value="__new">New category</option>
-          </select>
-        </label>
+            <span>{categoryLabel}</span>
+            <span aria-hidden="true" className="text-stone-500">
+              ▾
+            </span>
+          </button>
+          {isCategoryOpen ? (
+            <div className="absolute left-0 right-0 z-30 mt-1 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-soft">
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  type="button"
+                  className="block w-full px-3 py-2 text-left text-sm font-medium text-stone-700 transition hover:bg-paper focus:bg-paper focus:outline-none"
+                  onClick={() => {
+                    setCategoryMode("existing");
+                    setSelectedCategory(category.name);
+                    setIsCategoryOpen(false);
+                  }}
+                >
+                  {category.name}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="block w-full border-t border-stone-200 px-3 py-2 text-left text-sm font-semibold text-clay transition hover:bg-paper focus:bg-paper focus:outline-none"
+                onClick={() => {
+                  setCategoryMode("new");
+                  setIsCategoryOpen(false);
+                }}
+              >
+                New category
+              </button>
+            </div>
+          ) : null}
+        </div>
         {categoryMode === "new" ? (
           <label className={fieldLabelClassName}>
             New category
-            <input className={textInputClassName} name="categoryName" required />
+            <input
+              className={textInputClassName}
+              name="categoryName"
+              value={newCategoryName}
+              onChange={(event) => setNewCategoryName(event.target.value)}
+              required
+            />
           </label>
         ) : (
           <input type="hidden" name="categoryName" value={selectedCategory} />
         )}
       </div>
 
-      <label className={fieldLabelClassName}>
-        Weekly target
-        <input
-          className={textInputClassName}
-          name="targetCount"
-          type="number"
-          min="0"
-          step="1"
-          defaultValue={activity?.targetCount ?? 1}
-          required
-        />
-      </label>
+      <div>
+        <p className={fieldLabelClassName}>Weekly target</p>
+        <input type="hidden" name="targetCount" value={targetCount} />
+        <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-stone-200 bg-white">
+          <button
+            type="button"
+            className="min-h-10 px-4 text-sm font-semibold text-stone-600 disabled:opacity-40"
+            disabled={targetCount <= 0}
+            onClick={() => setTargetCount((value) => Math.max(0, value - 1))}
+          >
+            -
+          </button>
+          <span className="min-w-16 px-2 text-center text-sm font-semibold text-ink">
+            {targetCount}/wk
+          </span>
+          <button
+            type="button"
+            className="min-h-10 px-4 text-sm font-semibold text-stone-600"
+            onClick={() => setTargetCount((value) => value + 1)}
+          >
+            +
+          </button>
+        </div>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" className={primaryButtonClassName}>
-          Save
-        </button>
-        <button type="button" className={secondaryButtonClassName} onClick={onCancel}>
-          Cancel
-        </button>
-        {removeForm}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          {canDelete ? (
+            <button
+              type="button"
+              className="rounded-full border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+              onClick={onDelete}
+            >
+              Delete
+            </button>
+          ) : null}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={secondaryButtonClassName} onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className={primaryButtonClassName}>
+            Save
+          </button>
+        </div>
       </div>
     </form>
   );
@@ -399,7 +545,11 @@ function moveCategory(
   const nextTargetIndex = next.findIndex(
     (candidate) => candidate.name === targetCategoryName,
   );
-  next.splice(nextTargetIndex, 0, category);
+  next.splice(
+    fromIndex < targetIndex ? nextTargetIndex + 1 : nextTargetIndex,
+    0,
+    category,
+  );
 
   return next;
 }
@@ -438,7 +588,7 @@ function moveActivity(
   const [activity] = sourceCategory.activities.splice(sourceIndex, 1);
   const nextTargetIndex =
     sourceCategory.name === targetCategory.name && sourceIndex < targetIndex
-      ? targetIndex - 1
+      ? targetIndex
       : targetIndex;
   targetCategory.activities.splice(nextTargetIndex, 0, {
     ...activity,

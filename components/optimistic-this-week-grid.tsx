@@ -31,6 +31,7 @@ export function OptimisticThisWeekGrid({
     () => new Set(),
   );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [collapsedCategoryNames, setCollapsedCategoryNames] = useState<string[]>([]);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -39,7 +40,23 @@ export function OptimisticThisWeekGrid({
     setSaveStatus("idle");
   }, [initialView]);
 
+  function toggleCategory(categoryName: string) {
+    setCollapsedCategoryNames((current) =>
+      current.includes(categoryName)
+        ? current.filter((name) => name !== categoryName)
+        : [...current, categoryName],
+    );
+  }
+
   useEffect(() => {
+    if (initialView.week.status !== "active") {
+      return;
+    }
+
+    if (window.matchMedia("(min-width: 640px)").matches) {
+      return;
+    }
+
     const todayIndex = initialView.dayDates.indexOf(initialView.today);
 
     if (todayIndex < 0) {
@@ -60,7 +77,7 @@ export function OptimisticThisWeekGrid({
     if (grid && todayIndex === 0) {
       grid.scrollLeft = 0;
     }
-  }, [initialView.dayDates, initialView.today]);
+  }, [initialView.dayDates, initialView.today, initialView.week.status]);
 
   const notice = useMemo<WeekNotice>(() => {
     if (saveStatus === "error") {
@@ -91,6 +108,8 @@ export function OptimisticThisWeekGrid({
         view={view}
         notice={null}
         showStatusPanel={false}
+        collapsedCategoryNames={collapsedCategoryNames}
+        onToggleCategory={toggleCategory}
         renderPlanningControl={({ activity, cell, children, className, ariaLabel }) => {
           const cellDate = cell.date as DateOnly;
           const key = getPlanningCellKey(activity.id, cellDate);

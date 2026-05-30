@@ -256,6 +256,19 @@ export function getWeekDayDates(weekStartDate: DateOnly) {
   return Array.from({ length: 7 }, (_, index) => addDays(start, index));
 }
 
+export function canMutateCurrentWeekDayFacts({
+  week,
+  today,
+}: {
+  week: Pick<WeekRecord, "status" | "weekStartDate">;
+  today: DateOnly;
+}) {
+  return (
+    week.status !== "closed" &&
+    getWeekStartDate(week.weekStartDate) === getWeekStartDate(today)
+  );
+}
+
 export function getCellVisualState({
   weekExists = true,
   weekStatus,
@@ -821,7 +834,7 @@ export async function setActivityDayCellFacts({
 
   const week = owner.activity.week;
 
-  if (week.status !== "active") {
+  if (!canMutateCurrentWeekDayFacts({ week, today: getTodayDateOnly() })) {
     return { status: "blocked" as const, message: "That day is view-only right now." };
   }
 
@@ -901,7 +914,7 @@ export async function moveWeekActivityPlanDate({
 
   const week = owner.activity.week;
 
-  if (week.status !== "active") {
+  if (!canMutateCurrentWeekDayFacts({ week, today: getTodayDateOnly() })) {
     return { status: "blocked" as const, message: "That day is view-only right now." };
   }
 
@@ -1249,17 +1262,6 @@ export async function reorderWeekCategories({
     if (error) {
       return { status: "error", message: error.message };
     }
-
-    if (category.categoryId) {
-      const { error: categoryError } = await supabase
-        .from("categories")
-        .update({ sort_order: sortOrder })
-        .eq("id", category.categoryId);
-
-      if (categoryError) {
-        return { status: "error", message: categoryError.message };
-      }
-    }
   }
 
   return { status: "updated" };
@@ -1323,7 +1325,13 @@ export async function reorderWeekActivities({
     return { status: "blocked", message: "Target activity not found." };
   }
 
-  targetCategoryActivities.splice(targetIndex, 0, {
+  const nextTargetIndex =
+    dragged.activity.categoryName === target.activity.categoryName &&
+    dragged.activity.sortOrder < target.activity.sortOrder
+      ? targetIndex + 1
+      : targetIndex;
+
+  targetCategoryActivities.splice(nextTargetIndex, 0, {
     ...dragged.activity,
     categoryId: target.activity.categoryId,
     categoryName: target.activity.categoryName,
@@ -1919,7 +1927,7 @@ function moveNamedItem<T extends { name: string }>(
   const nextTargetIndex = next.findIndex(
     (candidate) => candidate.name === targetItemName,
   );
-  next.splice(nextTargetIndex, 0, item);
+  next.splice(itemIndex < targetIndex ? nextTargetIndex + 1 : nextTargetIndex, 0, item);
 
   return next;
 }

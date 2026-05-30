@@ -31,12 +31,19 @@ export function ThisWeekGrid({
   notice,
   renderPlanningControl,
   showStatusPanel = true,
+  collapsedCategoryNames = [],
+  onToggleCategory,
 }: {
   view: ThisWeekViewModel;
   notice: WeekNotice;
   renderPlanningControl: PlanningControlRenderer;
   showStatusPanel?: boolean;
+  collapsedCategoryNames?: string[];
+  onToggleCategory?: (categoryName: string) => void;
 }) {
+  const collapsedCategorySet = new Set(collapsedCategoryNames);
+  const canCollapseCategories = Boolean(onToggleCategory);
+
   return (
     <section className="space-y-2 sm:space-y-3">
       {showStatusPanel ? (
@@ -57,6 +64,7 @@ export function ThisWeekGrid({
 
       <div
         data-week-grid-scroll
+        data-initial-scroll={view.week.status === "active" ? "today" : "monday"}
         className="snap-x snap-mandatory scroll-pl-[116px] overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft sm:scroll-pl-[172px]"
       >
         <div className="grid min-w-[620px] grid-cols-[minmax(116px,0.9fr)_repeat(7,minmax(52px,1fr))] pr-12 text-sm sm:min-w-[800px] sm:grid-cols-[minmax(172px,1.35fr)_repeat(7,minmax(66px,1fr))] sm:pr-0">
@@ -78,25 +86,46 @@ export function ThisWeekGrid({
             </div>
           ))}
 
-          {view.categories.map((category) => (
-            <div key={category.name} className="contents">
-              <div className="sticky left-0 z-20 border-b border-r border-t border-stone-200 bg-paper px-2 py-1 text-xs font-semibold uppercase tracking-wide text-clay sm:px-3 sm:py-1.5">
-                {category.name}
-              </div>
-              <div
-                aria-hidden="true"
-                className="col-span-7 border-b border-t border-stone-200 bg-paper"
-              />
-              {category.activities.map((activity) => (
-                <ActivityRow
-                  key={activity.id}
-                  activity={activity}
-                  today={view.today}
-                  renderPlanningControl={renderPlanningControl}
+          {view.categories.map((category) => {
+            const isCollapsed = collapsedCategorySet.has(category.name);
+
+            return (
+              <div key={category.name} className="contents">
+                <div className="sticky left-0 z-20 border-b border-r border-t border-stone-200 bg-paper px-2 py-1 text-xs font-semibold uppercase tracking-wide text-clay sm:px-3 sm:py-1.5">
+                  {canCollapseCategories ? (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                      aria-expanded={!isCollapsed}
+                      aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
+                        category.name
+                      }`}
+                      onClick={() => onToggleCategory?.(category.name)}
+                    >
+                      <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                      <span>{category.name}</span>
+                    </button>
+                  ) : (
+                    category.name
+                  )}
+                </div>
+                <div
+                  aria-hidden="true"
+                  className="col-span-7 border-b border-t border-stone-200 bg-paper"
                 />
-              ))}
-            </div>
-          ))}
+                {!isCollapsed
+                  ? category.activities.map((activity) => (
+                      <ActivityRow
+                        key={activity.id}
+                        activity={activity}
+                        today={view.today}
+                        renderPlanningControl={renderPlanningControl}
+                      />
+                    ))
+                  : null}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -170,7 +199,7 @@ function WeekCell({
         })
       ) : (
         <div
-          className="flex min-h-10 min-w-10 items-center justify-center rounded-full opacity-80 sm:min-h-11 sm:min-w-11"
+          className="flex min-h-10 min-w-10 items-center justify-center rounded-full sm:min-h-11 sm:min-w-11"
           aria-label={ariaLabel}
         >
           {mark}
@@ -201,8 +230,8 @@ function CellMark({ editable, state }: { editable: boolean; state: CellVisualSta
 
   if (state === "missed") {
     return (
-      <span className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 bg-stone-100 text-lg leading-none text-stone-500 sm:h-8 sm:w-8">
-        /
+      <span className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 bg-stone-100 text-base font-semibold leading-none text-stone-500 sm:h-8 sm:w-8 sm:text-lg">
+        ×
       </span>
     );
   }
@@ -242,7 +271,7 @@ export function Notice({
 }
 
 export function formatDateRange(start: string, end: string) {
-  return `${formatMediumDate(start)} to ${formatMediumDate(end)}`;
+  return `${formatMediumDate(start)} – ${formatMediumDate(end)}`;
 }
 
 function formatMediumDate(date: string) {

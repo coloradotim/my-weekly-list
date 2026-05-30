@@ -219,11 +219,17 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayPage).not.toContain("Earlier this week");
   });
 
-  it("keeps Adjust plan dismissible and closes previous panels when another opens", () => {
+  it("shows direct Move and Skip controls without the old adjustment flow", () => {
     expect(todayClient).toContain("Cancel");
-    expect(todayClient).toContain("onCancelAdjust");
-    expect(todayClient).toContain("setAdjustingActivityId((current)");
+    expect(todayClient).toContain("movingActivityId");
+    expect(todayClient).toContain("setMovingActivityId((current)");
     expect(todayClient).toContain("current === activity.id ? null : activity.id");
+    expect(todayClient).toContain("moveDates.length > 0");
+    expect(todayClient).toContain("Skip");
+    expect(todayClient).not.toContain("Adjust plan");
+    expect(todayClient).not.toContain("Move to another day");
+    expect(todayClient).not.toContain("disabled:opacity");
+    expect(todayClient).not.toContain("onCancelAdjust");
   });
 
   it("persists explicit facts and never uses unsafe blind toggles", () => {
@@ -244,6 +250,7 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Couldn’t save that change. Try again.");
     expect(todayClient).toContain("rollback");
     expect(todayClient).toContain("pendingActivityIds");
+    expect(todayClient).toContain("getTodayStateScope");
     expect(todayClient).not.toContain("router.refresh");
   });
 
@@ -254,7 +261,14 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Skipped");
     expect(todayClient).toContain("Mark done");
     expect(todayClient).toContain("Mark done today");
+    expect(todayClient).toContain("Move");
+    expect(todayClient).toContain("Skip");
+    expect(todayClient).toContain("Collapse");
+    expect(todayClient).toContain("Expand");
     expect(todayClient).not.toContain("Also done today");
+    expect(todayClient).not.toContain(">Hide<");
+    expect(todayClient).not.toContain(">Show<");
+    expect(todayClient).not.toContain("Adjust plan");
     expect(todayClient).not.toContain("Earlier this week");
     expect(todayClient).not.toContain("Leave missed");
     expect(todayClient).not.toContain("Move to today");
