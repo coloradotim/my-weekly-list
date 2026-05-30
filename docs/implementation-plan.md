@@ -253,6 +253,11 @@ visual language where appropriate.
   and no current week exists.
 - Use compact app navigation focused on Today, Week, and Review. Do not expose
   Plan, Home, Setup, or Sign out as primary navigation items.
+- On mobile, make the app shell own the visible viewport: page content should
+  scroll inside the shell and the bottom nav should be a stable bottom row, not
+  a fixed overlay that can be covered by iPhone Chrome controls. Week and
+  Review are scroll-heavy because of the weekly grids, so verify them alongside
+  Today when changing shell spacing or navigation hit targets.
 - Keep `/plan`, if retained, as a compatibility redirect/internal route rather
   than a primary app destination.
 - Keep Sign out out of normal app chrome; use a deliberate utility route/script

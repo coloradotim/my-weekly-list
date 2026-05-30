@@ -27,10 +27,15 @@ describe("app routes", () => {
 
   it("renders mobile bottom navigation without in-app sign-out chrome", () => {
     expect(appLayout).toContain("AppShell");
-    expect(appShell).toContain("fixed inset-x-0 bottom-0");
+    expect(appShell).toContain("h-[100dvh]");
+    expect(appShell).toContain("overflow-y-auto");
+    expect(appShell).toContain("overscroll-y-contain");
+    expect(appShell).toContain("shrink-0");
+    expect(appShell).toContain("touch-manipulation");
     expect(appShell).toContain("env(safe-area-inset-bottom)");
     expect(appShell).toContain('aria-label="Main navigation"');
     expect(appShell).toContain('aria-current={selected ? "page" : undefined}');
+    expect(appShell).not.toContain("fixed inset-x-0 bottom-0");
     expect(appShell).not.toContain("Account");
     expect(appShell).not.toContain("Sign out");
     expect(appShell).not.toContain('href="/plan"');

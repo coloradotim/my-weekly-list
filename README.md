@@ -250,10 +250,12 @@ Use this checklist after deployment:
 10. Revisit `/` and Week after refreshes; confirm no duplicate current week or
     duplicate week-activity snapshots appear.
 
-For iPhone Chrome acceptance, also confirm the bottom navigation does not cover
-content, Today opens directly into useful actions, current Week opens near
-today's column, Next/Past Week open at Monday, and Review remains readable and
-compact.
+For iPhone Chrome acceptance, also confirm the bottom navigation remains above
+browser controls and has reliable tap targets on Today, Week, and Review. Week
+and Review use scroll-heavy weekly grids, so check them directly rather than
+assuming the Today shell behavior covers them. Also confirm Today opens directly
+into useful actions, current Week opens near today's column, Next/Past Week open
+at Monday, and Review remains readable and compact.
 
 ## Development notes
 
