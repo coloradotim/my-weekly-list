@@ -269,9 +269,10 @@ visual language where appropriate.
 - Replace the scaffold/home route with a lightweight authenticated redirect to
   Today. Today owns current-week assurance from the saved list when setup is
   complete and no current week exists.
-- Keep installed-app launch responsive: show a lightweight app-branded loading
-  shell while auth and Today data resolve. Avoid duplicate Supabase auth checks
-  in the app shell when middleware already guards authenticated app routes.
+- Keep installed-app launch responsive by routing directly to Today and avoiding
+  textual loading interstitials during normal Today, Week, and Review
+  navigation. Avoid duplicate Supabase auth checks in the app shell when
+  middleware already guards authenticated app routes.
 - Use compact app navigation focused on Today, Week, and Review. Do not expose
   Plan, Home, Setup, or Sign out as primary navigation items.
 - Derive selected nav state from the committed current route segment so exactly

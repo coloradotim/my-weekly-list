@@ -90,12 +90,17 @@ npm run test:run
 npm run build
 ```
 
-## Supabase auth
+## Supabase auth and backend user administration
 
 My Weekly List uses Supabase email/password auth. There is no public signup,
 magic-link login, OTP login, Google OAuth, or in-app registration. Tim manually
 provisions users with local scripts, and app access is stored in the
 database-backed `profiles` row.
+
+Backend user administration lives in local scripts that use Supabase Admin APIs
+with `SUPABASE_SERVICE_ROLE_KEY`. Use these scripts to create users, reset
+temporary passwords, and disable app access without deleting historical
+weekly-list data.
 
 Required Supabase dashboard setup:
 
