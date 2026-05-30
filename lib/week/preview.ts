@@ -48,8 +48,9 @@ export function applyPreviewPlanningToggle({
           cellDate: cell.date,
           planned: cell.planned,
           done: cell.done,
+          skipped: cell.skipped,
         }))
-        .filter((cell) => cell.planned || cell.done);
+        .filter((cell) => cell.planned || cell.done || cell.skipped);
       const existingCell = cells.find((cell) => cell.cellDate === cellDate) ?? null;
 
       if (activity.id !== activityId) {
@@ -145,9 +146,27 @@ function getInitialWeekPreviewActivities(): PersistedWeekActivity[] {
       targetCount: 4,
       sortOrder: 10,
       cells: [
-        { id: "walk-mon", cellDate: "2026-06-01", planned: true, done: true },
-        { id: "walk-tue", cellDate: "2026-06-02", planned: true, done: false },
-        { id: "walk-thu", cellDate: "2026-06-04", planned: true, done: false },
+        {
+          id: "walk-mon",
+          cellDate: "2026-06-01",
+          planned: true,
+          done: true,
+          skipped: false,
+        },
+        {
+          id: "walk-tue",
+          cellDate: "2026-06-02",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
+        {
+          id: "walk-thu",
+          cellDate: "2026-06-04",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
       ],
     },
     {
@@ -160,8 +179,20 @@ function getInitialWeekPreviewActivities(): PersistedWeekActivity[] {
       targetCount: 2,
       sortOrder: 30,
       cells: [
-        { id: "yoga-wed", cellDate: "2026-06-03", planned: false, done: true },
-        { id: "yoga-sat", cellDate: "2026-06-06", planned: true, done: false },
+        {
+          id: "yoga-wed",
+          cellDate: "2026-06-03",
+          planned: false,
+          done: true,
+          skipped: false,
+        },
+        {
+          id: "yoga-sat",
+          cellDate: "2026-06-06",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
       ],
     },
     {
@@ -174,10 +205,34 @@ function getInitialWeekPreviewActivities(): PersistedWeekActivity[] {
       targetCount: 5,
       sortOrder: 70,
       cells: [
-        { id: "read-mon", cellDate: "2026-06-01", planned: true, done: false },
-        { id: "read-tue", cellDate: "2026-06-02", planned: true, done: true },
-        { id: "read-thu", cellDate: "2026-06-04", planned: true, done: false },
-        { id: "read-fri", cellDate: "2026-06-05", planned: true, done: false },
+        {
+          id: "read-mon",
+          cellDate: "2026-06-01",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
+        {
+          id: "read-tue",
+          cellDate: "2026-06-02",
+          planned: true,
+          done: true,
+          skipped: false,
+        },
+        {
+          id: "read-thu",
+          cellDate: "2026-06-04",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
+        {
+          id: "read-fri",
+          cellDate: "2026-06-05",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
       ],
     },
     {
@@ -189,7 +244,15 @@ function getInitialWeekPreviewActivities(): PersistedWeekActivity[] {
       activityName: "Journal",
       targetCount: 1,
       sortOrder: 30,
-      cells: [{ id: "journal-fri", cellDate: "2026-06-05", planned: true, done: false }],
+      cells: [
+        {
+          id: "journal-fri",
+          cellDate: "2026-06-05",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
+      ],
     },
     {
       id: "preview-kid-time",
@@ -200,7 +263,15 @@ function getInitialWeekPreviewActivities(): PersistedWeekActivity[] {
       activityName: "Quality kid time",
       targetCount: 1,
       sortOrder: 10,
-      cells: [{ id: "kid-time-thu", cellDate: "2026-06-04", planned: false, done: true }],
+      cells: [
+        {
+          id: "kid-time-thu",
+          cellDate: "2026-06-04",
+          planned: false,
+          done: true,
+          skipped: false,
+        },
+      ],
     },
     {
       id: "preview-singing",
@@ -212,8 +283,20 @@ function getInitialWeekPreviewActivities(): PersistedWeekActivity[] {
       targetCount: 4,
       sortOrder: 10,
       cells: [
-        { id: "singing-wed", cellDate: "2026-06-03", planned: true, done: false },
-        { id: "singing-sun", cellDate: "2026-06-07", planned: true, done: false },
+        {
+          id: "singing-wed",
+          cellDate: "2026-06-03",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
+        {
+          id: "singing-sun",
+          cellDate: "2026-06-07",
+          planned: true,
+          done: false,
+          skipped: false,
+        },
       ],
     },
   ];

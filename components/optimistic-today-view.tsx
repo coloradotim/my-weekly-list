@@ -1,14 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
-  applyTodayPreviewAction,
-  getInitialTodayPreviewState,
-  getTodayPreviewView,
-  type TodayPreviewActivity,
-  type TodayPreviewMoveDate,
-  type TodayPreviewScenario,
-} from "@/lib/today/preview";
+  moveTodayPlanAction,
+  setTodayCellFactsAction,
+  undoMoveTodayPlanAction,
+} from "@/app/(app)/today/actions";
+import {
+  applyOptimisticTodayAction,
+  buildTodayViewModel,
+  type TodayActivity,
+  type TodayMoveDate,
+  type TodayOptimisticAction,
+  type TodayState,
+} from "@/lib/today/current";
 import type { DateOnly } from "@/lib/week/date";
 
 type AdjustStep = "choices" | "move";
@@ -26,183 +31,230 @@ type TemporaryUndo =
       activityName: string;
     };
 
-const scenarios: { id: TodayPreviewScenario; label: string }[] = [
-  { id: "active", label: "Today" },
-  { id: "sunday", label: "Sunday" },
-  { id: "no-current-week", label: "No week" },
-  { id: "setup-needed", label: "Setup" },
-];
+type Notice = {
+  tone: "error" | "neutral";
+  body: string;
+} | null;
 
-export function TodayPreviewClient() {
-  const [scenario, setScenario] = useState<TodayPreviewScenario>("active");
-  const [state, setState] = useState(() => getInitialTodayPreviewState("active"));
+export function OptimisticTodayView({ initialState }: { initialState: TodayState }) {
+  const [state, setState] = useState(initialState);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [adjustingActivityId, setAdjustingActivityId] = useState<string | null>(null);
   const [adjustStep, setAdjustStep] = useState<AdjustStep>("choices");
   const [temporaryUndo, setTemporaryUndo] = useState<TemporaryUndo | null>(null);
-  const view = getTodayPreviewView(state);
+  const [pendingActivityIds, setPendingActivityIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [saveStatus, setSaveStatus] = useState<"idle" | "error">("idle");
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
-    const hash = window.location.hash;
-
-    if (hash === "#picker-added") {
-      setIsPickerOpen(true);
-      setState((current) =>
-        applyTodayPreviewAction(current, {
-          type: "mark-done",
-          activityId: "today-yoga",
-        }),
-      );
-      return;
-    }
-
-    if (hash === "#adjust-step") {
-      setAdjustingActivityId("today-walk");
-      setAdjustStep("choices");
-      return;
-    }
-
-    if (hash === "#move-step") {
-      setAdjustingActivityId("today-walk");
-      setAdjustStep("move");
-      return;
-    }
-
-    if (hash === "#skipped") {
-      setState((current) =>
-        applyTodayPreviewAction(current, {
-          type: "skip-today",
-          activityId: "today-meditation",
-        }),
-      );
-      setTemporaryUndo({
-        kind: "skip",
-        activityId: "today-meditation",
-        activityName: "Meditation",
-      });
-      return;
-    }
-
-    if (hash === "#sunday") {
-      setScenario("sunday");
-      setState(getInitialTodayPreviewState("sunday"));
-    }
-  }, []);
-
-  function selectScenario(nextScenario: TodayPreviewScenario) {
-    setScenario(nextScenario);
-    setState(getInitialTodayPreviewState(nextScenario));
+    setState(initialState);
     setIsPickerOpen(false);
     setCollapsedCategories([]);
     setAdjustingActivityId(null);
     setAdjustStep("choices");
     setTemporaryUndo(null);
-  }
+    setPendingActivityIds(new Set());
+    setSaveStatus("idle");
+  }, [initialState]);
 
-  if (view.status !== "ready") {
-    return (
-      <div className="space-y-3">
-        <ScenarioTabs scenario={scenario} onSelect={selectScenario} />
-        <section className="rounded-lg border border-stone-200 bg-white/85 p-4 shadow-soft">
-          <p className="text-sm font-semibold uppercase tracking-wide text-clay">Today</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-normal text-ink">
-            {view.title}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-stone-700">{view.body}</p>
-          <button
-            type="button"
-            className="mt-4 inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white"
-          >
-            {view.actionLabel}
-          </button>
-        </section>
-      </div>
-    );
-  }
+  const view = buildTodayViewModel(state);
+  const notice = useMemo<Notice>(() => {
+    if (saveStatus === "error") {
+      return { tone: "error", body: "Couldn’t save that change. Try again." };
+    }
 
-  const pickerGroups = groupActivitiesByCategory(view.unplannedOptions);
+    return null;
+  }, [saveStatus]);
 
-  function markDone(activity: TodayPreviewActivity) {
-    setState((current) =>
-      applyTodayPreviewAction(current, {
-        type: "mark-done",
-        activityId: activity.id,
-      }),
-    );
-    setAdjustingActivityId(null);
-    setAdjustStep("choices");
-    setTemporaryUndo(null);
-  }
+  function setPending(activityId: string, pending: boolean) {
+    setPendingActivityIds((current) => {
+      const next = new Set(current);
 
-  function undoDone(activity: TodayPreviewActivity) {
-    setState((current) =>
-      applyTodayPreviewAction(current, {
-        type: "undo-done",
-        activityId: activity.id,
-      }),
-    );
-    setTemporaryUndo(null);
-  }
+      if (pending) {
+        next.add(activityId);
+      } else {
+        next.delete(activityId);
+      }
 
-  function moveTodayPlan(activity: TodayPreviewActivity, moveDate: TodayPreviewMoveDate) {
-    setState((current) =>
-      applyTodayPreviewAction(current, {
-        type: "move-today-plan",
-        activityId: activity.id,
-        toDate: moveDate.date,
-      }),
-    );
-    setAdjustingActivityId(null);
-    setAdjustStep("choices");
-    setTemporaryUndo({
-      kind: "move",
-      activityId: activity.id,
-      activityName: activity.activityName,
-      movedToDate: moveDate.date,
-      movedToLabel: moveDate.weekdayLabel,
+      return next;
     });
   }
 
-  function skipTodayPlan(activity: TodayPreviewActivity) {
-    setState((current) =>
-      applyTodayPreviewAction(current, {
-        type: "skip-today",
-        activityId: activity.id,
-      }),
-    );
-    setAdjustingActivityId(null);
-    setAdjustStep("choices");
-    setTemporaryUndo({
-      kind: "skip",
-      activityId: activity.id,
-      activityName: activity.activityName,
-    });
-  }
-
-  function undoTemporaryChange() {
-    if (!temporaryUndo) {
+  function runOptimisticUpdate({
+    activityId,
+    action,
+    rollback,
+    persist,
+    afterApply,
+  }: {
+    activityId: string;
+    action: TodayOptimisticAction;
+    rollback: TodayOptimisticAction;
+    persist: () => Promise<{ status: "updated" | "blocked" | "error" }>;
+    afterApply?: () => void;
+  }) {
+    if (pendingActivityIds.has(activityId)) {
       return;
     }
 
-    if (temporaryUndo.kind === "move") {
-      setState((current) =>
-        applyTodayPreviewAction(current, {
-          type: "undo-move-today-plan",
-          activityId: temporaryUndo.activityId,
-          fromDate: temporaryUndo.movedToDate,
-        }),
-      );
-    } else {
-      setState((current) =>
-        applyTodayPreviewAction(current, {
-          type: "undo-skip",
-          activityId: temporaryUndo.activityId,
-        }),
-      );
-    }
+    setSaveStatus("idle");
+    setPending(activityId, true);
+    setState((current) => applyOptimisticTodayAction(current, action));
+    afterApply?.();
 
-    setTemporaryUndo(null);
+    startTransition(() => {
+      void persist()
+        .then((result) => {
+          if (result.status === "updated") {
+            return;
+          }
+
+          setSaveStatus("error");
+          setState((current) => applyOptimisticTodayAction(current, rollback));
+        })
+        .catch(() => {
+          setSaveStatus("error");
+          setState((current) => applyOptimisticTodayAction(current, rollback));
+        })
+        .finally(() => {
+          setPending(activityId, false);
+        });
+    });
+  }
+
+  function markDone(activity: TodayActivity) {
+    runOptimisticUpdate({
+      activityId: activity.id,
+      action: { type: "mark-done", activityId: activity.id },
+      rollback: { type: "undo-done", activityId: activity.id },
+      persist: () =>
+        setTodayCellFactsAction({
+          weekActivityId: activity.id,
+          cellDate: state.today,
+          planned: activity.isPlannedToday,
+          done: true,
+          skipped: false,
+        }),
+      afterApply: () => {
+        setAdjustingActivityId(null);
+        setAdjustStep("choices");
+        setTemporaryUndo(null);
+      },
+    });
+  }
+
+  function undoDone(activity: TodayActivity) {
+    runOptimisticUpdate({
+      activityId: activity.id,
+      action: { type: "undo-done", activityId: activity.id },
+      rollback: { type: "mark-done", activityId: activity.id },
+      persist: () =>
+        setTodayCellFactsAction({
+          weekActivityId: activity.id,
+          cellDate: state.today,
+          planned: activity.isPlannedToday,
+          done: false,
+          skipped: false,
+        }),
+      afterApply: () => setTemporaryUndo(null),
+    });
+  }
+
+  function skipTodayPlan(activity: TodayActivity) {
+    runOptimisticUpdate({
+      activityId: activity.id,
+      action: { type: "skip-today", activityId: activity.id },
+      rollback: { type: "undo-skip", activityId: activity.id },
+      persist: () =>
+        setTodayCellFactsAction({
+          weekActivityId: activity.id,
+          cellDate: state.today,
+          planned: true,
+          done: false,
+          skipped: true,
+        }),
+      afterApply: () => {
+        setAdjustingActivityId(null);
+        setAdjustStep("choices");
+        setTemporaryUndo({
+          kind: "skip",
+          activityId: activity.id,
+          activityName: activity.activityName,
+        });
+      },
+    });
+  }
+
+  function undoSkip(activityId: string) {
+    runOptimisticUpdate({
+      activityId,
+      action: { type: "undo-skip", activityId },
+      rollback: { type: "skip-today", activityId },
+      persist: () =>
+        setTodayCellFactsAction({
+          weekActivityId: activityId,
+          cellDate: state.today,
+          planned: true,
+          done: false,
+          skipped: false,
+        }),
+      afterApply: () => setTemporaryUndo(null),
+    });
+  }
+
+  function moveTodayPlan(activity: TodayActivity, moveDate: TodayMoveDate) {
+    runOptimisticUpdate({
+      activityId: activity.id,
+      action: {
+        type: "move-today-plan",
+        activityId: activity.id,
+        toDate: moveDate.date,
+      },
+      rollback: {
+        type: "undo-move-today-plan",
+        activityId: activity.id,
+        fromDate: moveDate.date,
+      },
+      persist: () =>
+        moveTodayPlanAction({
+          weekActivityId: activity.id,
+          today: state.today,
+          toDate: moveDate.date,
+        }),
+      afterApply: () => {
+        setAdjustingActivityId(null);
+        setAdjustStep("choices");
+        setTemporaryUndo({
+          kind: "move",
+          activityId: activity.id,
+          activityName: activity.activityName,
+          movedToDate: moveDate.date,
+          movedToLabel: moveDate.weekdayLabel,
+        });
+      },
+    });
+  }
+
+  function undoMove(activityId: string, fromDate: DateOnly) {
+    runOptimisticUpdate({
+      activityId,
+      action: { type: "undo-move-today-plan", activityId, fromDate },
+      rollback: {
+        type: "move-today-plan",
+        activityId,
+        toDate: fromDate,
+      },
+      persist: () =>
+        undoMoveTodayPlanAction({
+          weekActivityId: activityId,
+          today: state.today,
+          fromDate,
+        }),
+      afterApply: () => setTemporaryUndo(null),
+    });
   }
 
   function togglePickerCategory(categoryName: string) {
@@ -215,24 +267,24 @@ export function TodayPreviewClient() {
 
   return (
     <div className="space-y-3">
-      <ScenarioTabs scenario={scenario} onSelect={selectScenario} />
-
       <header className="rounded-lg border border-stone-200 bg-white/85 p-3 shadow-soft">
         <p className="text-sm font-semibold uppercase tracking-wide text-clay">Today</p>
         <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold tracking-normal text-ink">
+            <h1 className="text-2xl font-semibold tracking-normal text-ink">
               {view.todayLabel}
-            </h2>
+            </h1>
             <p className="text-sm text-stone-600">Week {view.weekRangeLabel}</p>
           </div>
           {view.isSunday ? (
             <p className="max-w-md rounded-lg border border-mist bg-mist/35 px-3 py-2 text-sm leading-5 text-stone-700">
-              Sunday stays in this week. Finish today; no cross-week moves here.
+              Sunday stays in this week. Finish today or skip what will not happen.
             </p>
           ) : null}
         </div>
       </header>
+
+      {notice ? <Notice tone={notice.tone} body={notice.body} /> : null}
 
       <section className="space-y-2">
         <SectionHeading title="Planned for today" count={view.openPlannedToday.length} />
@@ -243,6 +295,7 @@ export function TodayPreviewClient() {
                 key={activity.id}
                 activity={activity}
                 isSunday={view.isSunday}
+                isPending={pendingActivityIds.has(activity.id)}
                 isAdjusting={adjustingActivityId === activity.id}
                 adjustStep={adjustStep}
                 moveDates={activity.moveDates}
@@ -269,14 +322,23 @@ export function TodayPreviewClient() {
       </section>
 
       {temporaryUndo ? (
-        <TemporaryUndoMessage undo={temporaryUndo} onUndo={undoTemporaryChange} />
+        <TemporaryUndoMessage
+          undo={temporaryUndo}
+          onUndo={() => {
+            if (temporaryUndo.kind === "move") {
+              undoMove(temporaryUndo.activityId, temporaryUndo.movedToDate);
+            } else {
+              undoSkip(temporaryUndo.activityId);
+            }
+          }}
+        />
       ) : null}
 
       <section className="rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft">
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-white px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus:ring-2 focus:ring-clay"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-white px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
             onClick={() => setIsPickerOpen((current) => !current)}
           >
             + Something else
@@ -284,7 +346,7 @@ export function TodayPreviewClient() {
           {isPickerOpen ? (
             <button
               type="button"
-              className="rounded-full px-2 py-1 text-sm font-semibold text-stone-500 transition hover:bg-paper hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+              className="rounded-full px-2 py-1 text-sm font-semibold text-stone-500 transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
               onClick={() => setIsPickerOpen(false)}
             >
               Close
@@ -293,9 +355,9 @@ export function TodayPreviewClient() {
         </div>
         {isPickerOpen ? (
           <div className="mt-3 border-t border-stone-200 pt-3">
-            {pickerGroups.length > 0 ? (
+            {view.pickerGroups.length > 0 ? (
               <div className="space-y-2">
-                {pickerGroups.map((group) => {
+                {view.pickerGroups.map((group) => {
                   const isCollapsed = collapsedCategories.includes(group.categoryName);
 
                   return (
@@ -305,7 +367,7 @@ export function TodayPreviewClient() {
                     >
                       <button
                         type="button"
-                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus:ring-2 focus:ring-clay"
+                        className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                         onClick={() => togglePickerCategory(group.categoryName)}
                         aria-expanded={!isCollapsed}
                       >
@@ -320,7 +382,8 @@ export function TodayPreviewClient() {
                             <button
                               key={activity.id}
                               type="button"
-                              className="flex min-h-11 w-full items-center justify-between gap-4 px-3 py-2 text-left text-sm transition hover:bg-paper focus:outline-none focus:ring-2 focus:ring-meadow"
+                              className="flex min-h-11 w-full items-center justify-between gap-4 px-3 py-2 text-left text-sm transition hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow"
+                              disabled={pendingActivityIds.has(activity.id)}
                               onClick={() => markDone(activity)}
                             >
                               <span className="font-semibold text-ink">
@@ -352,6 +415,7 @@ export function TodayPreviewClient() {
               <DoneTodayRow
                 key={activity.id}
                 activity={activity}
+                isPending={pendingActivityIds.has(activity.id)}
                 onUndoDone={() => undoDone(activity)}
               />
             ))}
@@ -367,6 +431,7 @@ export function TodayPreviewClient() {
               <SkippedRow
                 key={activity.id}
                 activity={activity}
+                isPending={pendingActivityIds.has(activity.id)}
                 onDone={() => markDone(activity)}
               />
             ))}
@@ -377,36 +442,10 @@ export function TodayPreviewClient() {
   );
 }
 
-function ScenarioTabs({
-  scenario,
-  onSelect,
-}: {
-  scenario: TodayPreviewScenario;
-  onSelect: (scenario: TodayPreviewScenario) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2 rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft">
-      {scenarios.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-clay ${
-            scenario === item.id
-              ? "border-meadow bg-meadow text-white"
-              : "border-stone-200 bg-white text-stone-700 hover:bg-paper"
-          }`}
-          onClick={() => onSelect(item.id)}
-        >
-          {item.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function OpenPlannedRow({
   activity,
   isSunday,
+  isPending,
   isAdjusting,
   adjustStep,
   moveDates,
@@ -417,31 +456,33 @@ function OpenPlannedRow({
   onShowMoveDays,
   onMove,
 }: {
-  activity: TodayPreviewActivity;
+  activity: TodayActivity;
   isSunday: boolean;
+  isPending: boolean;
   isAdjusting: boolean;
   adjustStep: AdjustStep;
-  moveDates: TodayPreviewMoveDate[];
+  moveDates: TodayMoveDate[];
   onDone: () => void;
   onSkip: () => void;
   onToggleAdjust: () => void;
   onCancelAdjust: () => void;
   onShowMoveDays: () => void;
-  onMove: (moveDate: TodayPreviewMoveDate) => void;
+  onMove: (moveDate: TodayMoveDate) => void;
 }) {
   return (
     <article className="rounded-lg border border-stone-200 bg-white/85 p-3 shadow-soft">
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold leading-6 text-ink">
+          <h2 className="text-base font-semibold leading-6 text-ink">
             {activity.activityName}
-          </h3>
+          </h2>
           <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
           {!isSunday ? (
             <button
               type="button"
               className="mt-1 text-sm font-semibold text-clay underline-offset-4 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
               onClick={onToggleAdjust}
+              disabled={isPending}
             >
               Adjust plan
             </button>
@@ -450,16 +491,18 @@ function OpenPlannedRow({
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <button
             type="button"
-            className="min-h-11 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow"
+            className="min-h-11 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:opacity-70"
             onClick={onDone}
+            disabled={isPending}
           >
             Mark done
           </button>
           {isSunday ? (
             <button
               type="button"
-              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:opacity-70"
               onClick={onSkip}
+              disabled={isPending}
             >
               Skip
             </button>
@@ -489,10 +532,10 @@ function AdjustPlanPanel({
   onSkip,
 }: {
   step: AdjustStep;
-  moveDates: TodayPreviewMoveDate[];
+  moveDates: TodayMoveDate[];
   onCancel: () => void;
   onShowMoveDays: () => void;
-  onMove: (moveDate: TodayPreviewMoveDate) => void;
+  onMove: (moveDate: TodayMoveDate) => void;
   onSkip: () => void;
 }) {
   return (
@@ -515,7 +558,7 @@ function AdjustPlanPanel({
             <button
               key={moveDate.date}
               type="button"
-              className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+              className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
               onClick={() => onMove(moveDate)}
             >
               {moveDate.weekdayLabel}
@@ -527,7 +570,7 @@ function AdjustPlanPanel({
           {moveDates.length > 0 ? (
             <button
               type="button"
-              className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+              className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
               onClick={onShowMoveDays}
             >
               Move to another day
@@ -535,7 +578,7 @@ function AdjustPlanPanel({
           ) : null}
           <button
             type="button"
-            className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
+            className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
             onClick={onSkip}
           >
             Skip
@@ -548,23 +591,26 @@ function AdjustPlanPanel({
 
 function DoneTodayRow({
   activity,
+  isPending,
   onUndoDone,
 }: {
-  activity: TodayPreviewActivity;
+  activity: TodayActivity;
+  isPending: boolean;
   onUndoDone: () => void;
 }) {
   return (
     <article className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/75 p-3 shadow-soft">
       <div className="min-w-0">
-        <h3 className="text-base font-semibold leading-6 text-ink">
+        <h2 className="text-base font-semibold leading-6 text-ink">
           {activity.activityName}
-        </h3>
+        </h2>
         <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
       </div>
       <button
         type="button"
-        className="shrink-0 rounded-full bg-meadow/15 px-3 py-2 text-sm font-semibold text-meadow transition hover:bg-meadow/25 focus:outline-none focus:ring-2 focus:ring-meadow"
+        className="shrink-0 rounded-full bg-meadow/15 px-3 py-2 text-sm font-semibold text-meadow transition hover:bg-meadow/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:opacity-70"
         onClick={onUndoDone}
+        disabled={isPending}
       >
         ✓ Done
       </button>
@@ -574,24 +620,27 @@ function DoneTodayRow({
 
 function SkippedRow({
   activity,
+  isPending,
   onDone,
 }: {
-  activity: TodayPreviewActivity;
+  activity: TodayActivity;
+  isPending: boolean;
   onDone: () => void;
 }) {
   return (
     <article className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/75 p-3 shadow-soft">
       <div className="min-w-0">
-        <h3 className="text-base font-semibold leading-6 text-ink">
+        <h2 className="text-base font-semibold leading-6 text-ink">
           {activity.activityName}
-        </h3>
+        </h2>
         <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
         <p className="mt-1 text-sm font-semibold text-stone-500">Skipped</p>
       </div>
       <button
         type="button"
-        className="min-h-11 shrink-0 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow"
+        className="min-h-11 shrink-0 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:opacity-70"
         onClick={onDone}
+        disabled={isPending}
       >
         Mark done
       </button>
@@ -625,10 +674,25 @@ function TemporaryUndoMessage({
   );
 }
 
+function Notice({ tone, body }: { tone: "error" | "neutral"; body: string }) {
+  return (
+    <div
+      role={tone === "error" ? "alert" : "status"}
+      className={`rounded-lg border px-3 py-2 text-sm leading-6 ${
+        tone === "error"
+          ? "border-clay/30 bg-clay/10 text-stone-800"
+          : "border-stone-200 bg-paper text-stone-700"
+      }`}
+    >
+      {body}
+    </div>
+  );
+}
+
 function SectionHeading({ title, count }: { title: string; count: number }) {
   return (
     <div className="flex items-center justify-between px-1">
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-clay">{title}</h3>
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-clay">{title}</h2>
       <span className="rounded-full bg-white/80 px-2 py-1 text-xs font-semibold text-stone-600">
         {count}
       </span>
@@ -642,19 +706,4 @@ function EmptyNote({ body }: { body: string }) {
       {body}
     </p>
   );
-}
-
-function groupActivitiesByCategory(activities: TodayPreviewActivity[]) {
-  const groups = new Map<string, TodayPreviewActivity[]>();
-
-  activities.forEach((activity) => {
-    const group = groups.get(activity.categoryName) ?? [];
-    group.push(activity);
-    groups.set(activity.categoryName, group);
-  });
-
-  return Array.from(groups.entries()).map(([categoryName, groupActivities]) => ({
-    categoryName,
-    activities: groupActivities,
-  }));
 }

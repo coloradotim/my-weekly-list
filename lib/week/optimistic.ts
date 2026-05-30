@@ -84,6 +84,7 @@ function buildOptimisticPlanningCell({
       today: view.today,
       planned,
       done: cell.done,
+      skipped: cell.skipped,
     }),
   };
 }

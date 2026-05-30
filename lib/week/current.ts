@@ -61,6 +61,7 @@ export type PersistedDayCell = {
   cellDate: DateOnly;
   planned: boolean;
   done: boolean;
+  skipped: boolean;
 };
 
 export type PersistedWeekActivity = {
@@ -79,6 +80,7 @@ export type WeekGridCell = {
   date: DateOnly;
   planned: boolean;
   done: boolean;
+  skipped: boolean;
   state: CellVisualState;
   isPlanningEditable: boolean;
 };
@@ -142,6 +144,7 @@ type DayCellQueryRow = {
   cell_date: string;
   planned: boolean;
   done: boolean;
+  skipped: boolean;
 };
 
 type ActivityTemplateQueryRow = {
@@ -197,6 +200,7 @@ export function getCellVisualState({
   today,
   planned,
   done,
+  skipped = false,
 }: {
   weekExists?: boolean;
   weekStatus: WeekStatus;
@@ -204,9 +208,14 @@ export function getCellVisualState({
   today: DateOnly;
   planned: boolean;
   done: boolean;
+  skipped?: boolean;
 }): CellVisualState {
   if (done) {
     return "done";
+  }
+
+  if (skipped) {
+    return "missed";
   }
 
   if (
@@ -231,16 +240,18 @@ export function canTogglePlanningCell({
   today,
   planned,
   done,
-  state = getCellVisualState({ weekStatus, date, today, planned, done }),
+  skipped = false,
+  state = getCellVisualState({ weekStatus, date, today, planned, done, skipped }),
 }: {
   weekStatus: WeekStatus;
   date: DateOnly;
   today: DateOnly;
   planned: boolean;
   done: boolean;
+  skipped?: boolean;
   state?: CellVisualState;
 }) {
-  if (done || state === "done" || state === "missed") {
+  if (done || skipped || state === "done" || state === "missed") {
     return false;
   }
 
@@ -258,31 +269,31 @@ export function canTogglePlanningCell({
 export function getNextPlanningCellFacts({
   currentCell,
 }: {
-  currentCell: Pick<PersistedDayCell, "planned" | "done"> | null;
-}): { planned: boolean; done: boolean } | null {
-  const current = currentCell ?? { planned: false, done: false };
+  currentCell: Pick<PersistedDayCell, "planned" | "done" | "skipped"> | null;
+}): { planned: boolean; done: boolean; skipped: boolean } | null {
+  const current = currentCell ?? { planned: false, done: false, skipped: false };
 
-  if (current.done) {
+  if (current.done || current.skipped) {
     return current;
   }
 
-  return current.planned ? null : { planned: true, done: false };
+  return current.planned ? null : { planned: true, done: false, skipped: false };
 }
 
 export function getDesiredPlanningCellFacts({
   currentCell,
   desiredPlanned,
 }: {
-  currentCell: Pick<PersistedDayCell, "planned" | "done"> | null;
+  currentCell: Pick<PersistedDayCell, "planned" | "done" | "skipped"> | null;
   desiredPlanned: boolean;
-}): { planned: boolean; done: boolean } | null {
-  const current = currentCell ?? { planned: false, done: false };
+}): { planned: boolean; done: boolean; skipped: boolean } | null {
+  const current = currentCell ?? { planned: false, done: false, skipped: false };
 
-  if (current.done) {
+  if (current.done || current.skipped) {
     return current;
   }
 
-  return desiredPlanned ? { planned: true, done: false } : null;
+  return desiredPlanned ? { planned: true, done: false, skipped: false } : null;
 }
 
 export function buildWeekCreationPlan({
@@ -388,18 +399,21 @@ export function buildThisWeekViewModel({
       const cell = cellMap.get(date);
       const planned = cell?.planned ?? false;
       const done = cell?.done ?? false;
+      const skipped = cell?.skipped ?? false;
       const state = getCellVisualState({
         weekStatus: week.status,
         date,
         today,
         planned,
         done,
+        skipped,
       });
 
       return {
         date,
         planned,
         done,
+        skipped,
         state,
         isPlanningEditable: canTogglePlanningCell({
           weekStatus: week.status,
@@ -407,6 +421,7 @@ export function buildThisWeekViewModel({
           today,
           planned,
           done,
+          skipped,
           state,
         }),
       };
@@ -685,6 +700,7 @@ export async function setWeekCellPlanned({
       cell_date: cellDate,
       planned: nextFacts.planned,
       done: nextFacts.done,
+      skipped: nextFacts.skipped,
     },
     { onConflict: "week_activity_id,cell_date" },
   );
@@ -694,6 +710,194 @@ export async function setWeekCellPlanned({
   }
 
   return { status: "updated" as const };
+}
+
+export type ActivityDayCellFacts = {
+  planned: boolean;
+  done: boolean;
+  skipped: boolean;
+};
+
+export async function setActivityDayCellFacts({
+  supabase,
+  weekActivityId,
+  cellDate,
+  facts,
+}: {
+  supabase: SupabaseClient;
+  weekActivityId: string;
+  cellDate: DateOnly;
+  facts: ActivityDayCellFacts;
+}) {
+  parseDateOnly(cellDate);
+
+  if (facts.done && facts.skipped) {
+    return {
+      status: "blocked" as const,
+      message: "Done and skipped cannot both be set.",
+    };
+  }
+
+  if (facts.skipped && !facts.planned) {
+    return { status: "blocked" as const, message: "Skipped requires a planned day." };
+  }
+
+  const owner = await getWeekActivityOwner(supabase, weekActivityId);
+
+  if (owner.status === "error") {
+    return { status: "error" as const, message: owner.message };
+  }
+
+  if (!owner.activity) {
+    return { status: "error" as const, message: "Activity not found." };
+  }
+
+  const week = owner.activity.week;
+
+  if (week.status !== "active") {
+    return { status: "blocked" as const, message: "That day is view-only right now." };
+  }
+
+  if (
+    compareDateOnly(cellDate, week.weekStartDate) < 0 ||
+    compareDateOnly(cellDate, week.weekEndDate) > 0
+  ) {
+    return { status: "blocked" as const, message: "That day is outside this week." };
+  }
+
+  if (!facts.planned && !facts.done && !facts.skipped) {
+    const existing = await getDayCell(supabase, weekActivityId, cellDate);
+
+    if (existing.status === "error") {
+      return { status: "error" as const, message: existing.message };
+    }
+
+    if (existing.cell) {
+      const { error } = await supabase
+        .from("activity_day_cells")
+        .delete()
+        .eq("id", existing.cell.id);
+
+      if (error) {
+        return { status: "error" as const, message: error.message };
+      }
+    }
+
+    return { status: "updated" as const };
+  }
+
+  const { error } = await supabase.from("activity_day_cells").upsert(
+    {
+      week_activity_id: weekActivityId,
+      cell_date: cellDate,
+      planned: facts.planned,
+      done: facts.done,
+      skipped: facts.skipped,
+    },
+    { onConflict: "week_activity_id,cell_date" },
+  );
+
+  if (error) {
+    return { status: "error" as const, message: error.message };
+  }
+
+  return { status: "updated" as const };
+}
+
+export async function moveWeekActivityPlanDate({
+  supabase,
+  weekActivityId,
+  fromDate,
+  toDate,
+}: {
+  supabase: SupabaseClient;
+  weekActivityId: string;
+  fromDate: DateOnly;
+  toDate: DateOnly;
+}) {
+  parseDateOnly(fromDate);
+  parseDateOnly(toDate);
+
+  if (compareDateOnly(toDate, fromDate) <= 0) {
+    return { status: "blocked" as const, message: "Move destination must be later." };
+  }
+
+  const owner = await getWeekActivityOwner(supabase, weekActivityId);
+
+  if (owner.status === "error") {
+    return { status: "error" as const, message: owner.message };
+  }
+
+  if (!owner.activity) {
+    return { status: "error" as const, message: "Activity not found." };
+  }
+
+  const week = owner.activity.week;
+
+  if (week.status !== "active") {
+    return { status: "blocked" as const, message: "That day is view-only right now." };
+  }
+
+  if (
+    compareDateOnly(fromDate, week.weekStartDate) < 0 ||
+    compareDateOnly(fromDate, week.weekEndDate) > 0 ||
+    compareDateOnly(toDate, week.weekStartDate) < 0 ||
+    compareDateOnly(toDate, week.weekEndDate) > 0
+  ) {
+    return { status: "blocked" as const, message: "That day is outside this week." };
+  }
+
+  const source = await getDayCell(supabase, weekActivityId, fromDate);
+
+  if (source.status === "error") {
+    return { status: "error" as const, message: source.message };
+  }
+
+  if (!source.cell?.planned || source.cell.done || source.cell.skipped) {
+    return { status: "blocked" as const, message: "That plan cannot be moved." };
+  }
+
+  const destination = await getDayCell(supabase, weekActivityId, toDate);
+
+  if (destination.status === "error") {
+    return { status: "error" as const, message: destination.message };
+  }
+
+  if (destination.cell?.planned || destination.cell?.done) {
+    return {
+      status: "blocked" as const,
+      message: "That day is already planned or done.",
+    };
+  }
+
+  const clearSource = await setActivityDayCellFacts({
+    supabase,
+    weekActivityId,
+    cellDate: fromDate,
+    facts: { planned: false, done: false, skipped: false },
+  });
+
+  if (clearSource.status !== "updated") {
+    return clearSource;
+  }
+
+  const setDestination = await setActivityDayCellFacts({
+    supabase,
+    weekActivityId,
+    cellDate: toDate,
+    facts: { planned: true, done: false, skipped: false },
+  });
+
+  if (setDestination.status !== "updated") {
+    await setActivityDayCellFacts({
+      supabase,
+      weekActivityId,
+      cellDate: fromDate,
+      facts: { planned: true, done: false, skipped: false },
+    });
+  }
+
+  return setDestination;
 }
 
 function compareWeekActivities(
@@ -739,7 +943,7 @@ async function getWeekByStartDate(supabase: SupabaseClient, weekStartDate: DateO
   const { data, error } = await supabase
     .from("weeks")
     .select(
-      "id, week_start_date, week_end_date, status, week_activities(id, activity_template_id, category_id, category_name, category_sort_order, activity_name, target_count, sort_order, activity_day_cells(id, cell_date, planned, done))",
+      "id, week_start_date, week_end_date, status, week_activities(id, activity_template_id, category_id, category_name, category_sort_order, activity_name, target_count, sort_order, activity_day_cells(id, cell_date, planned, done, skipped))",
     )
     .eq("week_start_date", weekStartDate)
     .maybeSingle();
@@ -865,7 +1069,7 @@ async function getDayCell(
 ) {
   const { data, error } = await supabase
     .from("activity_day_cells")
-    .select("id, cell_date, planned, done")
+    .select("id, cell_date, planned, done, skipped")
     .eq("week_activity_id", weekActivityId)
     .eq("cell_date", cellDate)
     .maybeSingle();
@@ -887,6 +1091,7 @@ async function getDayCell(
       cellDate: row.cell_date,
       planned: row.planned,
       done: row.done,
+      skipped: row.skipped,
     } satisfies PersistedDayCell,
   };
 }
@@ -926,6 +1131,7 @@ function toPersistedWeekActivity(row: WeekActivityQueryRow): PersistedWeekActivi
       cellDate: cell.cell_date,
       planned: cell.planned,
       done: cell.done,
+      skipped: cell.skipped,
     })),
   };
 }

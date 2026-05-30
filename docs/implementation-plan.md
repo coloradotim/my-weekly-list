@@ -192,6 +192,8 @@ Completion entry belongs to Today, and completion corrections belong to Review.
 - Show one unified Done today section for planned and unplanned completions.
 - Move today's planned occurrence to another remaining day, or explicitly Skip
   it.
+- Exclude move destinations where the same week activity is already planned or
+  done, and never overwrite an existing destination cell.
 - Do not show unresolved prior planned days as a Today backlog; Review owns
   backdated correction before week close.
 
@@ -202,7 +204,8 @@ and rollback/error behavior on failure.
 
 Persisted Skip requires an explicit stored resolution fact. It must not be
 implemented by clearing `planned`, because that erases the original occurrence.
-A schema/domain update for Skip is pending Tim approval after preview review.
+The persisted schema stores this as an explicit `skipped` day-cell fact, with
+constraints preventing `done` and `skipped` from both being true.
 Issue #8 Review will later consume planned/completed/skipped/missed
 distinctions for correction and reporting.
 

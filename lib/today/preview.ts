@@ -58,6 +58,7 @@ export type TodayPreviewActivity = {
   isPlannedToday: boolean;
   isDoneToday: boolean;
   isSkippedToday: boolean;
+  moveDates: TodayPreviewMoveDate[];
 };
 
 export type TodayPreviewMoveDate = {
@@ -161,6 +162,11 @@ export function getTodayPreviewView(state: TodayPreviewState): TodayPreviewView 
         isPlannedToday: todayCell?.planned ?? false,
         isDoneToday: todayCell?.done ?? false,
         isSkippedToday: todayCell?.skipped ?? false,
+        moveDates: getAvailableMoveDates({
+          today: readyState.today,
+          weekEndDate: readyState.week.weekEndDate,
+          cells: activity.cells,
+        }),
       };
     });
   const openPlannedToday = activities.filter(
@@ -292,6 +298,12 @@ function moveTodayPlan({
     return activity;
   }
 
+  const destinationCell = activity.cells.find((cell) => cell.cellDate === toDate);
+
+  if (destinationCell?.planned || destinationCell?.done) {
+    return activity;
+  }
+
   const withoutTodayPlan = upsertActivityCell(activity, today, (cell) => ({
     ...cell,
     planned: false,
@@ -366,6 +378,29 @@ function getRemainingMoveDates({
   return dates;
 }
 
+function getAvailableMoveDates({
+  today,
+  weekEndDate,
+  cells,
+}: {
+  today: DateOnly;
+  weekEndDate: DateOnly;
+  cells: Pick<TodayPreviewDayCell, "cellDate" | "planned" | "done">[];
+}): TodayPreviewMoveDate[] {
+  const blockedDates = new Set(
+    cells
+      .filter(
+        (cell) =>
+          compareDateOnly(cell.cellDate, today) > 0 && (cell.planned || cell.done),
+      )
+      .map((cell) => cell.cellDate),
+  );
+
+  return getRemainingMoveDates({ today, weekEndDate }).filter(
+    (moveDate) => !blockedDates.has(moveDate.date),
+  );
+}
+
 function getTodayPreviewActivities(): TodayPreviewActivityRecord[] {
   return [
     activity({
@@ -378,6 +413,8 @@ function getTodayPreviewActivities(): TodayPreviewActivityRecord[] {
         cell("walk-mon", "2026-06-01", true, true),
         cell("walk-tue", "2026-06-02", true, false),
         cell("walk-thu", "2026-06-04", true, false),
+        cell("walk-sat", "2026-06-06", true, false),
+        cell("walk-sun", "2026-06-07", true, false),
       ],
     }),
     activity({
@@ -430,6 +467,20 @@ function getTodayPreviewActivities(): TodayPreviewActivityRecord[] {
       targetCount: 1,
       sortOrder: 10,
       cells: [cell("kid-thu", "2026-06-04", true, true)],
+    }),
+    activity({
+      id: "today-downtime",
+      categoryName: "Mental Health",
+      categorySortOrder: 20,
+      activityName: "Downtime",
+      targetCount: 2,
+      sortOrder: 60,
+      cells: [
+        cell("downtime-thu", "2026-06-04", true, false),
+        cell("downtime-fri", "2026-06-05", true, false),
+        cell("downtime-sat", "2026-06-06", false, true),
+        cell("downtime-sun", "2026-06-07", false, true),
+      ],
     }),
     activity({
       id: "today-singing",

@@ -1,25 +1,71 @@
-import { PlaceholderCard } from "@/components/placeholder-card";
+import Link from "next/link";
+import { OptimisticTodayView } from "@/components/optimistic-today-view";
 import { ScreenShell } from "@/components/screen-shell";
+import { Notice } from "@/components/this-week-grid";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { loadToday } from "@/lib/today/current";
 
-export default function TodayPage() {
-  return (
-    <ScreenShell
-      eyebrow="Today"
-      title="Today will be the quick daily view."
-      description="This placeholder keeps the primary iPhone workflow front and center without implementing real activity, done, move, or week behavior yet."
-      primaryHref="/week"
-      primaryLabel="View week"
-    >
-      <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <PlaceholderCard
-          title="Planned for today"
-          body="Future work will show today's planned activities, weekly progress, and fast done actions here."
-        />
-        <PlaceholderCard
-          title="Still possible"
-          body="Later issues can add gentle prompts for unresolved planned items without shame or heavy warning styling."
-        />
-      </div>
-    </ScreenShell>
-  );
+export const dynamic = "force-dynamic";
+
+export default async function TodayPage() {
+  const supabase = await createSupabaseServerClient();
+
+  if (!supabase) {
+    return (
+      <ScreenShell
+        eyebrow="Today"
+        title="Supabase is not configured yet."
+        description="Add the required Supabase environment variables, then restart the app."
+      >
+        <Notice tone="neutral" body="Today needs an authenticated Supabase session." />
+      </ScreenShell>
+    );
+  }
+
+  const state = await loadToday(supabase);
+
+  if (state.status === "needs-setup") {
+    return (
+      <ScreenShell
+        eyebrow="Today"
+        title="Create your starter list first."
+        description="Today needs your reusable categories and activities before it can show the daily plan."
+      >
+        <Link className={primaryButtonClassName} href="/setup">
+          Go to setup
+        </Link>
+      </ScreenShell>
+    );
+  }
+
+  if (state.status === "no-current-week") {
+    return (
+      <ScreenShell
+        eyebrow="Today"
+        title="Start this week first."
+        description="Today needs an active week before it can show planned items or record what happened."
+      >
+        <Link className={primaryButtonClassName} href="/week">
+          Go to This Week
+        </Link>
+      </ScreenShell>
+    );
+  }
+
+  if (state.status === "error") {
+    return (
+      <ScreenShell
+        eyebrow="Today"
+        title="Today could not load just now."
+        description="Your sign-in is working, but the app could not read the current week tables."
+      >
+        <Notice tone="error" body={state.message} />
+      </ScreenShell>
+    );
+  }
+
+  return <OptimisticTodayView initialState={state.state} />;
 }
+
+const primaryButtonClassName =
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white";

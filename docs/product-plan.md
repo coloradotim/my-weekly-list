@@ -410,7 +410,9 @@ Before Sunday, `Adjust plan` on an open planned-today item offers exactly:
 - Move to another day
 - Skip
 
-Move destinations are later day names in the same current week. Sunday has no
+Move destinations are later day names in the same current week where that same
+week activity is not already planned and not already done. Moving today's plan
+must not overwrite or merge with an existing destination cell. Sunday has no
 cross-week movement; open planned Sunday rows show direct `Mark done` and `Skip`
 actions instead of `Adjust plan`.
 
@@ -582,8 +584,8 @@ Important test areas:
 2. Supabase setup: client, environment variables, auth guard, allowed-user check.
 3. Database schema: weeks, categories, activities, week activities, day cells, seed data.
 4. Week lifecycle logic: Draft, Active, Needs Review, Closed; Monday-Sunday dates; Sunday/Monday/late-start behavior.
-5. This Week grid: display seeded week and support basic cell state changes with defined visual status language.
-6. Today view: show planned items, mark done, move to tomorrow/another day, mark unplanned done.
+5. This Week grid: display seeded week and support planning-only cell changes with defined visual status language.
+6. Today view: show open planned items, mark same-day completions, record unplanned same-day completions, move today's plan to another remaining day, and explicitly Skip today's planned occurrence.
 7. Copy previous week: create Draft or Active weeks from the prior week with correct planned-day behavior.
 8. Draft week planning / Edit List: add/edit/remove-from-future-weeks for future weeks; keep active weeks constrained.
 9. Review: target vs done summaries by activity and category, with Close Week action.

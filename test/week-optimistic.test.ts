@@ -215,6 +215,7 @@ function cell(
     date,
     planned,
     done,
+    skipped: false,
     state,
     isPlanningEditable,
   };

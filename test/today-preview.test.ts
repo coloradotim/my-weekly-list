@@ -45,6 +45,7 @@ describe("development today preview", () => {
     expect(view.openPlannedToday.map((activity) => activity.activityName)).toEqual([
       "Walk",
       "Meditation",
+      "Downtime",
       "Read",
     ]);
     expect(view.doneToday.map((activity) => activity.activityName)).toEqual([
@@ -139,6 +140,7 @@ describe("development today preview", () => {
   });
 
   it("moves today's incomplete plan to a remaining day with day-name choices", () => {
+    const initialView = getTodayPreviewView(getInitialTodayPreviewState("active"));
     const state = applyTodayPreviewAction(getInitialTodayPreviewState("active"), {
       type: "move-today-plan",
       activityId: "today-walk",
@@ -147,17 +149,52 @@ describe("development today preview", () => {
     const view = getTodayPreviewView(state);
 
     expect(view.status).toBe("ready");
-    expect(view.remainingMoveDates.map((date) => date.weekdayLabel)).toEqual([
-      "Friday",
-      "Saturday",
-      "Sunday",
-    ]);
+    expect(initialView.status).toBe("ready");
+    const walk = initialView.openPlannedToday.find(
+      (activity) => activity.id === "today-walk",
+    );
+
+    expect(walk?.moveDates.map((date) => date.weekdayLabel)).toEqual(["Friday"]);
     expect(view.openPlannedToday.some((activity) => activity.id === "today-walk")).toBe(
       false,
     );
     expect(view.unplannedOptions.some((activity) => activity.id === "today-walk")).toBe(
       true,
     );
+  });
+
+  it("excludes already planned and done future days from preview move destinations", () => {
+    const view = getTodayPreviewView(getInitialTodayPreviewState("active"));
+
+    expect(view.status).toBe("ready");
+    expect(
+      view.openPlannedToday
+        .find((activity) => activity.id === "today-read")
+        ?.moveDates.map((date) => date.weekdayLabel),
+    ).toEqual(["Saturday", "Sunday"]);
+    expect(
+      view.openPlannedToday.find((activity) => activity.id === "today-downtime")
+        ?.moveDates,
+    ).toEqual([]);
+  });
+
+  it("does not overwrite existing planned or done destination cells in preview state", () => {
+    const state = getInitialTodayPreviewState("active");
+
+    expect(
+      applyTodayPreviewAction(state, {
+        type: "move-today-plan",
+        activityId: "today-walk",
+        toDate: "2026-06-06",
+      }),
+    ).toEqual(state);
+    expect(
+      applyTodayPreviewAction(state, {
+        type: "move-today-plan",
+        activityId: "today-walk",
+        toDate: "2026-06-07",
+      }),
+    ).toEqual(state);
   });
 
   it("undoes a moved planned occurrence back to today", () => {
@@ -239,6 +276,7 @@ describe("development today preview", () => {
     expect(view.tomorrow).toBeNull();
     expect(view.remainingMoveDates).toEqual([]);
     expect(view.openPlannedToday.map((activity) => activity.activityName)).toEqual([
+      "Walk",
       "Singing practice",
     ]);
   });
@@ -247,9 +285,11 @@ describe("development today preview", () => {
     expect(previewClient).toContain("+ Something else");
     expect(previewClient).toContain("Mark done");
     expect(previewClient).toContain("Mark done today");
+    expect(previewClient).toContain("Cancel");
     expect(previewClient).toContain("Done today");
     expect(previewClient).toContain("Skipped");
     expect(previewClient).toContain("Move to another day");
+    expect(previewClient).toContain("moveDates.length > 0");
     expect(previewClient).toContain("Skip");
     expect(previewClient).not.toContain("What did you do today?");
     expect(previewClient).not.toContain("Recorded ");
@@ -259,6 +299,13 @@ describe("development today preview", () => {
     expect(previewClient).not.toContain("Leave missed");
     expect(previewClient).not.toContain("Remove from today");
     expect(previewModel).toContain("skipped: boolean");
+  });
+
+  it("keeps Adjust plan dismissible without a required move or Skip action", () => {
+    expect(previewClient).toContain("onCancelAdjust");
+    expect(previewClient).toContain("setAdjustingActivityId(null)");
+    expect(previewClient).toContain('setAdjustStep("choices")');
+    expect(previewClient).toContain("current === activity.id ? null : activity.id");
   });
 
   it("shows no-current-week and setup-needed prompt states", () => {
