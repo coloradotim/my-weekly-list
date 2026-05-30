@@ -413,16 +413,6 @@ function OpenPlannedRow({
           >
             Mark done
           </button>
-          {!isSunday && moveDates.length > 0 ? (
-            <button
-              type="button"
-              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
-              onClick={onToggleMove}
-              aria-expanded={isMoving}
-            >
-              Move
-            </button>
-          ) : null}
           <button
             type="button"
             className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay"
@@ -430,6 +420,17 @@ function OpenPlannedRow({
           >
             Skip
           </button>
+          {!isSunday ? (
+            <button
+              type="button"
+              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay disabled:cursor-not-allowed disabled:border-stone-100 disabled:bg-stone-50 disabled:text-stone-300"
+              onClick={onToggleMove}
+              disabled={moveDates.length === 0}
+              aria-expanded={isMoving}
+            >
+              Move
+            </button>
+          ) : null}
         </div>
       </div>
       {isMoving && !isSunday ? (

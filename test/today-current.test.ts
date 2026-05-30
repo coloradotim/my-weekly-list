@@ -245,6 +245,8 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("setMovingActivityId((current)");
     expect(todayClient).toContain("current === activity.id ? null : activity.id");
     expect(todayClient).toContain("moveDates.length > 0");
+    expect(todayClient).toContain("moveDates.length === 0");
+    expect(todayClient).toContain("disabled:border-stone-100");
     expect(todayClient).toContain("Skip");
     expect(todayClient).not.toContain("Adjust plan");
     expect(todayClient).not.toContain("Move to another day");

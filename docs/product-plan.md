@@ -163,6 +163,11 @@ using the established Week list rules when setup is complete and the current
 week can be created safely. It must not route to Review just because a past week
 has not been reviewed, and it must not require Close or Finalize.
 
+When the installed Home Screen app launches, the product should feel alive even
+if auth, smart entry, or Supabase data takes a moment. Use a lightweight,
+app-branded loading state rather than showing a blank page while the first route
+settles.
+
 ## Week timing model
 
 User-facing week context should be date based:
@@ -403,9 +408,11 @@ completions can be recorded quickly.
 today's completion: planned items return to open Planned for today, while
 unplanned completions become eligible again in the picker.
 
-Before Sunday, an open planned-today item shows direct `Mark done`, `Move`, and
-`Skip` actions. `Move` appears only when at least one valid later day remains in
-the same week.
+Before Sunday, an open planned-today item shows direct `Mark done`, `Skip`, and
+`Move` actions in that order. `Move` is enabled only when at least one valid
+later day remains in the same week; when no destination remains, it may stay
+visible in a subdued disabled state so row layout remains stable late in the
+week.
 
 Move destinations are later day names in the same current week where that same
 week activity is not already planned and not already done. Moving today's plan

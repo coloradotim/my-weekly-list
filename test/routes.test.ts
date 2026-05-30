@@ -7,7 +7,9 @@ import manifest from "@/app/manifest";
 
 const appShell = readFileSync(join(process.cwd(), "components/app-shell.tsx"), "utf8");
 const appLayout = readFileSync(join(process.cwd(), "app/(app)/layout.tsx"), "utf8");
+const appLoading = readFileSync(join(process.cwd(), "app/(app)/loading.tsx"), "utf8");
 const rootLayout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
+const rootLoading = readFileSync(join(process.cwd(), "app/loading.tsx"), "utf8");
 const homePage = readFileSync(join(process.cwd(), "app/(app)/page.tsx"), "utf8");
 const installPage = readFileSync(join(process.cwd(), "app/install/page.tsx"), "utf8");
 const middleware = readFileSync(join(process.cwd(), "middleware.ts"), "utf8");
@@ -39,6 +41,8 @@ describe("app routes", () => {
 
   it("renders mobile bottom navigation without in-app sign-out chrome", () => {
     expect(appLayout).toContain("AppShell");
+    expect(appLayout).not.toContain("supabase.auth.getUser()");
+    expect(appLayout).not.toContain("checkAllowedUser");
     expect(appShell).toContain("fixed inset-x-0 bottom-0");
     expect(appShell).toContain("touch-manipulation");
     expect(appShell).toContain("env(safe-area-inset-bottom)");
@@ -145,5 +149,12 @@ describe("app routes", () => {
     expect(homePage).toContain("getSmartEntryDestination");
     expect(homePage).not.toContain("PlaceholderCard");
     expect(homePage).not.toContain('redirect("/review")');
+  });
+
+  it("shows a lightweight loading shell while smart entry and app data resolve", () => {
+    expect(rootLoading).toContain("Opening your week...");
+    expect(rootLoading).toContain('aria-busy="true"');
+    expect(appLoading).toContain("Loading My Weekly List");
+    expect(appLoading).toContain("LoadingRow");
   });
 });

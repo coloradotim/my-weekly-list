@@ -127,7 +127,8 @@ describe("development week preview", () => {
     expect(gridComponent).toContain("h-2 w-2 bg-stone-200/70");
     expect(weekGridScrollerClassName).toContain("snap-x snap-mandatory");
     expect(weekGridScrollerClassName).toContain("touch-pan-x touch-pan-y");
-    expect(weekGridScrollerClassName).not.toContain("overscroll-x-contain");
+    expect(weekGridScrollerClassName).toContain("overscroll-x-contain");
+    expect(weekGridScrollerClassName).toContain("w-full max-w-full");
     expect(weekGridScrollerClassName).toContain("weekly-grid-scroller");
     expect(weekGridColumnsClassName).toContain("weekly-grid-columns");
     expect(gridLayoutHook).toContain("mobileVisibleDayCount = 4");

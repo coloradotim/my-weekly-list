@@ -73,7 +73,7 @@ export function ThisWeekGrid({
       <div
         ref={gridLayout.headerScrollerRef}
         data-week-grid-header-scroll
-        className="sticky top-0 z-30 overflow-hidden rounded-t-lg border border-b-0 border-stone-200 bg-white"
+        className="sticky top-0 z-30 w-full max-w-full overflow-hidden rounded-t-lg border border-b-0 border-stone-200 bg-white"
         style={gridLayout.scrollerStyle}
       >
         <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
