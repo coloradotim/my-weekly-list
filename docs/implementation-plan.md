@@ -200,8 +200,9 @@ Week and Review detail grids while staying aligned with horizontal scroll.
 - Show open planned items for today first, with fast `Mark done`.
 - Record unplanned same-day completion through `+ Something else`.
 - Show one unified Done today section for planned and unplanned completions.
-- Show direct row actions: `Mark done`, `Move` when a valid later same-week
-  destination exists, and `Skip`.
+- Show direct row actions in a stable order: `Mark done`, `Skip`, then `Move`.
+  Before Sunday, keep `Move` visible but disabled/subdued when no valid later
+  same-week destination remains.
 - Skipped rows should retain `Mark done` and offer secondary `Unskip`, which
   clears skipped and returns the item to open Planned for today.
 - Exclude move destinations where the same week activity is already planned or
@@ -263,6 +264,10 @@ visual language where appropriate.
   starter list is missing, Today if the current week exists, and current-week
   assurance from the saved list before landing on Today when setup is complete
   and no current week exists.
+- Keep installed-app launch responsive: show a lightweight app-branded loading
+  shell while smart entry, auth, and the first page load resolve. Avoid
+  duplicate Supabase auth checks in the app shell when middleware already
+  guards authenticated app routes.
 - Use compact app navigation focused on Today, Week, and Review. Do not expose
   Plan, Home, Setup, or Sign out as primary navigation items.
 - Derive selected nav state from the committed current route segment so exactly

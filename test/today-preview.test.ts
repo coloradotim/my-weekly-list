@@ -289,7 +289,8 @@ describe("development today preview", () => {
     expect(previewClient).toContain("Done today");
     expect(previewClient).toContain("Skipped");
     expect(previewClient).toContain("Move");
-    expect(previewClient).toContain("moveDates.length > 0");
+    expect(previewClient).toContain("moveDates.length === 0");
+    expect(previewClient).toContain("disabled:border-stone-100");
     expect(previewClient).toContain("Skip");
     expect(previewClient).toContain("Collapse");
     expect(previewClient).toContain("Expand");

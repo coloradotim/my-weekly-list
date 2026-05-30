@@ -74,12 +74,13 @@ describe("persisted Review model", () => {
     expect(reviewClient).toContain("weekGridScrollerClassName");
     expect(reviewClient).toContain("weekGridColumnsClassName");
     expect(reviewClient).toContain("data-week-grid-header-scroll");
-    expect(reviewClient).toContain("sticky top-0 z-30 overflow-hidden");
+    expect(reviewClient).toContain("sticky top-0 z-30 w-full max-w-full");
     expect(reviewClient).toContain("rounded-t-none border-t-0");
     expect(reviewClient).toContain("ref={gridLayout.headerScrollerRef}");
     expect(weekGridScrollerClassName).toContain("weekly-grid-scroller");
     expect(weekGridScrollerClassName).toContain("touch-pan-x touch-pan-y");
-    expect(weekGridScrollerClassName).not.toContain("overscroll-x-contain");
+    expect(weekGridScrollerClassName).toContain("overscroll-x-contain");
+    expect(weekGridScrollerClassName).toContain("w-full max-w-full");
     expect(weekGridColumnsClassName).toContain("weekly-grid-columns");
     expect(gridLayoutHook).toContain("headerScrollerRef");
     expect(gridLayoutHook).toContain(
