@@ -250,7 +250,13 @@ describe("persisted grid state", () => {
           targetCount: 5,
           sortOrder: 70,
           cells: [
-            { id: "read-cell", cellDate: "2026-06-03", planned: false, done: true },
+            {
+              id: "read-cell",
+              cellDate: "2026-06-03",
+              planned: false,
+              done: true,
+              skipped: false,
+            },
           ],
         }),
         activity({
@@ -261,7 +267,13 @@ describe("persisted grid state", () => {
           targetCount: 4,
           sortOrder: 10,
           cells: [
-            { id: "walk-cell", cellDate: "2026-06-02", planned: true, done: false },
+            {
+              id: "walk-cell",
+              cellDate: "2026-06-02",
+              planned: true,
+              done: false,
+              skipped: false,
+            },
           ],
         }),
       ],
@@ -343,19 +355,21 @@ describe("persisted grid state", () => {
     expect(getNextPlanningCellFacts({ currentCell: null })).toEqual({
       planned: true,
       done: false,
+      skipped: false,
     });
     expect(
       getNextPlanningCellFacts({
-        currentCell: { planned: true, done: false },
+        currentCell: { planned: true, done: false, skipped: false },
       }),
     ).toBeNull();
     expect(
       getNextPlanningCellFacts({
-        currentCell: { planned: false, done: true },
+        currentCell: { planned: false, done: true, skipped: false },
       }),
     ).toEqual({
       planned: false,
       done: true,
+      skipped: false,
     });
   });
 
@@ -365,19 +379,42 @@ describe("persisted grid state", () => {
         currentCell: null,
         desiredPlanned: true,
       }),
-    ).toEqual({ planned: true, done: false });
+    ).toEqual({ planned: true, done: false, skipped: false });
     expect(
       getDesiredPlanningCellFacts({
-        currentCell: { planned: true, done: false },
+        currentCell: { planned: true, done: false, skipped: false },
         desiredPlanned: false,
       }),
     ).toBeNull();
     expect(
       getDesiredPlanningCellFacts({
-        currentCell: { planned: false, done: true },
+        currentCell: { planned: false, done: true, skipped: false },
         desiredPlanned: true,
       }),
-    ).toEqual({ planned: false, done: true });
+    ).toEqual({ planned: false, done: true, skipped: false });
+  });
+
+  it("keeps skipped cells display-only in This Week", () => {
+    expect(
+      getCellVisualState({
+        weekStatus: "active",
+        date: "2026-06-04",
+        today: "2026-06-04",
+        planned: true,
+        done: false,
+        skipped: true,
+      }),
+    ).toBe("missed");
+    expect(
+      canTogglePlanningCell({
+        weekStatus: "active",
+        date: "2026-06-04",
+        today: "2026-06-04",
+        planned: true,
+        done: false,
+        skipped: true,
+      }),
+    ).toBe(false);
   });
 
   it("allows direct planning toggles for draft days", () => {

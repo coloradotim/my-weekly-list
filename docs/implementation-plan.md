@@ -185,11 +185,29 @@ Completion entry belongs to Today, and completion corrections belong to Review.
 
 ### Phase 5 — Today view
 
-- Show planned items for today.
-- Mark done quickly.
-- Move unfinished planned items to tomorrow or another day.
-- Mark an unplanned item done.
-- Show unresolved prior planned items when useful.
+- Get Tim's approval on a development-only interactive local preview before
+  implementing persistence.
+- Show open planned items for today first, with fast `Mark done`.
+- Record unplanned same-day completion through `+ Something else`.
+- Show one unified Done today section for planned and unplanned completions.
+- Move today's planned occurrence to another remaining day, or explicitly Skip
+  it.
+- Exclude move destinations where the same week activity is already planned or
+  done, and never overwrite an existing destination cell.
+- Do not show unresolved prior planned days as a Today backlog; Review owns
+  backdated correction before week close.
+
+Today should reuse the same `week_activities` and `activity_day_cells` model as
+This Week and should match the optimistic interaction quality established for
+Week planning toggles: immediate local state, explicit intended persistence,
+and rollback/error behavior on failure.
+
+Persisted Skip requires an explicit stored resolution fact. It must not be
+implemented by clearing `planned`, because that erases the original occurrence.
+The persisted schema stores this as an explicit `skipped` day-cell fact, with
+constraints preventing `done` and `skipped` from both being true.
+Issue #8 Review will later consume planned/completed/skipped/missed
+distinctions for correction and reporting.
 
 ### Phase 6 — Draft planning and copy week
 

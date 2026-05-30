@@ -268,13 +268,28 @@ Today is the primary mobile execution screen.
 It should show:
 
 - current date and week context
-- items planned for today
-- each item's category and weekly progress, such as `2/4`
-- fast actions: Done, Move to tomorrow, Move to another day
-- a way to mark an unplanned item done
-- a small cleanup section for unresolved items from prior days, when present
+- open items planned for today
+- each item's weekly progress, such as `2/4`
+- a fast `Mark done` action for activities planned today
+- a quiet way to move or skip an incomplete plan scheduled for today
+- a compact `+ Something else` picker for unplanned same-day completion
+- one unified Done today section for all activities completed today
+- a Skipped section for planned-today occurrences intentionally skipped today
 - Sunday review/planning prompt when the current day is Sunday
 - current-week setup prompt when no active week exists
+
+Today is same-day execution and same-day plan resolution. It should not become
+a prior-day backlog cleanup screen.
+
+Today should be organized by current state:
+
+1. Open Planned for today
+2. `+ Something else`
+3. Done today
+4. Skipped
+
+Normal Today rows should not show category labels. Categories appear only inside
+the expanded `+ Something else` picker.
 
 The Today view should be fast. The user should be able to open the app, mark something done, and leave within seconds.
 
@@ -292,7 +307,8 @@ It should show:
 - Monday through Sunday columns
 - day cells using the defined status visuals
 
-The grid should support marking an item done even if it was not planned for that day.
+The grid is a planning and weekly-overview surface. Completion entry belongs in
+Today, while correction of forgotten prior-day completions belongs in Review.
 
 ### Edit List / Draft Week Planning
 
@@ -358,22 +374,53 @@ An activity can count at most once per day toward its weekly target. The app is 
 
 Normal Today actions should be:
 
-- Done
-- Move to tomorrow
-- Move to another day
-
-The app does not need a prominent manual Skip action in the normal Today flow.
-
-If an item was planned for a prior day and was not completed, the app may show it in a cleanup section with choices like:
-
-- Move to today
-- Move to another day
-- Leave missed
 - Mark done
+- Move today's plan to another remaining day in the same week
+- Skip today's planned occurrence
+- Mark something else done today
 
-Missed should be implicit for unresolved planned items in the past, but the user should have an easy chance to clean up yesterday's unfinished items.
+Skip should be available as an intentional resolution path for today's planned
+occurrence, but it should not visually compete with the primary `Mark done`
+action except on Sunday when no same-week move is available.
 
-Moving an item should affect the planned marker, not the done marker. For example, moving an unfinished planned item from Tuesday to Thursday removes the Tuesday planned marker and adds a Thursday planned marker. If Tuesday is already done, moving should not be available for that completed cell.
+If an item was planned for a prior day and was not completed, that past day
+derives as missed and remains visible in This Week. Today should not turn prior
+missed planned days into an overdue-task queue. If the user actually completed a
+prior-day activity but forgot to enter it, Review owns that correction before
+the week is closed.
+
+Moving an item should affect the planned marker, not the done marker. For
+example, moving an unfinished plan from today to Saturday removes today's planned
+marker and adds a Saturday planned marker. If today's cell is already done,
+moving should not be available for that completed cell.
+
+### Today completion and Skip behavior
+
+The `+ Something else` picker should be expanded-by-default when opened, grouped
+by collapsible categories, and used only for unplanned same-day completion.
+Selecting `Mark done today` keeps the picker open so multiple same-day
+completions can be recorded quickly.
+
+`✓ Done` is a quiet tappable same-day correction status. Tapping it removes
+today's completion: planned items return to open Planned for today, while
+unplanned completions become eligible again in the picker.
+
+Before Sunday, `Adjust plan` on an open planned-today item offers exactly:
+
+- Move to another day
+- Skip
+
+Move destinations are later day names in the same current week where that same
+week activity is not already planned and not already done. Moving today's plan
+must not overwrite or merge with an existing destination cell. Sunday has no
+cross-week movement; open planned Sunday rows show direct `Mark done` and `Skip`
+actions instead of `Adjust plan`.
+
+Skip means the user intentionally decided not to complete an occurrence planned
+for today. It preserves the original planned occurrence, does not change the
+weekly target, and does not remove the activity from future weeks. A skipped
+activity remains eligible to be marked done later the same day. Review owns
+correction of forgotten prior-day completions.
 
 ## Planning rules
 
@@ -537,8 +584,8 @@ Important test areas:
 2. Supabase setup: client, environment variables, auth guard, allowed-user check.
 3. Database schema: weeks, categories, activities, week activities, day cells, seed data.
 4. Week lifecycle logic: Draft, Active, Needs Review, Closed; Monday-Sunday dates; Sunday/Monday/late-start behavior.
-5. This Week grid: display seeded week and support basic cell state changes with defined visual status language.
-6. Today view: show planned items, mark done, move to tomorrow/another day, mark unplanned done.
+5. This Week grid: display seeded week and support planning-only cell changes with defined visual status language.
+6. Today view: show open planned items, mark same-day completions, record unplanned same-day completions, move today's plan to another remaining day, and explicitly Skip today's planned occurrence.
 7. Copy previous week: create Draft or Active weeks from the prior week with correct planned-day behavior.
 8. Draft week planning / Edit List: add/edit/remove-from-future-weeks for future weeks; keep active weeks constrained.
 9. Review: target vs done summaries by activity and category, with Close Week action.
