@@ -30,11 +30,11 @@ for `Today`, `Week`, and `Review` only. Because this is a private single-user
 app, Sign out does not need to appear in the app chrome; it can remain available
 through a deliberate utility route/script when needed.
 
-On mobile, the app shell should keep the bottom navigation as part of the app
-viewport rather than as a fixed overlay on top of the document. Today, Week,
-and Review should share that shell behavior so iPhone Chrome controls do not
-cover the nav or make taps unreliable on the scroll-heavy Week and Review
-screens.
+On mobile, the app shell should keep normal document scrolling so iPhone Chrome
+can hide and show its own controls naturally. The bottom navigation should
+remain fixed for app use, but it must account for the current visual viewport so
+Chrome controls do not cover the nav or make taps unreliable on the scroll-heavy
+Week and Review screens.
 
 ## Design principles
 
