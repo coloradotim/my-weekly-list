@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getSelectedRouteHref, routeLabels } from "@/lib/routes";
 import { getSmartEntryDestination } from "@/lib/entry/smart-entry";
@@ -71,6 +71,12 @@ describe("app routes", () => {
     expect(middleware).toContain('pathname === "/icon-192.png"');
     expect(middleware).toContain('pathname === "/icon-512.png"');
     expect(routeLabels()).not.toContain("Install");
+  });
+
+  it("does not ship obsolete development preview routes", () => {
+    expect(existsSync(join(process.cwd(), "app/dev"))).toBe(false);
+    expect(middleware).not.toContain('startsWith("/dev/")');
+    expect(middleware).not.toContain("isDevPreviewEnabled");
   });
 
   it("defines standalone web app metadata and icons", () => {

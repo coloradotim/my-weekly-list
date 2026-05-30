@@ -148,9 +148,6 @@ server-only administrative workflow explicitly requires it.
 The Vercel project should be connected to the `coloradotim/my-weekly-list`
 GitHub repository. Production deployments should build from `main`.
 
-Development-only preview routes such as `/dev/week-preview`,
-`/dev/today-preview`, and `/dev/review-preview` are disabled in production.
-
 ## Supabase migrations
 
 Database migrations live in `supabase/migrations`.
@@ -211,16 +208,14 @@ The app creates one `active` week, snapshots active templates into
 the grid. Retrying the start action is safe: the database prevents duplicate
 current weeks and duplicate template snapshots inside a week.
 
-While hosted Supabase email Magic Link auth is unavailable or rate-limited, use
-the development-only preview route to review the This Week grid interaction
-without touching Supabase:
+Use authenticated local or production-like testing for Today, Week, and Review.
+Behavior that does not require a live Supabase session should be covered by the
+unit/component tests in `test/`. For iPhone app-like verification, install from
+the stable Safari install page:
 
 ```text
-/dev/week-preview
+/install
 ```
-
-That route uses deterministic in-memory fixture data, supports the same cell
-direct planning toggles as the real grid, and is unavailable in production.
 
 Local Supabase database validation requires a running local Supabase stack. The
 Supabase CLI uses Docker for that local stack.

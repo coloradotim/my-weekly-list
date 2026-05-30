@@ -165,16 +165,20 @@ Production URL:
 https://my-weekly-list.vercel.app
 ```
 
-After deploys, verify development preview routes are unavailable in production:
+After deploys, verify the real app routes rather than obsolete fixture-only
+surfaces. Today, Week, Review, and the install page should be the production
+source of truth:
 
-```bash
-curl -I https://my-weekly-list.vercel.app/dev/week-preview
-curl -I https://my-weekly-list.vercel.app/dev/today-preview
-curl -I https://my-weekly-list.vercel.app/dev/review-preview
+```text
+/
+/today
+/week
+/review
+/install
 ```
 
-Each preview route should return a not-found response in production. Authenticated
-production users should not be able to use fixture-only preview surfaces.
+Fixture-only development routes are no longer shipped. Authenticated production
+users should not be able to use fixture-only diagnostic surfaces.
 
 ## Production Smoke Test
 

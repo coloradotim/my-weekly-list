@@ -17,7 +17,8 @@ This index tracks the intended MVP issue sequence.
 | 9 | #9 | Replace scaffold navigation with mobile-first app entry and usability polish | Remove the scaffold home, add smart `/` entry and current-week assurance, use compact Today/Week/Review navigation without in-app Sign out chrome, tighten screen context, and position current Week at today on mobile. | Closed |
 | 10 | #10 | Production readiness and final deployment audit | Verify Vercel/Supabase setup, env docs, production guards, production smoke-test steps, and iPhone Chrome readiness. | Open |
 | 11 | #45 | Fix week grid headers, same-day correction, nav state, and edit-list gaps | Post-MVP usability follow-up: sticky Week/Review day headers, limited today-column correction in Week, Today `Unskip`, single-active nav state, category-local `+ Add activity`, and bottom `+ Add category`. | Closed |
-| 12 | #47 | Make Home Screen launch feel immediate | Add lightweight launch/loading states and reduce duplicate app-shell auth work so installed iPhone Home Screen launch feels responsive while smart entry and Supabase data resolve. | Open |
+| 12 | #47 | Make Home Screen launch feel immediate | Add lightweight launch/loading states and reduce duplicate app-shell auth work so installed iPhone Home Screen launch feels responsive while smart entry and Supabase data resolve. | Closed |
+| 13 | #49 | Remove obsolete development preview routes and fixture UI | Remove old `/dev` preview harnesses, fixture-only preview state, and preview-first docs now that production auth and persisted Today/Week/Review flows are stable. | Open |
 
 ## Label suggestions
 

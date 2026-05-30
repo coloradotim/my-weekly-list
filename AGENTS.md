@@ -259,22 +259,24 @@ Do not commit directly to `main`.
 ## UI implementation and review workflow
 
 For material UI, interaction, responsive-layout, or mobile usability changes,
-prefer local interactive iteration before treating the PR as complete.
+prefer authenticated local or production-like iteration before treating the PR
+as complete.
 
-1. Provide a reviewable local app state for meaningful UI work.
-2. When auth or persisted setup makes direct review difficult, add a
-   development-only preview harness with representative fixture state.
-3. Preview harnesses must be unavailable in production, avoid production data,
-   avoid bypassing production auth, and cover the states/interactions needed for
-   review.
-4. Iterate locally with Tim on interaction and mobile/desktop layout before
+1. Provide a reviewable app state for meaningful UI work using the real
+   persisted Today, Week, Review, or install flows whenever possible.
+2. Use unit/component tests for behavior that does not require a live browser or
+   Supabase session.
+3. Add temporary fixture-only prototype routes only when explicitly requested
+   or when production-like review is genuinely blocked. Remove them once the
+   persisted flow is stable.
+4. Iterate with Tim on interaction and mobile/desktop layout before
    finalizing high-impact screens.
 5. After the UX is approved, complete persistence/integration verification, run
    repository checks, and proceed with PR review/merge.
 6. Do not auto-merge high-impact user-facing screens before Tim has reviewed the
-   local interaction unless he explicitly says otherwise.
+   interaction unless he explicitly says otherwise.
 
-This does not require a preview route for trivial copy or styling edits.
+This does not require a special route for trivial copy or styling edits.
 
 ## Required checks
 
