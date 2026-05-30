@@ -6,9 +6,7 @@ import manifest from "@/app/manifest";
 
 const appShell = readFileSync(join(process.cwd(), "components/app-shell.tsx"), "utf8");
 const appLayout = readFileSync(join(process.cwd(), "app/(app)/layout.tsx"), "utf8");
-const appLoading = readFileSync(join(process.cwd(), "app/(app)/loading.tsx"), "utf8");
 const rootLayout = readFileSync(join(process.cwd(), "app/layout.tsx"), "utf8");
-const rootLoading = readFileSync(join(process.cwd(), "app/loading.tsx"), "utf8");
 const homePage = readFileSync(join(process.cwd(), "app/(app)/page.tsx"), "utf8");
 const installPage = readFileSync(join(process.cwd(), "app/install/page.tsx"), "utf8");
 const middleware = readFileSync(join(process.cwd(), "middleware.ts"), "utf8");
@@ -134,11 +132,8 @@ describe("app routes", () => {
     expect(homePage).not.toContain('redirect("/review")');
   });
 
-  it("shows a lightweight loading shell while auth and app data resolve", () => {
-    expect(rootLoading).toContain("Opening Today...");
-    expect(rootLoading).toContain('aria-busy="true"');
-    expect(appLoading).toContain("Loading My Weekly List");
-    expect(appLoading).not.toContain("shadow-soft");
-    expect(appLoading).not.toContain("LoadingRow");
+  it("does not show textual loading interstitials during app navigation", () => {
+    expect(existsSync(join(process.cwd(), "app/loading.tsx"))).toBe(false);
+    expect(existsSync(join(process.cwd(), "app/(app)/loading.tsx"))).toBe(false);
   });
 });

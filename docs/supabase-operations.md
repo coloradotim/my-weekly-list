@@ -101,7 +101,11 @@ the linked project's migration history. If a migration is missing, run the
 workflow in `apply` mode or run `SUPABASE_MIGRATION_MODE=apply
 scripts/supabase-migrate.sh` locally.
 
-## Manual User Bootstrap
+## Backend User Administration
+
+Use this section when looking for user creation, password reset, or disabling
+access. These are backend administration tasks run from a trusted local shell
+with Supabase service-role credentials; they are not in-app self-service flows.
 
 My Weekly List uses Supabase email/password auth with database-backed app
 access. There is no public signup, magic-link login, OTP login, Google OAuth, or

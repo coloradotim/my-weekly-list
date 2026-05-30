@@ -162,9 +162,9 @@ should create or ensure the week using the established Week list rules before
 showing the daily view. It must not route to Review just because a past week has
 not been reviewed, and it must not require Close or Finalize.
 
-When the installed Home Screen app launches, the product should feel alive even
-if auth or Supabase data takes a moment. Use a lightweight, app-branded loading
-state rather than showing a blank page while Today settles.
+When the installed Home Screen app launches, it should route quickly into Today.
+Avoid textual loading interstitials during normal Today, Week, and Review
+navigation; they make the app feel slower than it is.
 
 ## Week timing model
 
