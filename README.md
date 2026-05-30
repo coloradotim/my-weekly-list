@@ -253,7 +253,7 @@ For iPhone Home Screen acceptance, reinstall from the stable install page:
 4. Use Share -> Add to Home Screen.
 5. Confirm the icon is the real app icon, not a generic `M`.
 6. Launch the Home Screen icon.
-7. Confirm it opens the app through root smart-entry behavior.
+7. Confirm it opens directly to Today.
 8. Test Today, Week, and Review.
 9. Navigate between Today / Week / Review using the app bottom nav.
 10. Close and reopen the Home Screen app after last visiting Today.

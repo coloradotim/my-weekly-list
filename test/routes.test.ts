@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getSelectedRouteHref, routeLabels } from "@/lib/routes";
-import { getSmartEntryDestination } from "@/lib/entry/smart-entry";
 import manifest from "@/app/manifest";
 
 const appShell = readFileSync(join(process.cwd(), "components/app-shell.tsx"), "utf8");
@@ -63,7 +62,7 @@ describe("app routes", () => {
     expect(installPage).toContain("Open this page in Safari.");
     expect(installPage).toContain("Tap Share.");
     expect(installPage).toContain("Tap Add to Home Screen.");
-    expect(installPage).toContain('href="/"');
+    expect(installPage).toContain('href="/today"');
     expect(installPage).not.toContain("redirect(");
     expect(middleware).toContain('pathname === "/install"');
     expect(middleware).toContain('pathname === "/manifest.webmanifest"');
@@ -85,7 +84,7 @@ describe("app routes", () => {
     expect(appManifest).toMatchObject({
       name: "My Weekly List",
       short_name: "My Weekly List",
-      start_url: "/",
+      start_url: "/today",
       scope: "/",
       display: "standalone",
       background_color: "#fffaf2",
@@ -103,6 +102,8 @@ describe("app routes", () => {
     expect(rootLayout).toContain("capable: true");
     expect(rootLayout).toContain('"mobile-web-app-capable": "yes"');
     expect(rootLayout).toContain('viewportFit: "cover"');
+    expect(rootLayout).toContain('rel="preconnect"');
+    expect(rootLayout).toContain('rel="dns-prefetch"');
   });
 
   it("includes real Home Screen icon assets", () => {
@@ -124,43 +125,20 @@ describe("app routes", () => {
     expect(signOutScript).toContain("invalidate refresh tokens");
   });
 
-  it("decides smart entry destinations without a home or review blocker", () => {
-    expect(getSmartEntryDestination({ weekStatus: "needs-setup" })).toBe("/setup");
-    expect(getSmartEntryDestination({ weekStatus: "ready" })).toBe("/today");
-    expect(
-      getSmartEntryDestination({
-        weekStatus: "no-current-week",
-        creationStatus: "created",
-      }),
-    ).toBe("/today");
-    expect(
-      getSmartEntryDestination({
-        weekStatus: "no-current-week",
-        creationStatus: "needs-setup",
-      }),
-    ).toBe("/setup");
-    expect(
-      getSmartEntryDestination({
-        weekStatus: "no-current-week",
-        creationStatus: "error",
-      }),
-    ).toBe("/week");
-    expect(getSmartEntryDestination({ weekStatus: "error" })).toBe("/week");
-  });
-
-  it("uses the root route to assure the current week and redirect into Today", () => {
-    expect(homePage).toContain("loadThisWeek");
-    expect(homePage).toContain("createCurrentWeekFromTemplates");
-    expect(homePage).toContain('redirect("/login")');
-    expect(homePage).toContain("getSmartEntryDestination");
+  it("uses the root route as a lightweight authenticated redirect to Today", () => {
+    expect(homePage).toContain('redirect("/today")');
+    expect(homePage).not.toContain('redirect("/login")');
+    expect(homePage).not.toContain("loadThisWeek");
+    expect(homePage).not.toContain("createCurrentWeekFromTemplates");
     expect(homePage).not.toContain("PlaceholderCard");
     expect(homePage).not.toContain('redirect("/review")');
   });
 
-  it("shows a lightweight loading shell while smart entry and app data resolve", () => {
-    expect(rootLoading).toContain("Opening your week...");
+  it("shows a lightweight loading shell while auth and app data resolve", () => {
+    expect(rootLoading).toContain("Opening Today...");
     expect(rootLoading).toContain('aria-busy="true"');
     expect(appLoading).toContain("Loading My Weekly List");
-    expect(appLoading).toContain("LoadingRow");
+    expect(appLoading).not.toContain("shadow-soft");
+    expect(appLoading).not.toContain("LoadingRow");
   });
 });
