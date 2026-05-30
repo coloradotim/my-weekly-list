@@ -75,61 +75,57 @@ export async function completePastedMagicLinkAction(formData: FormData) {
   if (parsed.status === "verify-url") {
     const email = getAllowedUserEmail();
 
-    if (email) {
-      const { error } = await supabase.auth.verifyOtp({
-        email,
-        token: parsed.token,
-        type: parsed.type,
-      });
-
-      if (!error) {
-        redirect(parsed.nextPath);
-      }
+    if (!email) {
+      redirect("/login?magic=missing-config");
     }
 
-    const callbackPath = await resolveSupabaseVerifyUrl({
-      verifyUrl: parsed.verifyUrl,
-      requestOrigin: origin,
+    const verified = await verifyPastedEmailToken({
+      supabase,
+      email,
+      token: parsed.token,
+      type: parsed.type,
     });
 
-    if (callbackPath) {
-      redirect(callbackPath);
+    if (verified) {
+      redirect(parsed.nextPath);
     }
+
+    redirect(`/login?magic=token-error&next=${encodeURIComponent(parsed.nextPath)}`);
   }
 
   const safeNext = getSafeAuthNextPath(typeof nextPath === "string" ? nextPath : null);
   redirect(`/login?magic=invalid-link&next=${encodeURIComponent(safeNext)}`);
 }
 
-async function resolveSupabaseVerifyUrl({
-  verifyUrl,
-  requestOrigin,
+async function verifyPastedEmailToken({
+  supabase,
+  email,
+  token,
+  type,
 }: {
-  verifyUrl: string;
-  requestOrigin: string;
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  email: string;
+  token: string;
+  type: "email" | "magiclink";
 }) {
-  const response = await fetch(verifyUrl, { redirect: "manual" });
-  const location = response.headers.get("location");
-
-  if (!location) {
-    return null;
+  if (!supabase) {
+    return false;
   }
 
-  let callbackUrl: URL;
+  const types: Array<"email" | "magiclink"> =
+    type === "email" ? ["email"] : ["magiclink", "email"];
 
-  try {
-    callbackUrl = new URL(location, verifyUrl);
-  } catch {
-    return null;
+  for (const candidateType of types) {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: candidateType,
+    });
+
+    if (!error) {
+      return true;
+    }
   }
 
-  if (callbackUrl.origin !== requestOrigin || callbackUrl.pathname !== "/auth/callback") {
-    return null;
-  }
-
-  if (!callbackUrl.searchParams.get("code")) {
-    return null;
-  }
-
-  return `${callbackUrl.pathname}${callbackUrl.search}`;
+  return false;
 }

@@ -110,6 +110,10 @@ function getLoginStatusMessage(status: string | undefined) {
     return "That sign-in link could not be used. Copy the full link from the latest email and try again.";
   }
 
+  if (status === "token-error") {
+    return "Supabase rejected that sign-in token. Request a fresh link, copy the full URL, and paste it here without opening it first.";
+  }
+
   if (status === "callback-error") {
     return "That sign-in link reached the app, but Supabase could not finish the session. Request a fresh link and paste it here instead of opening it directly.";
   }

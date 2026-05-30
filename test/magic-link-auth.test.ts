@@ -148,8 +148,14 @@ describe("owner magic-link auth", () => {
     expect(loginAction).toContain('formData.get("magicLink")');
     expect(loginAction).toContain("parsePastedMagicLink");
     expect(loginAction).toContain("verifyOtp");
+    expect(loginAction).toContain("verifyPastedEmailToken");
     expect(loginAction).toContain("email,");
     expect(loginAction).toContain("token: parsed.token");
+    expect(loginAction).toContain('["magiclink", "email"]');
+    expect(loginAction).toContain("token-error");
+    expect(loginAction).not.toContain("resolveSupabaseVerifyUrl");
+    expect(loginAction).not.toContain("fetch(verifyUrl");
+    expect(loginAction).not.toContain("redirect(callbackPath)");
     expect(loginAction).not.toContain('formData.get("email")');
     expect(loginAction).not.toContain("service_role");
     expect(loginForm).not.toContain('type="email"');
@@ -201,6 +207,23 @@ describe("owner magic-link auth", () => {
     });
   });
 
+  it("extracts the production Supabase plain token link shape", () => {
+    expect(
+      parsePastedMagicLink({
+        value:
+          "https://dtauepnsjsdrxbphryhc.supabase.co/auth/v1/verify?token=abc123&type=magiclink&redirect_to=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fnext%3D%252Ftoday",
+        requestOrigin: "https://my-weekly-list.vercel.app",
+      }),
+    ).toEqual({
+      status: "verify-url",
+      verifyUrl:
+        "https://dtauepnsjsdrxbphryhc.supabase.co/auth/v1/verify?token=abc123&type=magiclink&redirect_to=https%3A%2F%2Fmy-weekly-list.vercel.app%2Fauth%2Fcallback%3Fnext%3D%252Ftoday",
+      token: "abc123",
+      type: "magiclink",
+      nextPath: "/today",
+    });
+  });
+
   it("extracts magic links from Gmail-style wrapped URLs", () => {
     expect(
       parsePastedMagicLink({
@@ -228,5 +251,6 @@ describe("owner magic-link auth", () => {
     expect(authCallback).toContain("callback-error");
     expect(authCallback).toContain("missing-session");
     expect(loginForm).toContain("Supabase could not finish the session");
+    expect(loginForm).toContain("Supabase rejected that sign-in token");
   });
 });
