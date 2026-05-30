@@ -142,20 +142,48 @@ Key fields:
 - `cell_date`: date inside the parent week.
 - `planned`: whether the activity was planned for that day.
 - `done`: whether the activity happened that day.
+- `skipped`: whether a planned occurrence was intentionally skipped that day.
 
 Constraints:
 
 - `(week_activity_id, cell_date)` is unique, so an activity can count at most
   once per day.
 - `cell_date` must be within the parent Monday-Sunday week.
+- `done` and `skipped` cannot both be true.
+- `skipped` requires `planned` to be true, so Skip preserves the original
+  planned occurrence instead of erasing it.
 - Rows cannot be inserted, updated, or deleted for a closed week.
 
-## Planned, Done, and Missed
+## Planned, Done, Skipped, and Missed
 
-Planning and completion are separate facts:
+Planning, completion, and intentional Skip resolution are separate facts:
 
 - `planned`: planned structure for a day.
 - `done`: what actually happened.
+- `skipped`: a planned occurrence intentionally skipped for that day.
+
+Valid day-cell combinations are:
+
+```text
+planned = true,  done = false, skipped = false
+  Planned/pending today, or missed after the date passes.
+
+planned = true,  done = true,  skipped = false
+  Planned and completed.
+
+planned = false, done = true,  skipped = false
+  Unplanned completion.
+
+planned = true,  done = false, skipped = true
+  Planned and intentionally skipped.
+```
+
+These combinations are invalid:
+
+```text
+done = true and skipped = true
+skipped = true and planned = false
+```
 
 Done counts whether or not the cell was planned. Missed is not stored. It is
 derived as:
@@ -168,6 +196,8 @@ week status is not draft
 ```
 
 Keeping missed derived avoids creating missed rows for unplanned or ghost weeks.
+Skip is stored distinctly from missed so Review can later distinguish intentional
+same-day resolution from a planned occurrence that simply was not completed.
 
 The This Week grid is a planning and weekly-overview surface. It mutates only
 the `planned` fact:
@@ -181,11 +211,15 @@ server action still persists an explicit intended `planned` value through the
 authenticated Supabase session and existing RLS. Fresh loads use Supabase as the
 source of truth.
 
-Marking an unplanned cell done will store `planned = false` and `done = true`
-from the Today flow. Marking a planned cell done will store `planned = true` and
-`done = true`, but both render with the same Done visual treatment in the normal
-UI. Removing the last false/false fact deletes the day-cell row rather than
-storing empty cells.
+Marking an unplanned cell done will store `planned = false`, `done = true`, and
+`skipped = false` from the Today flow. Marking a planned cell done will store
+`planned = true`, `done = true`, and `skipped = false`, but both render with the
+same Done visual treatment in the normal UI. Skipping a planned occurrence stores
+`planned = true`, `done = false`, and `skipped = true`; it does not change the
+weekly target or remove the plan from historical record. The This Week MVP may
+use the current muted missed/skipped visual treatment for skipped cells while
+Review can still distinguish Skip in stored data. Removing the last
+false/false/false fact deletes the day-cell row rather than storing empty cells.
 
 ## Seed Data
 

@@ -12,11 +12,19 @@ const weekActivityUniquenessMigrationPath = join(
   repoRoot,
   "supabase/migrations/20260529040500_week_activity_snapshot_uniqueness.sql",
 );
+const activityDayCellSkippedMigrationPath = join(
+  repoRoot,
+  "supabase/migrations/20260530010000_activity_day_cells_skipped.sql",
+);
 const contractPath = join(repoRoot, "docs/supabase-contract.md");
 
 const migration = readFileSync(migrationPath, "utf8");
 const weekActivityUniquenessMigration = readFileSync(
   weekActivityUniquenessMigrationPath,
+  "utf8",
+);
+const activityDayCellSkippedMigration = readFileSync(
+  activityDayCellSkippedMigrationPath,
   "utf8",
 );
 const contract = readFileSync(contractPath, "utf8");
@@ -38,11 +46,25 @@ describe("Supabase schema migration", () => {
     }
   });
 
-  it("keeps planned and done separate while leaving missed derived", () => {
+  it("keeps planned, done, and skipped separate while leaving missed derived", () => {
     expect(migration).toContain("planned boolean not null default false");
     expect(migration).toContain("done boolean not null default false");
+    expect(activityDayCellSkippedMigration).toContain(
+      "skipped boolean not null default false",
+    );
+    expect(activityDayCellSkippedMigration).toContain(
+      "activity_day_cells_done_not_skipped",
+    );
+    expect(activityDayCellSkippedMigration).toContain("not (done and skipped)");
+    expect(activityDayCellSkippedMigration).toContain(
+      "activity_day_cells_skipped_requires_planned",
+    );
+    expect(activityDayCellSkippedMigration).toContain("not skipped or planned");
     expect(migration).not.toMatch(/\bmissed\b/);
     expect(contract).toContain("Missed is not stored");
+    expect(contract).toContain("Skip preserves the original");
+    expect(contract).toContain("done = true and skipped = true");
+    expect(contract).toContain("skipped = true and planned = false");
   });
 
   it("protects weekly integrity and historical snapshots", () => {
