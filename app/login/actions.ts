@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getAllowedUserEmail } from "@/lib/auth/access";
 import {
   getMagicLinkRedirectUrlFromHeaders,
   getRequestOrigin,
@@ -72,6 +73,20 @@ export async function completePastedMagicLinkAction(formData: FormData) {
   }
 
   if (parsed.status === "verify-url") {
+    const email = getAllowedUserEmail();
+
+    if (email) {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: parsed.token,
+        type: parsed.type,
+      });
+
+      if (!error) {
+        redirect(parsed.nextPath);
+      }
+    }
+
     const callbackPath = await resolveSupabaseVerifyUrl({
       verifyUrl: parsed.verifyUrl,
       requestOrigin: origin,

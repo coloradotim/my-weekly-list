@@ -54,7 +54,13 @@ export type PastedMagicLinkResult =
       type: "email" | "magiclink";
       nextPath: string;
     }
-  | { status: "verify-url"; verifyUrl: string; nextPath: string }
+  | {
+      status: "verify-url";
+      verifyUrl: string;
+      token: string;
+      type: "email" | "magiclink";
+      nextPath: string;
+    }
   | { status: "invalid" };
 
 export function parsePastedMagicLink({
@@ -208,7 +214,7 @@ function parseVerifyCandidate(
   }
 
   if (token) {
-    return { status: "verify-url", verifyUrl: url.toString(), nextPath };
+    return { status: "verify-url", verifyUrl: url.toString(), token, type, nextPath };
   }
 
   return null;
