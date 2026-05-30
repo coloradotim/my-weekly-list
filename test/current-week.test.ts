@@ -6,6 +6,7 @@ import {
   buildMissingWeekActivitySnapshotRows,
   buildWeekActivitySnapshotRows,
   buildWeekCreationPlan,
+  canMutateCurrentWeekDayFacts,
   canTogglePlanningCell,
   getCellVisualState,
   getDesiredPlanningCellFacts,
@@ -26,6 +27,10 @@ const optimisticGrid = readFileSync(
 );
 const weekListEditor = readFileSync(
   join(process.cwd(), "components/week-list-editor.tsx"),
+  "utf8",
+);
+const thisWeekGrid = readFileSync(
+  join(process.cwd(), "components/this-week-grid.tsx"),
   "utf8",
 );
 
@@ -508,6 +513,33 @@ describe("persisted grid state", () => {
 });
 
 describe("week action guardrails", () => {
+  it("allows Today to write current-week day facts without requiring literal active status", () => {
+    expect(
+      canMutateCurrentWeekDayFacts({
+        week: weekRecord({ status: "draft", weekStartDate: "2026-06-01" }),
+        today: "2026-06-05",
+      }),
+    ).toBe(true);
+    expect(
+      canMutateCurrentWeekDayFacts({
+        week: weekRecord({ status: "needs_review", weekStartDate: "2026-06-01" }),
+        today: "2026-06-05",
+      }),
+    ).toBe(true);
+    expect(
+      canMutateCurrentWeekDayFacts({
+        week: weekRecord({ status: "closed", weekStartDate: "2026-06-01" }),
+        today: "2026-06-05",
+      }),
+    ).toBe(false);
+    expect(
+      canMutateCurrentWeekDayFacts({
+        week: weekRecord({ status: "active", weekStartDate: "2026-05-25" }),
+        today: "2026-06-05",
+      }),
+    ).toBe(false);
+  });
+
   it("runs mutations behind user and allowed-email checks without service-role keys", () => {
     expect(weekActions).toContain("supabase.auth.getUser()");
     expect(weekActions).toContain("checkAllowedUser(user.email)");
@@ -560,6 +592,19 @@ describe("week action guardrails", () => {
     expect(weekListEditor).toContain("data-week-list-activity");
     expect(weekListEditor).toContain("Drag to reorder");
   });
+
+  it("keeps Week category collapse and reorder interactions local", () => {
+    expect(optimisticGrid).toContain("collapsedCategoryNames");
+    expect(thisWeekGrid).toContain("onToggleCategory");
+    expect(weekListEditor).toContain("collapsedCategoryNames");
+    expect(weekListEditor).toContain("aria-expanded={!isCollapsed}");
+    expect(weekActions).not.toContain(
+      'reorderWeekCategories({\n    supabase,\n    weekId,\n    categoryName,\n    targetCategoryName,\n  });\n\n  revalidatePath("/week");',
+    );
+    expect(weekActions).not.toContain(
+      'reorderWeekActivities({\n    supabase,\n    weekActivityId,\n    targetWeekActivityId,\n  });\n\n  revalidatePath("/week");',
+    );
+  });
 });
 
 function activity(overrides: Partial<PersistedWeekActivity> = {}): PersistedWeekActivity {
@@ -573,6 +618,16 @@ function activity(overrides: Partial<PersistedWeekActivity> = {}): PersistedWeek
     targetCount: 1,
     sortOrder: 10,
     cells: [],
+    ...overrides,
+  };
+}
+
+function weekRecord(overrides: Partial<WeekRecord> = {}): WeekRecord {
+  return {
+    id: "week",
+    weekStartDate: "2026-06-01",
+    weekEndDate: "2026-06-07",
+    status: "active",
     ...overrides,
   };
 }

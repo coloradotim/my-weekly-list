@@ -256,6 +256,19 @@ export function getWeekDayDates(weekStartDate: DateOnly) {
   return Array.from({ length: 7 }, (_, index) => addDays(start, index));
 }
 
+export function canMutateCurrentWeekDayFacts({
+  week,
+  today,
+}: {
+  week: Pick<WeekRecord, "status" | "weekStartDate">;
+  today: DateOnly;
+}) {
+  return (
+    week.status !== "closed" &&
+    getWeekStartDate(week.weekStartDate) === getWeekStartDate(today)
+  );
+}
+
 export function getCellVisualState({
   weekExists = true,
   weekStatus,
@@ -821,7 +834,7 @@ export async function setActivityDayCellFacts({
 
   const week = owner.activity.week;
 
-  if (week.status !== "active") {
+  if (!canMutateCurrentWeekDayFacts({ week, today: getTodayDateOnly() })) {
     return { status: "blocked" as const, message: "That day is view-only right now." };
   }
 
@@ -901,7 +914,7 @@ export async function moveWeekActivityPlanDate({
 
   const week = owner.activity.week;
 
-  if (week.status !== "active") {
+  if (!canMutateCurrentWeekDayFacts({ week, today: getTodayDateOnly() })) {
     return { status: "blocked" as const, message: "That day is view-only right now." };
   }
 

@@ -22,6 +22,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
   >(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [collapsedCategoryNames, setCollapsedCategoryNames] = useState<string[]>([]);
   const [, startTransition] = useTransition();
   const canEditList = view.week.status === "active" || view.week.status === "draft";
   const title =
@@ -38,6 +39,14 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
   useEffect(() => {
     setListCategories(view.categories);
   }, [view.categories]);
+
+  function toggleCategory(categoryName: string) {
+    setCollapsedCategoryNames((current) =>
+      current.includes(categoryName)
+        ? current.filter((name) => name !== categoryName)
+        : [...current, categoryName],
+    );
+  }
 
   useEffect(() => {
     if (!dragItem) {
@@ -144,82 +153,101 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
             {saveError}
           </p>
         ) : null}
-        {listCategories.map((category) => (
-          <section
-            key={category.name}
-            data-week-list-category={category.name}
-            className={`overflow-hidden rounded-lg border bg-white transition ${
-              dragOverId === category.name
-                ? "border-clay shadow-soft"
-                : "border-stone-200"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-paper px-3 py-2">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-clay">
-                <span
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`Drag ${category.name} category`}
-                  className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
-                  onPointerDown={(event) => {
-                    event.preventDefault();
-                    setDragItem({ type: "category", id: category.name });
-                  }}
-                >
-                  ⋮⋮
-                </span>
-                {category.name}
-              </h2>
-              <span className="text-xs text-stone-500">Drag to reorder</span>
-            </div>
-            <div className="divide-y divide-stone-200">
-              {category.activities.map((activity) => (
-                <div
-                  key={activity.id}
-                  data-week-list-activity={activity.id}
-                  className={`p-2 transition ${
-                    dragOverId === activity.id ? "bg-mist/35" : ""
-                  }`}
-                >
-                  {editingId === activity.id ? (
-                    <ActivityEditForm
-                      activity={activity}
-                      categories={categories}
-                      action={updateWeekActivityListItemAction}
-                      onCancel={() => setEditingId(null)}
-                      extraFields={
-                        <input type="hidden" name="weekActivityId" value={activity.id} />
-                      }
-                      removeForm={
-                        <form action={removeWeekActivityFromFutureAction}>
-                          <input
-                            type="hidden"
-                            name="weekActivityId"
-                            value={activity.id}
-                          />
-                          <button type="submit" className={secondaryButtonClassName}>
-                            Remove from future weeks
-                          </button>
-                        </form>
-                      }
-                    />
-                  ) : (
-                    <ActivitySummaryRow
-                      activity={activity}
-                      onStartDrag={() =>
-                        setDragItem({ type: "activity", id: activity.id })
-                      }
-                      onEdit={() => {
-                        setIsAdding(false);
-                        setEditingId(activity.id);
-                      }}
-                    />
-                  )}
+        {listCategories.map((category) => {
+          const isCollapsed = collapsedCategoryNames.includes(category.name);
+
+          return (
+            <section
+              key={category.name}
+              data-week-list-category={category.name}
+              className={`overflow-hidden rounded-lg border bg-white transition ${
+                dragOverId === category.name
+                  ? "border-clay shadow-soft"
+                  : "border-stone-200"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-paper px-3 py-2">
+                <h2 className="flex min-w-0 items-center gap-1 text-xs font-semibold uppercase tracking-wide text-clay">
+                  <button
+                    type="button"
+                    className="shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                    aria-expanded={!isCollapsed}
+                    aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${category.name}`}
+                    onClick={() => toggleCategory(category.name)}
+                  >
+                    <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                  </button>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Drag ${category.name} category`}
+                    className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      setDragItem({ type: "category", id: category.name });
+                    }}
+                  >
+                    ⋮⋮
+                  </span>
+                  <span className="truncate">{category.name}</span>
+                </h2>
+                <span className="text-xs text-stone-500">Drag to reorder</span>
+              </div>
+              {!isCollapsed ? (
+                <div className="divide-y divide-stone-200">
+                  {category.activities.map((activity) => (
+                    <div
+                      key={activity.id}
+                      data-week-list-activity={activity.id}
+                      className={`p-2 transition ${
+                        dragOverId === activity.id ? "bg-mist/35" : ""
+                      }`}
+                    >
+                      {editingId === activity.id ? (
+                        <ActivityEditForm
+                          activity={activity}
+                          categories={categories}
+                          action={updateWeekActivityListItemAction}
+                          onCancel={() => setEditingId(null)}
+                          extraFields={
+                            <input
+                              type="hidden"
+                              name="weekActivityId"
+                              value={activity.id}
+                            />
+                          }
+                          removeForm={
+                            <form action={removeWeekActivityFromFutureAction}>
+                              <input
+                                type="hidden"
+                                name="weekActivityId"
+                                value={activity.id}
+                              />
+                              <button type="submit" className={secondaryButtonClassName}>
+                                Remove from future weeks
+                              </button>
+                            </form>
+                          }
+                        />
+                      ) : (
+                        <ActivitySummaryRow
+                          activity={activity}
+                          onStartDrag={() =>
+                            setDragItem({ type: "activity", id: activity.id })
+                          }
+                          onEdit={() => {
+                            setIsAdding(false);
+                            setEditingId(activity.id);
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        ))}
+              ) : null}
+            </section>
+          );
+        })}
 
         {isAdding ? (
           <div className="rounded-lg border border-stone-200 bg-paper p-3">

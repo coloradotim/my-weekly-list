@@ -172,6 +172,8 @@ describe("persisted Review implementation guardrails", () => {
     expect(reviewClient).toContain("applyOptimisticReviewAction");
     expect(reviewClient).toContain("Couldn’t save that change. Try again.");
     expect(reviewClient).toContain("pendingCellKeys");
+    expect(reviewClient).toContain("collapsedCategoryNames");
+    expect(reviewClient).toContain("onToggleCategory");
     expect(reviewClient).not.toContain("disabled:opacity");
     expect(reviewClient).not.toContain("router.refresh");
   });

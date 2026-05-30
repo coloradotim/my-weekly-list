@@ -18,6 +18,7 @@ const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function OptimisticReviewView({ initialState }: { initialState: ReviewState }) {
   const [state, setState] = useState(initialState);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [collapsedCategoryNames, setCollapsedCategoryNames] = useState<string[]>([]);
   const [pendingCellKeys, setPendingCellKeys] = useState<Set<string>>(() => new Set());
   const [saveStatus, setSaveStatus] = useState<"idle" | "error">("idle");
   const [, startTransition] = useTransition();
@@ -93,6 +94,14 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
     });
   }
 
+  function toggleCategory(categoryName: string) {
+    setCollapsedCategoryNames((current) =>
+      current.includes(categoryName)
+        ? current.filter((name) => name !== categoryName)
+        : [...current, categoryName],
+    );
+  }
+
   return (
     <section className="space-y-3">
       <article className="rounded-lg border border-stone-200 bg-white/90 p-3 shadow-soft sm:p-4">
@@ -138,7 +147,9 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
             groups={view.categoryGroups}
             isSundayCurrentWeek={view.isSundayCurrentWeek}
             pendingCellKeys={pendingCellKeys}
+            collapsedCategoryNames={collapsedCategoryNames}
             today={view.today}
+            onToggleCategory={toggleCategory}
             onSetCompletion={setCompletion}
           />
         </div>
@@ -182,16 +193,22 @@ function ReviewDetailGrid({
   groups,
   isSundayCurrentWeek,
   pendingCellKeys,
+  collapsedCategoryNames,
   today,
+  onToggleCategory,
   onSetCompletion,
 }: {
   dayDates: DateOnly[];
   groups: { categoryName: string; activities: ReviewActivityRecord[] }[];
   isSundayCurrentWeek: boolean;
   pendingCellKeys: Set<string>;
+  collapsedCategoryNames: string[];
   today: DateOnly;
+  onToggleCategory: (categoryName: string) => void;
   onSetCompletion: (activityId: string, cell: ReviewDayCell, done: boolean) => void;
 }) {
+  const collapsedCategorySet = new Set(collapsedCategoryNames);
+
   return (
     <div className="snap-x snap-mandatory scroll-pl-[112px] overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft sm:scroll-pl-[168px]">
       <div className="grid min-w-[604px] grid-cols-[minmax(112px,0.9fr)_repeat(7,minmax(50px,1fr))] text-sm sm:min-w-[780px] sm:grid-cols-[minmax(168px,1.3fr)_repeat(7,minmax(64px,1fr))]">
@@ -214,37 +231,54 @@ function ReviewDetailGrid({
           </div>
         ))}
 
-        {groups.map((group) => (
-          <div key={group.categoryName} className="contents">
-            <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
-              {group.categoryName}
-            </div>
-            <div className="col-span-7 border-b border-stone-200 bg-paper" />
+        {groups.map((group) => {
+          const isCollapsed = collapsedCategorySet.has(group.categoryName);
 
-            {group.activities.map((activity) => (
-              <div key={activity.id} className="contents">
-                <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
-                  <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
-                    {activity.activityName}
-                  </div>
-                </div>
-                {activity.cells.map((cell) => {
-                  const cellKey = `${activity.id}:${cell.date}`;
-                  return (
-                    <ReviewDayButton
-                      key={cellKey}
-                      activityName={activity.activityName}
-                      cell={cell}
-                      isPending={pendingCellKeys.has(cellKey)}
-                      isToday={isSundayCurrentWeek && cell.date === today}
-                      onClick={() => onSetCompletion(activity.id, cell, !cell.done)}
-                    />
-                  );
-                })}
+          return (
+            <div key={group.categoryName} className="contents">
+              <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                  aria-expanded={!isCollapsed}
+                  aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
+                    group.categoryName
+                  }`}
+                  onClick={() => onToggleCategory(group.categoryName)}
+                >
+                  <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                  <span>{group.categoryName}</span>
+                </button>
               </div>
-            ))}
-          </div>
-        ))}
+              <div className="col-span-7 border-b border-stone-200 bg-paper" />
+
+              {!isCollapsed
+                ? group.activities.map((activity) => (
+                    <div key={activity.id} className="contents">
+                      <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
+                        <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
+                          {activity.activityName}
+                        </div>
+                      </div>
+                      {activity.cells.map((cell) => {
+                        const cellKey = `${activity.id}:${cell.date}`;
+                        return (
+                          <ReviewDayButton
+                            key={cellKey}
+                            activityName={activity.activityName}
+                            cell={cell}
+                            isPending={pendingCellKeys.has(cellKey)}
+                            isToday={isSundayCurrentWeek && cell.date === today}
+                            onClick={() => onSetCompletion(activity.id, cell, !cell.done)}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))
+                : null}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -464,7 +464,7 @@ function OpenPlannedRow({
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <button
             type="button"
-            className="min-h-11 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:opacity-70"
+            className="min-h-11 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:cursor-not-allowed"
             onClick={onDone}
             disabled={isPending}
           >
@@ -473,7 +473,7 @@ function OpenPlannedRow({
           {!isSunday && moveDates.length > 0 ? (
             <button
               type="button"
-              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:opacity-70"
+              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed"
               onClick={onToggleMove}
               disabled={isPending}
               aria-expanded={isMoving}
@@ -483,7 +483,7 @@ function OpenPlannedRow({
           ) : null}
           <button
             type="button"
-            className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:opacity-70"
+            className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed"
             onClick={onSkip}
             disabled={isPending}
           >
@@ -554,7 +554,7 @@ function DoneTodayRow({
       </div>
       <button
         type="button"
-        className="shrink-0 rounded-full bg-meadow/15 px-3 py-2 text-sm font-semibold text-meadow transition hover:bg-meadow/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:opacity-70"
+        className="shrink-0 rounded-full bg-meadow/15 px-3 py-2 text-sm font-semibold text-meadow transition hover:bg-meadow/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:cursor-not-allowed"
         onClick={onUndoDone}
         disabled={isPending}
       >
@@ -584,7 +584,7 @@ function SkippedRow({
       </div>
       <button
         type="button"
-        className="min-h-11 shrink-0 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:opacity-70"
+        className="min-h-11 shrink-0 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:cursor-not-allowed"
         onClick={onDone}
         disabled={isPending}
       >

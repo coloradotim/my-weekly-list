@@ -228,6 +228,7 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Skip");
     expect(todayClient).not.toContain("Adjust plan");
     expect(todayClient).not.toContain("Move to another day");
+    expect(todayClient).not.toContain("disabled:opacity");
     expect(todayClient).not.toContain("onCancelAdjust");
   });
 

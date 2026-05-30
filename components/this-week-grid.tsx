@@ -31,12 +31,19 @@ export function ThisWeekGrid({
   notice,
   renderPlanningControl,
   showStatusPanel = true,
+  collapsedCategoryNames = [],
+  onToggleCategory,
 }: {
   view: ThisWeekViewModel;
   notice: WeekNotice;
   renderPlanningControl: PlanningControlRenderer;
   showStatusPanel?: boolean;
+  collapsedCategoryNames?: string[];
+  onToggleCategory?: (categoryName: string) => void;
 }) {
+  const collapsedCategorySet = new Set(collapsedCategoryNames);
+  const canCollapseCategories = Boolean(onToggleCategory);
+
   return (
     <section className="space-y-2 sm:space-y-3">
       {showStatusPanel ? (
@@ -79,25 +86,46 @@ export function ThisWeekGrid({
             </div>
           ))}
 
-          {view.categories.map((category) => (
-            <div key={category.name} className="contents">
-              <div className="sticky left-0 z-20 border-b border-r border-t border-stone-200 bg-paper px-2 py-1 text-xs font-semibold uppercase tracking-wide text-clay sm:px-3 sm:py-1.5">
-                {category.name}
-              </div>
-              <div
-                aria-hidden="true"
-                className="col-span-7 border-b border-t border-stone-200 bg-paper"
-              />
-              {category.activities.map((activity) => (
-                <ActivityRow
-                  key={activity.id}
-                  activity={activity}
-                  today={view.today}
-                  renderPlanningControl={renderPlanningControl}
+          {view.categories.map((category) => {
+            const isCollapsed = collapsedCategorySet.has(category.name);
+
+            return (
+              <div key={category.name} className="contents">
+                <div className="sticky left-0 z-20 border-b border-r border-t border-stone-200 bg-paper px-2 py-1 text-xs font-semibold uppercase tracking-wide text-clay sm:px-3 sm:py-1.5">
+                  {canCollapseCategories ? (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                      aria-expanded={!isCollapsed}
+                      aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
+                        category.name
+                      }`}
+                      onClick={() => onToggleCategory?.(category.name)}
+                    >
+                      <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                      <span>{category.name}</span>
+                    </button>
+                  ) : (
+                    category.name
+                  )}
+                </div>
+                <div
+                  aria-hidden="true"
+                  className="col-span-7 border-b border-t border-stone-200 bg-paper"
                 />
-              ))}
-            </div>
-          ))}
+                {!isCollapsed
+                  ? category.activities.map((activity) => (
+                      <ActivityRow
+                        key={activity.id}
+                        activity={activity}
+                        today={view.today}
+                        renderPlanningControl={renderPlanningControl}
+                      />
+                    ))
+                  : null}
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

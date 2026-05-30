@@ -153,7 +153,6 @@ export async function reorderWeekCategoriesAction({
     console.error("Week category reorder failed", result);
   }
 
-  revalidatePath("/week");
   return result.status === "updated"
     ? { status: "updated" as const }
     : {
@@ -184,7 +183,6 @@ export async function reorderWeekActivitiesAction({
     console.error("Week activity reorder failed", result);
   }
 
-  revalidatePath("/week");
   return result.status === "updated"
     ? { status: "updated" as const }
     : {
