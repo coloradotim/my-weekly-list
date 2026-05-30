@@ -33,6 +33,7 @@ const thisWeekGrid = readFileSync(
   join(process.cwd(), "components/this-week-grid.tsx"),
   "utf8",
 );
+const weekModel = readFileSync(join(process.cwd(), "lib/week/current.ts"), "utf8");
 
 const templates: ActivityTemplateSnapshot[] = [
   {
@@ -598,6 +599,16 @@ describe("week action guardrails", () => {
     expect(thisWeekGrid).toContain("onToggleCategory");
     expect(weekListEditor).toContain("collapsedCategoryNames");
     expect(weekListEditor).toContain("aria-expanded={!isCollapsed}");
+    expect(weekListEditor).toContain("event.stopPropagation()");
+    expect(weekListEditor).toContain("fromIndex < targetIndex");
+    expect(weekListEditor).toContain("sourceIndex < targetIndex");
+    expect(weekListEditor).toContain("} hidden");
+    expect(weekListEditor).not.toContain("previousCollapsedCategoryNames");
+    expect(weekListEditor).not.toContain(
+      "current.filter((name) => name !== currentDragItem.id)",
+    );
+    expect(weekModel).toContain("itemIndex < targetIndex");
+    expect(weekModel).toContain("dragged.activity.sortOrder < target.activity.sortOrder");
     expect(weekActions).not.toContain(
       'reorderWeekCategories({\n    supabase,\n    weekId,\n    categoryName,\n    targetCategoryName,\n  });\n\n  revalidatePath("/week");',
     );

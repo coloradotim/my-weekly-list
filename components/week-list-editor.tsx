@@ -184,6 +184,7 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
                     className="mr-1 inline-flex cursor-grab touch-none select-none text-stone-400 active:cursor-grabbing"
                     onPointerDown={(event) => {
                       event.preventDefault();
+                      event.stopPropagation();
                       setDragItem({ type: "category", id: category.name });
                     }}
                   >
@@ -191,7 +192,13 @@ export function WeekListEditor({ view }: { view: ThisWeekViewModel }) {
                   </span>
                   <span className="truncate">{category.name}</span>
                 </h2>
-                <span className="text-xs text-stone-500">Drag to reorder</span>
+                <span className="shrink-0 text-xs text-stone-500">
+                  {isCollapsed
+                    ? `${category.activities.length} ${
+                        category.activities.length === 1 ? "activity" : "activities"
+                      } hidden`
+                    : "Drag to reorder"}
+                </span>
               </div>
               {!isCollapsed ? (
                 <div className="divide-y divide-stone-200">
@@ -427,7 +434,11 @@ function moveCategory(
   const nextTargetIndex = next.findIndex(
     (candidate) => candidate.name === targetCategoryName,
   );
-  next.splice(nextTargetIndex, 0, category);
+  next.splice(
+    fromIndex < targetIndex ? nextTargetIndex + 1 : nextTargetIndex,
+    0,
+    category,
+  );
 
   return next;
 }
@@ -466,7 +477,7 @@ function moveActivity(
   const [activity] = sourceCategory.activities.splice(sourceIndex, 1);
   const nextTargetIndex =
     sourceCategory.name === targetCategory.name && sourceIndex < targetIndex
-      ? targetIndex - 1
+      ? targetIndex
       : targetIndex;
   targetCategory.activities.splice(nextTargetIndex, 0, {
     ...activity,

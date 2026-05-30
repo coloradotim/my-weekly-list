@@ -1336,7 +1336,13 @@ export async function reorderWeekActivities({
     return { status: "blocked", message: "Target activity not found." };
   }
 
-  targetCategoryActivities.splice(targetIndex, 0, {
+  const nextTargetIndex =
+    dragged.activity.categoryName === target.activity.categoryName &&
+    dragged.activity.sortOrder < target.activity.sortOrder
+      ? targetIndex + 1
+      : targetIndex;
+
+  targetCategoryActivities.splice(nextTargetIndex, 0, {
     ...dragged.activity,
     categoryId: target.activity.categoryId,
     categoryName: target.activity.categoryName,
@@ -1932,7 +1938,7 @@ function moveNamedItem<T extends { name: string }>(
   const nextTargetIndex = next.findIndex(
     (candidate) => candidate.name === targetItemName,
   );
-  next.splice(nextTargetIndex, 0, item);
+  next.splice(itemIndex < targetIndex ? nextTargetIndex + 1 : nextTargetIndex, 0, item);
 
   return next;
 }
