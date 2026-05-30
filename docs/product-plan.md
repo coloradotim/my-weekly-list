@@ -344,19 +344,26 @@ For Active weeks, do not allow brand-new activities, deleted activities, changed
 
 ### Review
 
-Review summarizes how the week went.
+Review summarizes what happened and supports correcting completion truth.
 
 It should show:
 
+- overall completed activity-day count
 - activity target count
 - activity done-day count
 - whether each target was met
-- category-level totals
-- overall done-day count against total target count
-- a simple visual weekly grid or summary
-- a clear Close Week action
+- compact target-met and short-of-target sections
+- optional day-by-day details for completion correction
 
-Review should focus on follow-through against weekly goals, not strict adherence to the original daily plan.
+Review should focus on actual completion against weekly goals, not strict
+adherence to the original daily plan. The default summary should not show
+category totals, an overall score, or skipped-versus-missed distinctions.
+
+In day-by-day Review details, the grid answers only: did this activity happen on
+this day? Use `✓` for completed days and a blank quiet cell for every
+not-completed day. Planned, skipped, missed, and unplanned-not-done facts remain
+stored for This Week, Today, and future reporting, but Review MVP does not
+visually distinguish them.
 
 ## Cell behavior
 
@@ -604,7 +611,7 @@ Important test areas:
 6. Today view: show open planned items, mark same-day completions, record unplanned same-day completions, move today's plan to another remaining day, and explicitly Skip today's planned occurrence.
 7. Copy previous week: create Draft or Active weeks from the prior week with correct planned-day behavior.
 8. Draft week planning / Edit List: add/edit/remove-from-future-weeks for future weeks; keep active weeks constrained.
-9. Review: target vs done summaries by activity and category, with Close Week action.
+9. Review: target vs done summaries by activity, with completion-only day-by-day correction and no required Close Week action.
 10. Mobile polish: make iPhone Chrome the primary acceptance target.
 11. Test hardening: add/expand unit and integration coverage around the core workflow.
 

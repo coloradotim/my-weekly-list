@@ -209,8 +209,11 @@ Persisted Skip requires an explicit stored resolution fact. It must not be
 implemented by clearing `planned`, because that erases the original occurrence.
 The persisted schema stores this as an explicit `skipped` day-cell fact, with
 constraints preventing `done` and `skipped` from both being true.
-Issue #8 Review will later consume planned/completed/skipped/missed
-distinctions for correction and reporting.
+Issue #8 Review will later preserve planned/completed/skipped/missed facts for
+correction and future reporting, but Review MVP should visually show final
+completion truth only in day-by-day details: checks for completed days and blank
+cells for all not-completed days. This Week may still use planned/missed/skipped
+visual language where appropriate.
 
 ### Phase 6 — Draft planning and copy week inside Week
 
@@ -230,13 +233,17 @@ distinctions for correction and reporting.
 - Draft structural edits update the future reusable/template list while
   preserving historical `week_activities` snapshots.
 
-### Phase 7 — Review and close week
+### Phase 7 — Review and historical completion correction
 
 - Show done-day counts against target counts.
-- Show per-activity and category summaries.
-- Include a simple visual summary grid.
-- Add Close Week action.
-- Lock closed weeks.
+- Show summary-first target-met and short-of-target sections by activity.
+- Do not show category totals or an overall score in the Review summary.
+- Include collapsible day-by-day details for correcting completion truth only.
+- Render Review detail cells as checks for completed days and blank quiet cells
+  for all not-completed days, while preserving planned/skipped/missed facts in
+  storage.
+- Do not require or expose Close Week, Finalize Week, or user-facing Draft
+  actions in Review.
 
 ### Phase 8 — Mobile polish and hardening
 
