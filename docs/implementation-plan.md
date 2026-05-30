@@ -260,6 +260,20 @@ visual language where appropriate.
 - Add high-value Playwright flows if the foundation supports it.
 - Confirm deployment and environment setup.
 
+### Phase 9 — Production readiness
+
+- Verify Vercel production deploys from `main` and uses the expected Supabase
+  project.
+- Keep runtime environment requirements limited to
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and
+  `ALLOWED_USER_EMAIL`.
+- Do not require or expose a Supabase service-role key for normal app screens.
+- Verify remote Supabase migrations match repo migrations before relying on
+  production data behavior.
+- Keep development-only preview routes unavailable in production.
+- Maintain a concise production smoke-test and iPhone Chrome acceptance
+  checklist in the README/Supabase operations docs.
+
 ## Testing strategy
 
 Unit tests should cover:

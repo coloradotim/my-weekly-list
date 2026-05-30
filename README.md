@@ -4,12 +4,14 @@ A personal weekly planning app for creating a weekly list, planning which days t
 
 This is a private/single-user app built for personal use.
 
-## Current foundation
+## Current app
 
-This repository contains the responsive Next.js App Router foundation for the app. It includes TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the persisted weekly planning workflow.
+This repository contains the responsive Next.js App Router app. It includes
+TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the persisted
+weekly planning workflow.
 
 - Today
-- This Week
+- Week
 - Review
 
 The root route sends the authenticated owner into Today whenever possible. Week
@@ -46,7 +48,8 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your Supabase publishable key
 ALLOWED_USER_EMAIL=cubuff98@gmail.com
 ```
 
-Do not commit `.env.local` or any secrets.
+Do not use `NEXT_PUBLIC_SUPABASE_ANON_KEY`; the app expects Supabase's
+publishable-key variable name. Do not commit `.env.local` or any secrets.
 
 Start the development server:
 
@@ -116,6 +119,38 @@ Required Supabase dashboard setup:
 No Google Cloud OAuth setup is required. Do not add service-role keys to browser
 code.
 
+Magic Link email delivery is subject to Supabase Auth rate limits. If links stop
+arriving during testing, wait for the limit window to clear, avoid repeated
+login attempts, and keep using an existing browser session when possible.
+
+## Vercel production setup
+
+Production is hosted at:
+
+```text
+https://my-weekly-list.vercel.app
+```
+
+Set these Vercel environment variables for Production, Preview, and Development
+unless there is a deliberate reason to scope them differently:
+
+```text
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+ALLOWED_USER_EMAIL
+```
+
+`NEXT_PUBLIC_` variables are visible to browser code, so they must contain only
+public-safe Supabase values. Do not add service-role keys as public Vercel
+variables, and do not add service-role keys to app runtime env unless a future
+server-only administrative workflow explicitly requires it.
+
+The Vercel project should be connected to the `coloradotim/my-weekly-list`
+GitHub repository. Production deployments should build from `main`.
+
+Development-only preview routes such as `/dev/week-preview`,
+`/dev/today-preview`, and `/dev/review-preview` are disabled in production.
+
 ## Supabase migrations
 
 Database migrations live in `supabase/migrations`.
@@ -164,7 +199,7 @@ session; it will fail by design because it uses `auth.uid()` to create
 user-owned rows. Do not use service-role keys in browser code.
 
 After setup has created active reusable categories and activity templates, open
-the protected This Week screen:
+the protected Week screen:
 
 ```text
 /week
@@ -192,6 +227,34 @@ Supabase CLI uses Docker for that local stack.
 
 The schema contract is documented in [docs/supabase-contract.md](docs/supabase-contract.md).
 
+## Production smoke test
+
+Use this checklist after deployment:
+
+1. Open `https://my-weekly-list.vercel.app`.
+2. Sign in as the owner with the email Magic Link.
+3. Confirm an unauthenticated browser goes to login and that non-owner accounts
+   cannot use the app.
+4. Confirm `/` lands on Today when the current week exists.
+5. If there is no current week, confirm `/` safely creates or opens the current
+   week from the saved list when possible, without duplicate weeks or elapsed-day
+   planned/missed/skipped/done history.
+6. In Today, mark a planned item done, record `+ Something else`, move a planned
+   item to a valid later day, skip a planned item, and mark a skipped item done.
+7. Refresh Today and Week; confirm saved state persists and Week reflects Today
+   changes.
+8. In Week, confirm current-week planning toggles, next-week planning/list
+   editing, category/activity reorder, and mobile horizontal scroll behavior.
+9. In Review, confirm the summary loads, day-by-day correction toggles
+   completion truth only, and no Close/Finalize step is required.
+10. Revisit `/` and Week after refreshes; confirm no duplicate current week or
+    duplicate week-activity snapshots appear.
+
+For iPhone Chrome acceptance, also confirm the bottom navigation does not cover
+content, Today opens directly into useful actions, current Week opens near
+today's column, Next/Past Week open at Monday, and Review remains readable and
+compact.
+
 ## Development notes
 
 - Do not commit secrets or local environment files.
@@ -200,3 +263,4 @@ The schema contract is documented in [docs/supabase-contract.md](docs/supabase-c
 - Configure Supabase Auth for email Magic Links, provision the owner Auth user, disable public signup for normal use, and add callback URLs such as `http://localhost:3000/auth/callback` to the allowed redirect URLs for local development.
 - This is a responsive web app, with iPhone Chrome as the primary daily-use target.
 - Native iOS, React Native, push notifications, offline-first behavior, streaks, badges, gamification, and AI coaching are out of scope for the MVP.
+- Historical aggregate look-back is deferred from the MVP.
