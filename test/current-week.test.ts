@@ -564,8 +564,8 @@ describe("week action guardrails", () => {
     expect(weekPage).toContain("WeekPageClient");
     expect(weekPageClient).toContain("OptimisticThisWeekGrid");
     expect(weekPage).not.toContain("toggleWeekPlanningCellAction");
-    expect(optimisticGrid).toContain("applyOptimisticPlanningCell");
-    expect(optimisticGrid).toContain("setWeekPlanningCellAction");
+    expect(optimisticGrid).toContain("applyOptimisticWeekCellFacts");
+    expect(optimisticGrid).toContain("setWeekCellFactsAction");
     expect(optimisticGrid).toContain("disabled={isPending}");
     expect(optimisticGrid).toContain("Couldn’t save that change. Try again.");
     expect(optimisticGrid).not.toContain("<form");
@@ -576,10 +576,10 @@ describe("week action guardrails", () => {
   });
 
   it("persists explicit desired planned state from the optimistic grid", () => {
-    expect(optimisticGrid).toContain("planned = getOptimisticPlannedValue(cell)");
-    expect(optimisticGrid).toContain("planned,");
+    expect(optimisticGrid).toContain("nextFacts = getOptimisticWeekCellFacts(cell)");
+    expect(optimisticGrid).toContain("...nextFacts");
     expect(weekActions).toContain("planned: boolean");
-    expect(weekActions).toContain("setWeekPlanningCellAction");
+    expect(weekActions).toContain("setWeekCellFactsAction");
     expect(weekActions).not.toContain("toggle whatever");
   });
 
@@ -587,7 +587,10 @@ describe("week action guardrails", () => {
     expect(weekPageClient).toContain("WeekListEditor");
     expect(weekListEditor).toContain("Edit this week’s list");
     expect(weekListEditor).toContain("Edit next week’s list");
-    expect(weekListEditor).toContain("+ Add activity");
+    expect(weekListEditor).toContain("+ Add");
+    expect(weekListEditor).toContain("+ Add category");
+    expect(weekListEditor).toContain("initialCategoryName={category.name}");
+    expect(weekListEditor).toContain("addWeekActivityListItemClientAction");
     expect(weekListEditor).toContain("Delete");
     expect(weekListEditor).toContain("min-h-9 min-w-9");
     expect(weekListEditor).not.toContain(

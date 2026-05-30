@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { routeLabels } from "@/lib/routes";
+import { getSelectedRouteHref, routeLabels } from "@/lib/routes";
 import { getSmartEntryDestination } from "@/lib/entry/smart-entry";
 import manifest from "@/app/manifest";
 
@@ -20,6 +20,14 @@ const signOutScript = readFileSync(join(process.cwd(), "scripts/sign-out.sh"), "
 describe("app routes", () => {
   it("keeps the primary app navigation focused on Today, Week, and Review", () => {
     expect(routeLabels()).toEqual(["Today", "Week", "Review"]);
+  });
+
+  it("derives one selected navigation route from the first path segment", () => {
+    expect(getSelectedRouteHref("/today")).toBe("/today");
+    expect(getSelectedRouteHref("/week/history")).toBe("/week");
+    expect(getSelectedRouteHref("/review")).toBe("/review");
+    expect(getSelectedRouteHref("/")).toBeNull();
+    expect(getSelectedRouteHref("/install")).toBeNull();
   });
 
   it("keeps /plan as a compatibility redirect instead of a primary screen", () => {

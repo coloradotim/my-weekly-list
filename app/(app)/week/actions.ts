@@ -10,6 +10,7 @@ import {
   removeWeekActivityFromFuture,
   reorderWeekActivities,
   reorderWeekCategories,
+  setWeekCellFacts,
   setWeekCellPlanned,
   updateWeekActivityListItem,
 } from "@/lib/week/current";
@@ -50,6 +51,42 @@ export async function setWeekPlanningCellAction({
     weekActivityId,
     cellDate,
     planned,
+  });
+
+  if (result.status === "blocked") {
+    return { status: "blocked" as const };
+  }
+
+  if (result.status === "error") {
+    return { status: "error" as const };
+  }
+
+  return { status: "updated" as const };
+}
+
+export async function setWeekCellFactsAction({
+  weekActivityId,
+  cellDate,
+  planned,
+  done,
+  skipped,
+}: {
+  weekActivityId: string;
+  cellDate: DateOnly;
+  planned: boolean;
+  done: boolean;
+  skipped: boolean;
+}) {
+  if (!weekActivityId || !cellDate) {
+    return { status: "error" as const };
+  }
+
+  const { supabase } = await requireAllowedUser("/week");
+  const result = await setWeekCellFacts({
+    supabase,
+    weekActivityId,
+    cellDate,
+    facts: { planned, done, skipped },
   });
 
   if (result.status === "blocked") {
@@ -141,6 +178,38 @@ export async function addWeekActivityListItemAction(formData: FormData) {
 
   revalidatePath("/week");
   redirect(`/week?list=${toListNotice(result.status)}`);
+}
+
+export async function addWeekActivityListItemClientAction(formData: FormData) {
+  const weekId = getFormString(formData, "weekId");
+  const activityName = getFormString(formData, "activityName");
+  const categoryName = getFormString(formData, "categoryName");
+  const targetCount = getFormNumber(formData, "targetCount");
+
+  if (!weekId || !activityName || !categoryName || targetCount === null) {
+    return {
+      status: "blocked" as const,
+      message: "Activity name, category, and target are required.",
+    };
+  }
+
+  const { supabase, userId } = await requireAllowedUser("/week");
+  const result = await addWeekActivityListItem({
+    supabase,
+    userId,
+    weekId,
+    activityName,
+    categoryName,
+    targetCount,
+  });
+
+  return result.status === "updated"
+    ? { status: "updated" as const, activity: result.activity ?? null }
+    : {
+        status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
+        message:
+          "message" in result ? result.message : "That activity could not be added.",
+      };
 }
 
 export async function removeWeekActivityFromFutureAction(formData: FormData) {

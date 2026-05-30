@@ -182,60 +182,71 @@ function ReviewDetailGrid({
   const gridLayout = useWeekGridLayout();
 
   return (
-    <div
-      ref={gridLayout.scrollerRef}
-      className={weekGridScrollerClassName}
-      style={gridLayout.scrollerStyle}
-    >
-      <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
-        <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3">
-          Activity
-        </div>
-        {dayDates.map((date, index) => (
-          <div
-            key={date}
-            className={`snap-start border-b border-stone-200 px-1 py-2 text-center font-semibold ${
-              state.isSundayCurrentWeek && date === state.today
-                ? "bg-mist/45 text-ink"
-                : "bg-white text-stone-700"
-            }`}
-          >
-            <span className="block">{dayLabels[index]}</span>
-            <span className="mt-1 block text-xs font-medium text-stone-500">
-              {formatShortDate(date)}
-            </span>
+    <>
+      <div
+        ref={gridLayout.headerScrollerRef}
+        data-week-grid-header-scroll
+        className="sticky top-0 z-30 overflow-hidden rounded-t-lg border border-b-0 border-stone-200 bg-white"
+        style={gridLayout.scrollerStyle}
+      >
+        <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
+          <div className="sticky left-0 z-40 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3">
+            Activity
           </div>
-        ))}
-
-        {categoryGroups.map((group) => (
-          <div key={group.categoryName} className="contents">
-            <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
-              {group.categoryName}
+          {dayDates.map((date, index) => (
+            <div
+              key={date}
+              className={`snap-start border-b border-stone-200 px-1 py-2 text-center font-semibold ${
+                state.isSundayCurrentWeek && date === state.today
+                  ? "bg-mist/45 text-ink"
+                  : "bg-white text-stone-700"
+              }`}
+            >
+              <span className="block">{dayLabels[index]}</span>
+              <span className="mt-1 block text-xs font-medium text-stone-500">
+                {formatShortDate(date)}
+              </span>
             </div>
-            <div className="col-span-7 border-b border-stone-200 bg-paper" />
-
-            {group.activities.map((activity) => (
-              <div key={activity.id} className="contents">
-                <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
-                  <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
-                    {activity.name}
-                  </div>
-                </div>
-                {activity.cells.map((cell) => (
-                  <ReviewDayCell
-                    key={`${activity.id}-${cell.date}`}
-                    activityName={activity.name}
-                    cell={cell}
-                    isToday={state.isSundayCurrentWeek && cell.date === state.today}
-                    onToggle={() => onToggle(activity.id, cell.date)}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+
+      <div
+        ref={gridLayout.scrollerRef}
+        className={`${weekGridScrollerClassName} rounded-t-none border-t-0`}
+        style={gridLayout.scrollerStyle}
+      >
+        <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
+          {categoryGroups.map((group) => (
+            <div key={group.categoryName} className="contents">
+              <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
+                {group.categoryName}
+              </div>
+              <div className="col-span-7 border-b border-stone-200 bg-paper" />
+
+              {group.activities.map((activity) => (
+                <div key={activity.id} className="contents">
+                  <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
+                    <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
+                      {activity.name}
+                    </div>
+                  </div>
+                  {activity.cells.map((cell) => (
+                    <ReviewDayCell
+                      key={`${activity.id}-${cell.date}`}
+                      activityName={activity.name}
+                      cell={cell}
+                      isToday={state.isSundayCurrentWeek && cell.date === state.today}
+                      onToggle={() => onToggle(activity.id, cell.date)}
+                    />
+                  ))}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 

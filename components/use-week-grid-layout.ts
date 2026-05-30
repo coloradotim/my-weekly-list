@@ -9,6 +9,7 @@ const desktopVisibleDayCount = 7;
 
 export function useWeekGridLayout() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const headerScrollerRef = useRef<HTMLDivElement | null>(null);
   const [metrics, setMetrics] = useState({
     activityColumnWidth: mobileActivityColumnWidth,
     dayColumnWidth: 64,
@@ -45,8 +46,30 @@ export function useWeekGridLayout() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const headerScroller = headerScrollerRef.current;
+
+    if (!scroller || !headerScroller) {
+      return;
+    }
+
+    const scrollerElement = scroller;
+    const headerScrollerElement = headerScroller;
+
+    function syncHeaderScroll() {
+      headerScrollerElement.scrollLeft = scrollerElement.scrollLeft;
+    }
+
+    syncHeaderScroll();
+    scrollerElement.addEventListener("scroll", syncHeaderScroll, { passive: true });
+
+    return () => scrollerElement.removeEventListener("scroll", syncHeaderScroll);
+  }, []);
+
   return {
     scrollerRef,
+    headerScrollerRef,
     scrollerStyle: {
       scrollPaddingLeft: `${metrics.activityColumnWidth}px`,
     } satisfies CSSProperties,

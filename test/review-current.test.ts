@@ -73,10 +73,18 @@ describe("persisted Review model", () => {
   it("uses the shared Week grid geometry for Review day-by-day details", () => {
     expect(reviewClient).toContain("weekGridScrollerClassName");
     expect(reviewClient).toContain("weekGridColumnsClassName");
+    expect(reviewClient).toContain("data-week-grid-header-scroll");
+    expect(reviewClient).toContain("sticky top-0 z-30 overflow-hidden");
+    expect(reviewClient).toContain("rounded-t-none border-t-0");
+    expect(reviewClient).toContain("ref={gridLayout.headerScrollerRef}");
     expect(weekGridScrollerClassName).toContain("weekly-grid-scroller");
     expect(weekGridScrollerClassName).toContain("touch-pan-x touch-pan-y");
     expect(weekGridScrollerClassName).not.toContain("overscroll-x-contain");
     expect(weekGridColumnsClassName).toContain("weekly-grid-columns");
+    expect(gridLayoutHook).toContain("headerScrollerRef");
+    expect(gridLayoutHook).toContain(
+      "headerScrollerElement.scrollLeft = scrollerElement.scrollLeft",
+    );
     expect(gridLayoutHook).toContain("mobileVisibleDayCount = 4");
     expect(gridLayoutHook).toContain("desktopVisibleDayCount = 7");
     expect(gridLayoutHook).toContain("availableDayWidth / visibleDayCount");
