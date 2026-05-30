@@ -34,6 +34,7 @@ export type AccessProfileClient = {
 const allowedAuthNextPaths = new Set([
   "/",
   "/setup",
+  "/onboarding",
   "/change-password",
   ...appRoutes.map((route) => route.href),
 ]);

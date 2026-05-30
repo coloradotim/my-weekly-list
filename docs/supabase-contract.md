@@ -52,6 +52,9 @@ Key fields:
 - `is_allowed`: whether the authenticated user may use the app.
 - `must_change_password`: whether the user must change a temporary password
   before normal access.
+- `onboarding_completed_at`: when a manually provisioned user completed
+  first-run weekly-list onboarding. Existing users with app data are backfilled
+  so they are not sent through onboarding.
 - `created_at`, `updated_at`: audit timestamps.
 
 An auth trigger upserts a profile when a user is created or when the auth email
@@ -63,6 +66,11 @@ not require editing Vercel environment variables or redeploying the app.
 The password-auth migration preserves access for profiles that already existed
 before the change; newly created Auth users default to not allowed until a local
 admin script enables them.
+
+The onboarding migration adds `public.mark_own_onboarding_complete()` so an
+allowed user can mark first-run onboarding complete after creating their initial
+list and current-week plan. The function refuses unauthenticated users and users
+who are disabled or still required to change a temporary password.
 
 ### `weeks`
 
@@ -245,7 +253,8 @@ public.seed_initial_weekly_list()
 ```
 
 Call this function as the authenticated app user after the user has signed in,
-for example from a future setup or onboarding flow:
+for example from a setup or onboarding flow that deliberately wants the starter
+list:
 
 ```sql
 select public.seed_initial_weekly_list();

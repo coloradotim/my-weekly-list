@@ -226,10 +226,12 @@ Run this as the authenticated allowed user after that user has signed in at
 least once. The function uses `auth.uid()`, so it creates rows for the current
 authenticated user and is safe to run more than once.
 
-The normal setup path is the protected `/setup` page in the app. Sign in with
-email/password, open `/setup`, and use `Create my weekly list`. The app
-calls the RPC with the signed-in user's normal Supabase session, so RLS and
-`auth.uid()` stay in effect.
+The normal first-run path for newly provisioned users is `/onboarding`, where
+the user creates their own categories, activities, targets, and current-week
+plan. The older protected `/setup` page may still call this starter-list RPC for
+manual recovery, but it is not the primary first-run experience for new users.
+When the app calls this RPC, it uses the signed-in user's normal Supabase
+session, so RLS and `auth.uid()` stay in effect.
 
 Running the function from the Supabase SQL Editor without an authenticated app
 session fails with:
@@ -243,9 +245,10 @@ manual insert SQL, or putting a service-role key in browser code.
 
 Do not run the seed through browser code with a service-role key.
 
-If setup fails in the app, confirm the migration has been applied, sign in again
-as the allowed user, and retry `/setup`; the seed function is idempotent and will
-not duplicate the initial categories or activity templates.
+If the starter-list RPC fails in the app, confirm the migration has been
+applied, sign in again as the allowed user, and retry the action; the seed
+function is idempotent and will not duplicate the initial categories or activity
+templates.
 
 ## Codex Workflow Rules
 

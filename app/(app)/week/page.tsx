@@ -42,11 +42,11 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
     return (
       <ScreenShell
         eyebrow="This Week"
-        title="Create your starter list first."
-        description="Your reusable categories and activities are not set up yet. Create the starter list, then come back to start this week."
+        title="Build your first weekly list."
+        description="Add your first categories and activities, then plan the current week."
       >
-        <Link className={primaryButtonClassName} href="/setup">
-          Go to setup
+        <Link className={primaryButtonClassName} href="/onboarding">
+          Start onboarding
         </Link>
       </ScreenShell>
     );

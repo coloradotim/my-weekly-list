@@ -20,6 +20,10 @@ const profileAccessMigrationPath = join(
   repoRoot,
   "supabase/migrations/20260530223000_profile_access_password_auth.sql",
 );
+const profileOnboardingMigrationPath = join(
+  repoRoot,
+  "supabase/migrations/20260531003000_profile_onboarding.sql",
+);
 const contractPath = join(repoRoot, "docs/supabase-contract.md");
 
 const migration = readFileSync(migrationPath, "utf8");
@@ -32,6 +36,7 @@ const activityDayCellSkippedMigration = readFileSync(
   "utf8",
 );
 const profileAccessMigration = readFileSync(profileAccessMigrationPath, "utf8");
+const profileOnboardingMigration = readFileSync(profileOnboardingMigrationPath, "utf8");
 const contract = readFileSync(contractPath, "utf8");
 
 describe("Supabase schema migration", () => {
@@ -128,6 +133,14 @@ describe("Supabase schema migration", () => {
     expect(profileAccessMigration).not.toContain("for all");
     expect(contract).toContain("is_allowed");
     expect(contract).toContain("must_change_password");
+  });
+
+  it("stores first-run onboarding completion on profiles", () => {
+    expect(profileOnboardingMigration).toContain("onboarding_completed_at");
+    expect(profileOnboardingMigration).toContain("mark_own_onboarding_complete");
+    expect(profileOnboardingMigration).toContain("is_allowed = true");
+    expect(profileOnboardingMigration).toContain("must_change_password = false");
+    expect(contract).toContain("onboarding_completed_at");
   });
 });
 

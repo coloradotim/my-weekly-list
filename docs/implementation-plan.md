@@ -132,6 +132,8 @@ approves auto-merge.
   disabling app access.
 - Force users with temporary passwords to change them before accessing Today,
   Week, or Review.
+- After password change, route manually provisioned users with no usable weekly
+  list to first-run onboarding instead of a preset starter-list setup screen.
 - Keep service-role credentials local to admin scripts; never expose them to
   browser code or public Vercel runtime env vars.
 - Document required environment variables.
@@ -142,6 +144,8 @@ approves auto-merge.
 - Add tables for weeks, categories, activities/templates, week activities, and day cells.
 - Add row-level security.
 - Seed initial categories and activities from `docs/product-plan.md`.
+- Track first-run onboarding completion on the user's profile so completed users
+  are not repeatedly sent back through onboarding.
 - Document schema and RLS in `docs/supabase-contract.md`.
 
 ### Phase 3 — Week lifecycle logic
@@ -269,6 +273,9 @@ visual language where appropriate.
 - Replace the scaffold/home route with a lightweight authenticated redirect to
   Today. Today owns current-week assurance from the saved list when setup is
   complete and no current week exists.
+- If Today cannot find any usable list data for an allowed user, route to
+  `/onboarding` so the user can create their first categories, activities,
+  targets, and current-week plan.
 - Keep installed-app launch responsive by routing directly to Today and avoiding
   textual loading interstitials during normal Today, Week, and Review
   navigation. Avoid duplicate Supabase auth checks in the app shell when

@@ -19,7 +19,8 @@ This index tracks the intended MVP issue sequence.
 | 11 | #45 | Fix week grid headers, same-day correction, nav state, and edit-list gaps | Post-MVP usability follow-up: sticky Week/Review day headers, limited today-column correction in Week, Today `Unskip`, single-active nav state, category-local `+ Add activity`, and bottom `+ Add category`. | Closed |
 | 12 | #47 | Make Home Screen launch feel immediate | Add lightweight launch/loading states and reduce duplicate app-shell auth work so installed iPhone Home Screen launch feels responsive while Today and Supabase data resolve. | Closed |
 | 13 | #49 | Remove obsolete development preview routes and fixture UI | Remove old `/dev` preview harnesses, fixture-only preview state, and preview-first docs now that production auth and persisted Today/Week/Review flows are stable. | Open |
-| 14 | #58 | Replace email auth links with manual user management | Replace magic links/OTP with email/password login, database-backed access flags, forced password change, and local scripts for creating, resetting, and disabling users. | Open |
+| 14 | #58 | Replace email auth links with manual user management | Replace magic links/OTP with email/password login, database-backed access flags, forced password change, and local scripts for creating, resetting, and disabling users. | Closed |
+| 15 | #61 | Add first-run onboarding for manually provisioned users | Guide newly provisioned allowed users with no usable list through creating first categories, activities, targets, and a current-week plan. This is not public signup. | In progress |
 
 ## Label suggestions
 

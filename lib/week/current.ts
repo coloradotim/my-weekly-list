@@ -672,6 +672,93 @@ export async function createCurrentWeekFromTemplates({
   return { status: "created" as const, weekId: weekResult.week.id };
 }
 
+export async function createReusableCategoryForOnboarding({
+  supabase,
+  userId,
+  categoryName,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  categoryName: string;
+}) {
+  const normalizedCategoryName = categoryName.trim();
+
+  if (!normalizedCategoryName) {
+    return { status: "blocked" as const, message: "Category name is required." };
+  }
+
+  const category = await getOrCreateCategory({
+    supabase,
+    userId,
+    categoryName: normalizedCategoryName,
+  });
+
+  if (category.status !== "success") {
+    return category;
+  }
+
+  return { status: "updated" as const, category: category.category };
+}
+
+export async function createReusableActivityForOnboarding({
+  supabase,
+  userId,
+  activityName,
+  categoryName,
+  targetCount,
+  today = getTodayDateOnly(),
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  activityName: string;
+  categoryName: string;
+  targetCount: number;
+  today?: DateOnly;
+}) {
+  const input = normalizeListInput({ activityName, categoryName, targetCount });
+
+  if (!input) {
+    return {
+      status: "blocked" as const,
+      message: "Activity name, category, and target are required.",
+    };
+  }
+
+  const category = await getOrCreateCategory({
+    supabase,
+    userId,
+    categoryName: input.categoryName,
+  });
+
+  if (category.status !== "success") {
+    return category;
+  }
+
+  const template = await getOrCreateActivityTemplate({
+    supabase,
+    userId,
+    categoryId: category.category.id,
+    activityName: input.activityName,
+    targetCount: input.targetCount,
+  });
+
+  if (template.status !== "success") {
+    return template;
+  }
+
+  const currentWeek = await createCurrentWeekFromTemplates({ supabase, userId, today });
+
+  if (currentWeek.status === "error") {
+    return currentWeek;
+  }
+
+  return {
+    status: "updated" as const,
+    category: category.category,
+    template: template.template,
+  };
+}
+
 async function repairCurrentWeekSnapshots({
   supabase,
   week,
