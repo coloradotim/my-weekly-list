@@ -36,6 +36,11 @@ remain fixed for app use, but it must account for the current visual viewport so
 Chrome controls do not cover the nav or make taps unreliable on the scroll-heavy
 Week and Review screens.
 
+The Week and Review grids should keep horizontal day scrolling without trapping
+normal vertical page scrolling. They should behave like regular page content
+when the user scrolls up or down, even though the day columns can still pan
+horizontally.
+
 ## Design principles
 
 1. Keep the experience simple enough to use daily on an iPhone.

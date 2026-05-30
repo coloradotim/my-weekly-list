@@ -258,7 +258,10 @@ visual language where appropriate.
   offset it from the current `visualViewport` when Chrome controls are visible
   and include that offset in bottom content padding. Week and Review are
   scroll-heavy because of the weekly grids, so verify them alongside Today when
-  changing shell spacing or navigation hit targets.
+  changing shell spacing or navigation hit targets. The shared weekly grid
+  scroller should explicitly allow both horizontal grid panning and normal
+  vertical page panning; avoid scroll containment that prevents the page from
+  behaving like the Today screen in iPhone Chrome.
 - Keep `/plan`, if retained, as a compatibility redirect/internal route rather
   than a primary app destination.
 - Keep Sign out out of normal app chrome; use a deliberate utility route/script
