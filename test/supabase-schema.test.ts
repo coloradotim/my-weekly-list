@@ -16,6 +16,10 @@ const activityDayCellSkippedMigrationPath = join(
   repoRoot,
   "supabase/migrations/20260530010000_activity_day_cells_skipped.sql",
 );
+const profileAccessMigrationPath = join(
+  repoRoot,
+  "supabase/migrations/20260530223000_profile_access_password_auth.sql",
+);
 const contractPath = join(repoRoot, "docs/supabase-contract.md");
 
 const migration = readFileSync(migrationPath, "utf8");
@@ -27,6 +31,7 @@ const activityDayCellSkippedMigration = readFileSync(
   activityDayCellSkippedMigrationPath,
   "utf8",
 );
+const profileAccessMigration = readFileSync(profileAccessMigrationPath, "utf8");
 const contract = readFileSync(contractPath, "utf8");
 
 describe("Supabase schema migration", () => {
@@ -102,6 +107,27 @@ describe("Supabase schema migration", () => {
     expect(migration).toContain("current_user_id uuid := auth.uid()");
     expect(migration).toContain("on conflict do nothing");
     expect(contract).toContain("safe to run more than once");
+  });
+
+  it("stores manual user access and forced password-change state on profiles", () => {
+    expect(profileAccessMigration).toContain("is_allowed boolean not null default false");
+    expect(profileAccessMigration).toContain(
+      "must_change_password boolean not null default false",
+    );
+    expect(profileAccessMigration).toContain(
+      "Preserve access for users who already existed",
+    );
+    expect(profileAccessMigration).toContain("set is_allowed = true");
+    expect(profileAccessMigration).toContain(
+      "public.clear_own_password_change_required()",
+    );
+    expect(profileAccessMigration).toContain(
+      'drop policy if exists "profiles are private to their user"',
+    );
+    expect(profileAccessMigration).toContain("for select");
+    expect(profileAccessMigration).not.toContain("for all");
+    expect(contract).toContain("is_allowed");
+    expect(contract).toContain("must_change_password");
   });
 });
 

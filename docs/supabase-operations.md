@@ -101,47 +101,47 @@ the linked project's migration history. If a migration is missing, run the
 workflow in `apply` mode or run `SUPABASE_MIGRATION_MODE=apply
 scripts/supabase-migrate.sh` locally.
 
-## Owner Auth Bootstrap
+## Manual User Bootstrap
 
-My Weekly List uses Supabase email Magic Link auth for one existing owner user.
-The app never accepts a browser-submitted recipient email. It reads
-`ALLOWED_USER_EMAIL` on the server and calls `signInWithOtp` with
-`shouldCreateUser: false`.
+My Weekly List uses Supabase email/password auth with database-backed app
+access. There is no public signup, magic-link login, OTP login, Google OAuth, or
+in-app registration.
 
 One-time Supabase dashboard setup:
 
 1. Open the Supabase project dashboard.
 2. Go to **Authentication > Sign In / Providers > Email**.
-3. Confirm the Email provider and Magic Link email auth are enabled.
-4. Go to **Authentication > Users**.
-5. Use **Add user > Create new user** to provision `cubuff98@gmail.com` as the
-   existing owner Auth user. Confirm the user has an email identity and can
-   receive Magic Link email.
-6. Return to **Authentication > Sign In / Providers > Email** and disable
+3. Confirm the Email provider is enabled for password login.
+4. Disable
    **Allow new users to sign up** before normal app login/use. Supabase documents
    this as the existing-users-only mode when signup is disabled.
-7. Go to **Authentication > URL Configuration**.
-8. Configure the production Site URL and add allowed redirect URLs for
-   production Vercel and local development:
-   - `https://my-weekly-list.vercel.app/auth/callback`
-   - `https://<production-vercel-domain>/auth/callback`
-   - `http://localhost:3000/auth/callback`
-   - `http://127.0.0.1:3000/auth/callback`
-   If local Magic Link callback URLs include query parameters or nested local
-   paths, add local wildcards too:
-   - `http://localhost:3000/**`
-   - `http://127.0.0.1:3000/**`
+5. Google OAuth is not required.
 
-No Google Cloud OAuth setup is required. Do not add a Before User Created hook
-unless the existing-user-plus-signups-disabled approach proves blocked. Do not
-put service-role keys in browser code.
+Create or update users locally with service-role credentials:
 
-Magic Link email delivery can be rate-limited by Supabase Auth. During testing,
-prefer using an existing logged-in browser session when possible. If email links
-stop arriving, wait for the provider limit window to clear and avoid repeated
-login attempts. Local login requests should generate callback URLs using the
-local request origin, such as `http://localhost:3000/auth/callback` or
-`http://127.0.0.1:3000/auth/callback`, not the production Site URL.
+```bash
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+node scripts/create-user.mjs user@example.com
+```
+
+Reset a user's password and force password change:
+
+```bash
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+node scripts/reset-user-password.mjs user@example.com
+```
+
+Disable app access without deleting historical weekly-list data:
+
+```bash
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+node scripts/disable-user.mjs user@example.com
+```
+
+The create/reset scripts print the temporary password once. The user must
+change that password in the app before accessing Today, Week, or Review.
+`SUPABASE_SERVICE_ROLE_KEY` is local-admin-only; do not put it in browser code
+or public Vercel variables.
 
 ## Vercel Runtime Environment
 
@@ -149,7 +149,6 @@ The Vercel app runtime needs exactly these app variables:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `ALLOWED_USER_EMAIL`
 
 Do not document or configure `NEXT_PUBLIC_SUPABASE_ANON_KEY` as a required app
 variable. The app code reads `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
@@ -157,7 +156,8 @@ variable. The app code reads `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 `NEXT_PUBLIC_` values are exposed to browser code and must remain public-safe.
 Do not add Supabase service-role keys as public Vercel variables. No
 service-role key is required for normal app screens, setup, Week, Today, or
-Review.
+Review. Adding/removing users is a database/admin-script operation and does not
+require a Vercel redeploy.
 
 Production URL:
 
@@ -184,23 +184,26 @@ users should not be able to use fixture-only diagnostic surfaces.
 
 Use this checklist for a production release:
 
-1. Owner can sign in with the email Magic Link.
-2. Unauthorized/non-owner access is blocked or cannot create/use an account.
-3. `/` routes into Today when the current week exists.
-4. If setup is complete and no current week exists, `/` safely ensures the
+1. An allowed user can sign in with email/password.
+2. Invalid password shows a calm error.
+3. A new/reset user is forced to change the temporary password before accessing
+   normal app routes.
+4. A disabled/non-allowed user is blocked.
+5. `/` routes into Today when the current week exists.
+6. If setup is complete and no current week exists, `/` safely ensures the
    current week from the saved list when possible, then lands on Today.
-5. Late current-week assurance does not create elapsed-day planned, missed,
+7. Late current-week assurance does not create elapsed-day planned, missed,
    skipped, or done history.
-6. Today can mark a planned item done.
-7. Today can record unplanned completion through `+ Something else`.
-8. Today can move a planned item to a valid later day.
-9. Today can skip a planned item and later mark it done.
-10. Week reflects Today changes after refresh.
-11. Week current/next-week planning and list editing work.
-12. Review summary loads and counts completed activity-days correctly.
-13. Review day-by-day correction toggles completion truth only.
-14. Past-week Review does not require Close or Finalize.
-15. Repeated navigation and refresh do not create duplicate current weeks or
+8. Today can mark a planned item done.
+9. Today can record unplanned completion through `+ Something else`.
+10. Today can move a planned item to a valid later day.
+11. Today can skip a planned item and later mark it done.
+12. Week reflects Today changes after refresh.
+13. Week current/next-week planning and list editing work.
+14. Review summary loads and counts completed activity-days correctly.
+15. Review day-by-day correction toggles completion truth only.
+16. Past-week Review does not require Close or Finalize.
+17. Repeated navigation and refresh do not create duplicate current weeks or
     duplicate week-activity snapshots.
 
 iPhone Chrome acceptance should confirm bottom navigation, touch targets,
@@ -220,7 +223,7 @@ least once. The function uses `auth.uid()`, so it creates rows for the current
 authenticated user and is safe to run more than once.
 
 The normal setup path is the protected `/setup` page in the app. Sign in with
-the owner Magic Link, open `/setup`, and use `Create my weekly list`. The app
+email/password, open `/setup`, and use `Create my weekly list`. The app
 calls the RPC with the signed-in user's normal Supabase session, so RLS and
 `auth.uid()` stay in effect.
 

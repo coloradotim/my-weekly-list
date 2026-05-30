@@ -45,7 +45,6 @@ Fill in:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your Supabase project URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your Supabase publishable key
-ALLOWED_USER_EMAIL=cubuff98@gmail.com
 ```
 
 Do not use `NEXT_PUBLIC_SUPABASE_ANON_KEY`; the app expects Supabase's
@@ -93,35 +92,44 @@ npm run build
 
 ## Supabase auth
 
-My Weekly List uses Supabase email Magic Link auth for one configured owner
-account. The app does not show an editable email field. The login action reads
-`ALLOWED_USER_EMAIL` on the server and sends a link only to that address with
-`shouldCreateUser: false`, so the owner Auth user must already exist.
+My Weekly List uses Supabase email/password auth. There is no public signup,
+magic-link login, OTP login, Google OAuth, or in-app registration. Tim manually
+provisions users with local scripts, and app access is stored in the
+database-backed `profiles` row.
 
 Required Supabase dashboard setup:
 
 1. In the Supabase project, go to **Authentication > Sign In / Providers > Email**.
-2. Keep the Email provider and Magic Link email auth enabled.
-3. Go to **Authentication > Users**.
-4. Use **Add user > Create new user** to provision `cubuff98@gmail.com` as the one
-   owner Auth user. Confirm the user has an email identity and can receive Magic
-   Link email.
-5. Return to **Authentication > Sign In / Providers > Email** and turn off
-   **Allow new users to sign up** before normal app use. With signup disabled,
-   only existing users can sign in.
-6. Go to **Authentication > URL Configuration** and set the production Site URL.
-   Add redirect URLs for production Vercel and local development, including
-   `http://localhost:3000/auth/callback` and `http://127.0.0.1:3000/auth/callback`.
-   If local callback links include query parameters or nested development paths,
-   also add local wildcards such as `http://localhost:3000/**` and
-   `http://127.0.0.1:3000/**`.
+2. Keep the Email provider enabled for password login.
+3. Disable **Allow new users to sign up** before normal app use.
+4. Google OAuth is not required.
+5. Magic Link and OTP email are not used for normal app login.
 
-No Google Cloud OAuth setup is required. Do not add service-role keys to browser
-code.
+Create a user locally:
 
-Magic Link email delivery is subject to Supabase Auth rate limits. If links stop
-arriving during testing, wait for the limit window to clear, avoid repeated
-login attempts, and keep using an existing browser session when possible.
+```bash
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+node scripts/create-user.mjs user@example.com
+```
+
+Reset a password locally:
+
+```bash
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+node scripts/reset-user-password.mjs user@example.com
+```
+
+Disable app access locally:
+
+```bash
+SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
+node scripts/disable-user.mjs user@example.com
+```
+
+The create/reset scripts print a temporary password once. The user must change
+that password in the app before Today, Week, or Review can be used. Tim does not
+need to know the user's final password. `SUPABASE_SERVICE_ROLE_KEY` is local
+admin-only; never put it in browser code or public Vercel variables.
 
 ## Vercel production setup
 
@@ -137,13 +145,12 @@ unless there is a deliberate reason to scope them differently:
 ```text
 NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-ALLOWED_USER_EMAIL
 ```
 
 `NEXT_PUBLIC_` variables are visible to browser code, so they must contain only
 public-safe Supabase values. Do not add service-role keys as public Vercel
-variables, and do not add service-role keys to app runtime env unless a future
-server-only administrative workflow explicitly requires it.
+variables. User access is stored in Supabase, so adding/removing users does not
+require a Vercel env change or redeploy.
 
 The Vercel project should be connected to the `coloradotim/my-weekly-list`
 GitHub repository. Production deployments should build from `main`.
@@ -227,9 +234,9 @@ The schema contract is documented in [docs/supabase-contract.md](docs/supabase-c
 Use this checklist after deployment:
 
 1. Open `https://my-weekly-list.vercel.app`.
-2. Sign in as the owner with the email Magic Link.
-3. Confirm an unauthenticated browser goes to login and that non-owner accounts
-   cannot use the app.
+2. Sign in with an allowed email/password account.
+3. Confirm an unauthenticated browser goes to login and that disabled/non-allowed
+   accounts cannot use the app.
 4. Confirm `/` lands on Today when the current week exists.
 5. If there is no current week, confirm `/` safely creates or opens the current
    week from the saved list when possible, without duplicate weeks or elapsed-day
@@ -268,8 +275,8 @@ For iPhone Home Screen acceptance, reinstall from the stable install page:
 
 - Do not commit secrets or local environment files.
 - Browser code must use the Supabase publishable key only. Do not use service-role keys in browser code.
-- The app is private and single-user. `ALLOWED_USER_EMAIL` controls the one owner email allowed to open protected app screens.
-- Configure Supabase Auth for email Magic Links, provision the owner Auth user, disable public signup for normal use, and add callback URLs such as `http://localhost:3000/auth/callback` to the allowed redirect URLs for local development.
+- The app is private. Users are manually provisioned with local scripts and database-backed access flags.
+- Configure Supabase Auth for email/password, disable public signup for normal use, and keep service-role credentials local-only.
 - This is a responsive web app, with iPhone Chrome as the primary daily-use target.
 - Native iOS, React Native, push notifications, offline-first behavior, streaks, badges, gamification, and AI coaching are out of scope for the MVP.
 - Historical aggregate look-back is deferred from the MVP.

@@ -10,11 +10,14 @@ Browser and server clients use these public-safe variables:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `ALLOWED_USER_EMAIL`
 
-Do not put a service-role key in browser code. Service-role keys are not needed
-for normal app screens and must remain server-only if they are ever introduced
-for deployment or administrative workflows.
+Local admin scripts use:
+
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+Do not put a service-role key in browser code or public Vercel env vars. The
+service-role key is only for local manual user management scripts.
 
 ## Migration Files
 
@@ -46,10 +49,20 @@ Key fields:
 
 - `id`: references `auth.users(id)` and is the primary key.
 - `email`: copied from the auth user.
+- `is_allowed`: whether the authenticated user may use the app.
+- `must_change_password`: whether the user must change a temporary password
+  before normal access.
 - `created_at`, `updated_at`: audit timestamps.
 
 An auth trigger upserts a profile when a user is created or when the auth email
 changes.
+
+Tim manually creates/resets/disables users with local scripts that use Supabase
+Admin APIs and update these access fields. Adding or removing allowed users does
+not require editing Vercel environment variables or redeploying the app.
+The password-auth migration preserves access for profiles that already existed
+before the change; newly created Auth users default to not allowed until a local
+admin script enables them.
 
 ### `weeks`
 
@@ -268,7 +281,7 @@ RLS is enabled on every app table.
 
 Allowed:
 
-- Authenticated users can read and write their own profile row.
+- Authenticated users can read their own profile row.
 - Authenticated users can read and write their own weeks.
 - Authenticated users can read and write their own categories and activity
   templates.
@@ -281,6 +294,10 @@ Blocked:
 
 - Anonymous/public users cannot read app data.
 - Authenticated users cannot read or write rows owned by another user.
+- Authenticated users cannot directly update access fields on their own profile.
+  The app clears `must_change_password` through the narrow
+  `public.clear_own_password_change_required()` function after a successful
+  Supabase password update.
 - Browser clients cannot bypass RLS with service-role privileges.
 - Closed-week child rows cannot be changed through normal table writes.
 

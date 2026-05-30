@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { checkAllowedUser } from "@/lib/auth/access";
+import { getDatabaseUserAccess, getUnauthorizedEmail } from "@/lib/auth/access";
 import { getSupabaseConfig } from "@/lib/supabase/env";
 
 export async function middleware(request: NextRequest) {
@@ -57,12 +57,26 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const access = checkAllowedUser(user.email);
+  const access = await getDatabaseUserAccess({ supabase, user });
+
+  if (access.status === "must-change-password") {
+    if (pathname !== "/change-password") {
+      return NextResponse.redirect(new URL("/change-password", request.url));
+    }
+
+    return response;
+  }
+
+  if (pathname === "/change-password") {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
 
   if (access.status !== "allowed") {
     const unauthorizedUrl = new URL("/unauthorized", request.url);
-    if (access.status === "unauthorized") {
-      unauthorizedUrl.searchParams.set("email", access.email);
+    const unauthorizedEmail = getUnauthorizedEmail(access);
+
+    if (unauthorizedEmail) {
+      unauthorizedUrl.searchParams.set("email", unauthorizedEmail);
     }
     return NextResponse.redirect(unauthorizedUrl);
   }

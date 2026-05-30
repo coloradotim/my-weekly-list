@@ -18,11 +18,11 @@ export default async function UnauthorizedPage({ searchParams }: UnauthorizedPag
         </h1>
         <p className="mt-3 leading-7 text-stone-700">
           {email
-            ? `${email} is signed in, but this app is limited to the one configured account.`
-            : "You are signed in, but this app is limited to the one configured account."}
+            ? `${email} is signed in, but app access is not enabled for that account.`
+            : "You are signed in, but app access is not enabled for that account."}
         </p>
         <p className="mt-3 leading-7 text-stone-700">
-          Sign out and use the configured owner email when you are ready.
+          Ask Tim to enable access or use a different account.
         </p>
         <form action="/auth/sign-out" method="post" className="mt-6">
           <button

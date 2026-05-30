@@ -547,7 +547,7 @@ describe("week action guardrails", () => {
 
   it("runs mutations behind user and allowed-email checks without service-role keys", () => {
     expect(weekActions).toContain("supabase.auth.getUser()");
-    expect(weekActions).toContain("checkAllowedUser(user.email)");
+    expect(weekActions).toContain("getDatabaseUserAccess");
     expect(weekActions).toContain("setWeekCellPlanned");
     expect(weekActions).toContain("updateWeekActivityListItemAction");
     expect(weekActions).toContain("addWeekActivityListItemAction");

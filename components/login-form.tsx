@@ -1,20 +1,15 @@
-import {
-  completePastedMagicLinkAction,
-  sendOwnerMagicLinkAction,
-} from "@/app/login/actions";
-import { getAllowedUserEmail } from "@/lib/auth/access";
-import { maskEmail } from "@/lib/auth/magic-link";
+import { signInWithPasswordAction } from "@/app/login/actions";
 import { getSupabaseConfig } from "@/lib/supabase/env";
 
 type LoginFormProps = {
+  email?: string;
   nextPath?: string;
   status?: string;
 };
 
-export function LoginForm({ nextPath, status }: LoginFormProps) {
+export function LoginForm({ email = "", nextPath, status }: LoginFormProps) {
   const config = getSupabaseConfig();
   const isConfigured = config.status === "configured";
-  const maskedEmail = maskEmail(getAllowedUserEmail());
   const message = getLoginStatusMessage(status);
 
   return (
@@ -26,56 +21,43 @@ export function LoginForm({ nextPath, status }: LoginFormProps) {
         Sign in to My Weekly List.
       </h1>
       <p className="mt-3 leading-7 text-stone-700">
-        This app is private. A sign-in link can be sent only to the configured owner
-        email.
+        This app is private. Sign in with the email and password Tim gave you.
       </p>
-      <form action={sendOwnerMagicLinkAction} className="mt-6">
+      <form action={signInWithPasswordAction} className="mt-6 space-y-4">
         {nextPath?.startsWith("/") ? (
           <input type="hidden" name="next" value={nextPath} />
         ) : null}
+        <label className="block">
+          <span className="text-sm font-semibold uppercase tracking-wide text-clay">
+            Email
+          </span>
+          <input
+            type="email"
+            name="email"
+            autoComplete="email"
+            defaultValue={email}
+            required
+            className="mt-2 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-base text-ink outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/25"
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm font-semibold uppercase tracking-wide text-clay">
+            Password
+          </span>
+          <input
+            type="password"
+            name="password"
+            autoComplete="current-password"
+            required
+            className="mt-2 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-base text-ink outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/25"
+          />
+        </label>
         <button
           type="submit"
           disabled={!isConfigured}
           className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:bg-stone-300 sm:w-auto"
         >
-          Email me a sign-in link
-        </button>
-      </form>
-      {maskedEmail ? (
-        <p className="mt-3 text-sm leading-6 text-stone-600">
-          A private sign-in link will be sent to {maskedEmail}.
-        </p>
-      ) : null}
-      <form
-        action={completePastedMagicLinkAction}
-        className="mt-6 border-t border-stone-200 pt-5"
-      >
-        {nextPath?.startsWith("/") ? (
-          <input type="hidden" name="next" value={nextPath} />
-        ) : null}
-        <label
-          htmlFor="magicLink"
-          className="text-sm font-semibold uppercase tracking-wide text-clay"
-        >
-          Already have the email?
-        </label>
-        <p className="mt-2 text-sm leading-6 text-stone-600">
-          Copy the sign-in link from Gmail, paste it here, and finish sign-in inside the
-          Home Screen app.
-        </p>
-        <textarea
-          id="magicLink"
-          name="magicLink"
-          rows={3}
-          placeholder="Paste sign-in link"
-          className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/25"
-        />
-        <button
-          type="submit"
-          disabled={!isConfigured}
-          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-clay bg-white px-5 text-sm font-semibold text-clay transition hover:bg-paper focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:border-stone-200 disabled:text-stone-400 sm:w-auto"
-        >
-          Finish sign-in
+          Sign in
         </button>
       </form>
       {!isConfigured ? (
@@ -94,32 +76,12 @@ export function LoginForm({ nextPath, status }: LoginFormProps) {
 }
 
 function getLoginStatusMessage(status: string | undefined) {
-  if (status === "sent") {
-    return "Check your email for a private sign-in link.";
-  }
-
   if (status === "error") {
-    return "The sign-in link could not be sent just now. Confirm the owner user exists in Supabase and try again.";
+    return "Could not sign in with that email and password.";
   }
 
   if (status === "missing-config") {
-    return "Auth setup is missing. Add the Supabase env vars and allowed owner email, then restart.";
-  }
-
-  if (status === "invalid-link") {
-    return "That sign-in link could not be used. Copy the full link from the latest email and try again.";
-  }
-
-  if (status === "token-error") {
-    return "Supabase rejected that sign-in token. Request a fresh link, copy the full URL, and paste it here without opening it first.";
-  }
-
-  if (status === "callback-error") {
-    return "That sign-in link reached the app, but Supabase could not finish the session. Request a fresh link and paste it here instead of opening it directly.";
-  }
-
-  if (status === "missing-session") {
-    return "The app does not have an active session yet. Request a fresh link and paste it here.";
+    return "Auth setup is missing. Add the Supabase env vars, then restart.";
   }
 
   return "";

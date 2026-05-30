@@ -1,35 +1,95 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { checkAllowedUser, normalizeEmail } from "@/lib/auth/access";
+import {
+  getDatabaseUserAccess,
+  getSafeAuthNextPath,
+  normalizeEmail,
+  type AccessProfileClient,
+} from "@/lib/auth/access";
 import { getSupabaseConfig } from "@/lib/supabase/env";
 
 afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("allowed-user access control", () => {
-  it("normalizes email addresses before comparison", () => {
+function profileClient(
+  profile: {
+    email: string | null;
+    is_allowed: boolean | null;
+    must_change_password: boolean | null;
+  } | null,
+): AccessProfileClient {
+  return {
+    from() {
+      return {
+        select() {
+          return {
+            eq() {
+              return {
+                async maybeSingle() {
+                  return { data: profile, error: null };
+                },
+              };
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+describe("database-backed access control", () => {
+  it("normalizes email addresses", () => {
     expect(normalizeEmail("  CUBUFF98@gmail.com ")).toBe("cubuff98@gmail.com");
   });
 
-  it("allows only the configured email", () => {
-    expect(checkAllowedUser("cubuff98@gmail.com", "cubuff98@gmail.com")).toEqual({
-      status: "allowed",
-      email: "cubuff98@gmail.com",
+  it("allows an authenticated user with an allowed profile", async () => {
+    await expect(
+      getDatabaseUserAccess({
+        supabase: profileClient({
+          email: "USER@example.com",
+          is_allowed: true,
+          must_change_password: false,
+        }),
+        user: { id: "user-id", email: "fallback@example.com" },
+      }),
+    ).resolves.toEqual({ status: "allowed", email: "user@example.com" });
+  });
+
+  it("routes temporary-password users to password change", async () => {
+    await expect(
+      getDatabaseUserAccess({
+        supabase: profileClient({
+          email: "user@example.com",
+          is_allowed: true,
+          must_change_password: true,
+        }),
+        user: { id: "user-id", email: "user@example.com" },
+      }),
+    ).resolves.toEqual({
+      status: "must-change-password",
+      email: "user@example.com",
     });
   });
 
-  it("rejects any other authenticated email", () => {
-    expect(checkAllowedUser("friend@example.com", "cubuff98@gmail.com")).toEqual({
-      status: "unauthorized",
-      email: "friend@example.com",
-      allowedEmail: "cubuff98@gmail.com",
-    });
+  it("blocks authenticated users whose profile is not allowed", async () => {
+    await expect(
+      getDatabaseUserAccess({
+        supabase: profileClient({
+          email: "user@example.com",
+          is_allowed: false,
+          must_change_password: false,
+        }),
+        user: { id: "user-id", email: "user@example.com" },
+      }),
+    ).resolves.toEqual({ status: "unauthorized", email: "user@example.com" });
   });
 
-  it("reports missing allowed-user configuration", () => {
-    expect(checkAllowedUser("cubuff98@gmail.com", "")).toEqual({
-      status: "missing-allowed-email",
-    });
+  it("keeps post-login routing on safe in-app paths", () => {
+    expect(getSafeAuthNextPath("/today")).toBe("/today");
+    expect(getSafeAuthNextPath("/week")).toBe("/week");
+    expect(getSafeAuthNextPath("/review")).toBe("/review");
+    expect(getSafeAuthNextPath("/change-password")).toBe("/change-password");
+    expect(getSafeAuthNextPath("https://example.com")).toBe("/");
   });
 });
 

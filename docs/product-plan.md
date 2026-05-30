@@ -446,17 +446,22 @@ correction of forgotten prior-day completions.
 
 ## Authentication and access
 
-The app is private and single-user.
+The app is private. Login uses Supabase email/password auth for users Tim
+manually provisions.
 
-Preferred approach:
+Current approach:
 
-- Supabase Auth with email Magic Link login for the configured owner account.
-- Lock access to `cubuff98@gmail.com`.
-- Use an `ALLOWED_USER_EMAIL` environment variable so the allowed user is configured outside source code.
-- Do not expose an editable login email field; the app should send links only to `ALLOWED_USER_EMAIL`.
-- Disable new public signups in Supabase after the owner Auth user exists.
-- Reject all other authenticated users.
-- Use database row-level security policies appropriate for a single-user app.
+- No public signup.
+- No magic-link or OTP login for normal use.
+- No Google OAuth.
+- Users sign in with email and password.
+- App access is stored in the database, not in Vercel allowlist env vars.
+- Tim creates users, resets passwords, and disables users from local scripts.
+- New or reset users receive temporary passwords and must change them in the app
+  before accessing Today, Week, or Review.
+- Service-role credentials are local-admin-only and must never be exposed to
+  browser code or public Vercel runtime variables.
+- Use database row-level security policies appropriate for a private app.
 
 ## Initial categories and activities
 
@@ -589,7 +594,8 @@ Important test areas:
 ## First implementation sequence
 
 1. Responsive web foundation: Next.js, TypeScript, linting, test setup, basic app shell, and mobile browser layout baseline.
-2. Supabase setup: client, environment variables, auth guard, allowed-user check.
+2. Supabase setup: client, environment variables, auth guard, database-backed
+   access check.
 3. Database schema: weeks, categories, activities, week activities, day cells, seed data.
 4. Week lifecycle/date logic: current, next, and past week behavior; Monday-Sunday dates; Sunday/Monday/late-start behavior.
 5. This Week grid: display seeded week and support planning-only cell changes with defined visual status language.
