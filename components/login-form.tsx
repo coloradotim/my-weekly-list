@@ -1,4 +1,7 @@
-import { sendOwnerMagicLinkAction } from "@/app/login/actions";
+import {
+  completePastedMagicLinkAction,
+  sendOwnerMagicLinkAction,
+} from "@/app/login/actions";
 import { getAllowedUserEmail } from "@/lib/auth/access";
 import { maskEmail } from "@/lib/auth/magic-link";
 import { getSupabaseConfig } from "@/lib/supabase/env";
@@ -43,6 +46,38 @@ export function LoginForm({ nextPath, status }: LoginFormProps) {
           A private sign-in link will be sent to {maskedEmail}.
         </p>
       ) : null}
+      <form
+        action={completePastedMagicLinkAction}
+        className="mt-6 border-t border-stone-200 pt-5"
+      >
+        {nextPath?.startsWith("/") ? (
+          <input type="hidden" name="next" value={nextPath} />
+        ) : null}
+        <label
+          htmlFor="magicLink"
+          className="text-sm font-semibold uppercase tracking-wide text-clay"
+        >
+          Already have the email?
+        </label>
+        <p className="mt-2 text-sm leading-6 text-stone-600">
+          Copy the sign-in link from Gmail, paste it here, and finish sign-in inside the
+          Home Screen app.
+        </p>
+        <textarea
+          id="magicLink"
+          name="magicLink"
+          rows={3}
+          placeholder="Paste sign-in link"
+          className="mt-3 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-ink outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/25"
+        />
+        <button
+          type="submit"
+          disabled={!isConfigured}
+          className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-clay bg-white px-5 text-sm font-semibold text-clay transition hover:bg-paper focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 focus:ring-offset-white disabled:cursor-not-allowed disabled:border-stone-200 disabled:text-stone-400 sm:w-auto"
+        >
+          Finish sign-in
+        </button>
+      </form>
       {!isConfigured ? (
         <p className="mt-4 text-sm leading-6 text-stone-600">
           Local auth setup is missing. Add the Supabase env vars from `.env.example`, then
@@ -69,6 +104,10 @@ function getLoginStatusMessage(status: string | undefined) {
 
   if (status === "missing-config") {
     return "Auth setup is missing. Add the Supabase env vars and allowed owner email, then restart.";
+  }
+
+  if (status === "invalid-link") {
+    return "That sign-in link could not be used. Copy the full link from the latest email and try again.";
   }
 
   return "";
