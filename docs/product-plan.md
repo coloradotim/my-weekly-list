@@ -286,11 +286,17 @@ It should show:
 
 The grid is a planning and weekly-overview surface. Completion entry belongs in
 Today, while correction of forgotten prior-day completions belongs in Review.
+The current-day column is the one limited exception: if today's Week cell is
+already done or skipped, tapping it may clear that same-day fact and return the
+cell to its planned/open or blank state. Past completion correction remains in
+Review, and Week must not add Move, Skip, or Mark done actions to the grid.
 
 For the current Week on mobile, the grid should open near today's column once on
 initial entry. Manual horizontal scrolling should be respected afterward, and
 planning toggles must not reset the scroll position. Next Week and Past Week
-views can open at Monday.
+views can open at Monday. Week and Review detail grids should keep the
+weekday/date header sticky while vertically scrolling so day context stays
+visible.
 
 ### List Editing Inside Week
 
@@ -299,7 +305,8 @@ destination. Use compact copy like `Edit list` or `Edit next week's list`.
 
 It should support future-week list editing:
 
-- add activity
+- add activity from within a category, with that category preselected
+- add a category from the bottom of the list editor
 - edit activity name
 - edit category
 - create a new category when adding or editing an activity
@@ -409,7 +416,8 @@ actions.
 Skip means the user intentionally decided not to complete an occurrence planned
 for today. It preserves the original planned occurrence, does not change the
 weekly target, and does not remove the activity from future weeks. A skipped
-activity remains eligible to be marked done later the same day. Review owns
+activity remains eligible to be marked done later the same day, and an `Unskip`
+action returns it to open Planned for today without marking it done. Review owns
 correction of forgotten prior-day completions.
 
 ## Planning rules
@@ -418,6 +426,9 @@ correction of forgotten prior-day completions.
 - Sunday is the preferred review and next-week planning day.
 - Monday is the start of the active week.
 - Week owns current-week viewing, next-week planning, and future list editing.
+- Week's day header should remain visible during vertical grid scrolling.
+- The app nav should derive active state from the current route segment and show
+  exactly one active item.
 - There is no permanent top-level Plan workflow in the product model.
 - Copy previous week should default to copying activities, target counts, categories, and planned days when planning before the new week starts.
 - If creating the current week late, copy activities and target counts but default to planned days from today forward only.

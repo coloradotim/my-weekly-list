@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  applyOptimisticWeekCellFacts,
   applyOptimisticPlanningCell,
+  getOptimisticWeekCellFacts,
   getOptimisticPlannedValue,
   getPlanningCellKey,
 } from "@/lib/week/optimistic";
@@ -82,6 +84,76 @@ describe("optimistic week planning", () => {
     ).toBe(closedView);
   });
 
+  it("clears today planned completion back to an open planned cell", () => {
+    const initial = fixtureView({
+      walkToday: cell("2026-06-04", true, true, "done", false, true),
+    });
+    const nextFacts = getOptimisticWeekCellFacts(getCell(initial, "walk", "2026-06-04"));
+
+    expect(nextFacts).toEqual({ planned: true, done: false, skipped: false });
+
+    const view = applyOptimisticWeekCellFacts({
+      view: initial,
+      activityId: "walk",
+      cellDate: "2026-06-04",
+      ...nextFacts!,
+    });
+
+    expect(getCell(view, "walk", "2026-06-04")).toMatchObject({
+      planned: true,
+      done: false,
+      skipped: false,
+      state: "planned",
+      isPlanningEditable: true,
+    });
+  });
+
+  it("clears today unplanned completion back to a blank cell", () => {
+    const initial = fixtureView({
+      walkToday: cell("2026-06-04", false, true, "done", false, true),
+    });
+    const view = applyOptimisticWeekCellFacts({
+      view: initial,
+      activityId: "walk",
+      cellDate: "2026-06-04",
+      planned: false,
+      done: false,
+      skipped: false,
+    });
+
+    expect(getCell(view, "walk", "2026-06-04")).toMatchObject({
+      planned: false,
+      done: false,
+      skipped: false,
+      state: "blank",
+      isPlanningEditable: true,
+    });
+  });
+
+  it("clears today skipped state back to an open planned cell", () => {
+    const initial = fixtureView({
+      walkToday: cell("2026-06-04", true, false, "missed", false, true, true),
+    });
+    const nextFacts = getOptimisticWeekCellFacts(getCell(initial, "walk", "2026-06-04"));
+
+    expect(nextFacts).toEqual({ planned: true, done: false, skipped: false });
+
+    const view = applyOptimisticWeekCellFacts({
+      view: initial,
+      activityId: "walk",
+      cellDate: "2026-06-04",
+      ...nextFacts!,
+    });
+
+    expect(getCell(view, "walk", "2026-06-04")).toMatchObject({
+      planned: true,
+      done: false,
+      skipped: false,
+      state: "planned",
+      isPlanningEditable: true,
+    });
+  });
+
   it("updates separate cells independently", () => {
     const first = applyOptimisticPlanningCell({
       view: fixtureView(),
@@ -131,6 +203,13 @@ describe("optimistic week planning", () => {
     expect(thisWeekGrid).not.toContain(">\n        /\n");
     expect(thisWeekGrid).not.toContain("opacity-80");
   });
+
+  it("keeps Week day headers sticky while the grid scrolls vertically", () => {
+    expect(thisWeekGrid).toContain("data-week-grid-header-scroll");
+    expect(thisWeekGrid).toContain("sticky top-0 z-30 overflow-hidden");
+    expect(thisWeekGrid).toContain("rounded-t-none border-t-0");
+    expect(thisWeekGrid).toContain("ref={gridLayout.headerScrollerRef}");
+  });
 });
 
 function getCell(view: ThisWeekViewModel, activityId: string, cellDate: string) {
@@ -169,7 +248,7 @@ function closedFixtureView() {
   } satisfies ThisWeekViewModel;
 }
 
-function fixtureView() {
+function fixtureView(overrides: { walkToday?: ReturnType<typeof cell> } = {}) {
   return {
     week: {
       id: "week-1",
@@ -203,7 +282,7 @@ function fixtureView() {
               cell("2026-06-01", true, true, "done", false),
               cell("2026-06-02", true, false, "missed", false),
               cell("2026-06-03", false, false, "blank", false),
-              cell("2026-06-04", true, false, "planned", true),
+              overrides.walkToday ?? cell("2026-06-04", true, false, "planned", true),
               cell("2026-06-05", false, false, "blank", true),
               cell("2026-06-06", false, false, "blank", true),
               cell("2026-06-07", false, false, "blank", true),
@@ -237,13 +316,16 @@ function cell(
   done: boolean,
   state: "blank" | "planned" | "done" | "missed",
   isPlanningEditable: boolean,
+  isTodayCorrectionEditable = false,
+  skipped = false,
 ) {
   return {
     date,
     planned,
     done,
-    skipped: false,
+    skipped,
     state,
     isPlanningEditable,
+    isTodayCorrectionEditable,
   };
 }

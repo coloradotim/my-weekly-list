@@ -195,6 +195,26 @@ describe("persisted Today model", () => {
     });
   });
 
+  it("unskips a skipped row back into open Planned for today", () => {
+    const view = buildTodayViewModel(
+      applyOptimisticTodayAction(fixtureState(), {
+        type: "undo-skip",
+        activityId: "meditation",
+      }),
+    );
+
+    expect(view.skippedToday.some((activity) => activity.id === "meditation")).toBe(
+      false,
+    );
+    expect(
+      view.openPlannedToday.find((activity) => activity.id === "meditation"),
+    ).toMatchObject({
+      isPlannedToday: true,
+      isDoneToday: false,
+      isSkippedToday: false,
+    });
+  });
+
   it("uses remaining day names only and has no Sunday move dates", () => {
     expect(
       getRemainingMoveDates({
@@ -263,6 +283,8 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Mark done today");
     expect(todayClient).toContain("Move");
     expect(todayClient).toContain("Skip");
+    expect(todayClient).toContain("Unskip");
+    expect(todayClient).toContain("onUnskip");
     expect(todayClient).toContain("Collapse");
     expect(todayClient).toContain("Expand");
     expect(todayClient).not.toContain("Also done today");

@@ -71,14 +71,13 @@ export function ThisWeekGrid({
       ) : null}
 
       <div
-        ref={gridLayout.scrollerRef}
-        data-week-grid-scroll
-        data-initial-scroll={view.week.status === "active" ? "today" : "monday"}
-        className={weekGridScrollerClassName}
+        ref={gridLayout.headerScrollerRef}
+        data-week-grid-header-scroll
+        className="sticky top-0 z-30 overflow-hidden rounded-t-lg border border-b-0 border-stone-200 bg-white"
         style={gridLayout.scrollerStyle}
       >
         <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
-          <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3 sm:py-3">
+          <div className="sticky left-0 z-40 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3 sm:py-3">
             Activity
           </div>
           {view.dayDates.map((date, index) => (
@@ -95,7 +94,17 @@ export function ThisWeekGrid({
               </span>
             </div>
           ))}
+        </div>
+      </div>
 
+      <div
+        ref={gridLayout.scrollerRef}
+        data-week-grid-scroll
+        data-initial-scroll={view.week.status === "active" ? "today" : "monday"}
+        className={`${weekGridScrollerClassName} rounded-t-none border-t-0`}
+        style={gridLayout.scrollerStyle}
+      >
+        <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
           {view.categories.map((category) => {
             const isCollapsed = collapsedCategorySet.has(category.name);
 
@@ -185,13 +194,19 @@ function WeekCell({
   isToday: boolean;
   renderPlanningControl: PlanningControlRenderer;
 }) {
-  const actionLabel = cell.planned ? "Clear planned day" : "Plan this day";
+  const isEditable = cell.isPlanningEditable || cell.isTodayCorrectionEditable;
+  const actionLabel =
+    cell.done || cell.skipped
+      ? "Clear today's completion status"
+      : cell.planned
+        ? "Clear planned day"
+        : "Plan this day";
   const ariaLabel = `${activity.activityName}, ${formatLongDate(cell.date)}: ${formatCellState(
     cell.state,
-  )}${cell.isPlanningEditable ? `. ${actionLabel}.` : "."}`;
+  )}${isEditable ? `. ${actionLabel}.` : "."}`;
   const controlClassName =
     "flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full transition hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:min-h-11 sm:min-w-11";
-  const mark = <CellMark editable={cell.isPlanningEditable} state={cell.state} />;
+  const mark = <CellMark editable={isEditable} state={cell.state} />;
 
   return (
     <div
@@ -199,7 +214,7 @@ function WeekCell({
         isToday ? "bg-mist/35" : "bg-white"
       }`}
     >
-      {cell.isPlanningEditable ? (
+      {isEditable ? (
         renderPlanningControl({
           activity,
           cell,

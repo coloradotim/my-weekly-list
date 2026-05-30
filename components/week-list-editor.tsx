@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
+  addWeekActivityListItemClientAction,
   addWeekActivityListItemAction,
   removeWeekActivityFromFutureClientAction,
   reorderWeekActivitiesAction,
@@ -10,7 +11,12 @@ import {
   updateWeekActivityListItemAction,
   updateWeekActivityListItemClientAction,
 } from "@/app/(app)/week/actions";
-import type { ThisWeekViewModel, WeekGridActivity } from "@/lib/week/current";
+import {
+  canTogglePlanningCell,
+  type AddedWeekActivity,
+  type ThisWeekViewModel,
+  type WeekGridActivity,
+} from "@/lib/week/current";
 
 type WeekListCategory = ThisWeekViewModel["categories"][number];
 
@@ -23,7 +29,9 @@ export function WeekListEditor({
 }) {
   const [listCategories, setListCategories] = useState(view.categories);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
+  const [addingCategoryName, setAddingCategoryName] = useState<string | null>(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [dragItem, setDragItem] = useState<
     { type: "category"; id: string } | { type: "activity"; id: string } | null
   >(null);
@@ -110,6 +118,117 @@ export function WeekListEditor({
           onCategoriesChange?.(previousCategories);
         });
     });
+  }
+
+  function addActivityToList({
+    activityId,
+    activityName,
+    categoryName,
+    targetCount,
+  }: {
+    activityId: string;
+    activityName: string;
+    categoryName: string;
+    targetCount: number;
+  }) {
+    const existingCategory = listCategories.find(
+      (category) => category.name.toLowerCase() === categoryName.toLowerCase(),
+    );
+    const categorySortOrder =
+      existingCategory?.sortOrder ??
+      Math.max(0, ...listCategories.map((category) => category.sortOrder)) + 10;
+    const normalizedCategoryName = existingCategory?.name ?? categoryName;
+    const nextActivity: WeekGridActivity = {
+      id: activityId,
+      activityTemplateId: null,
+      categoryId: null,
+      categoryName: normalizedCategoryName,
+      categorySortOrder,
+      activityName,
+      targetCount,
+      doneCount: 0,
+      sortOrder:
+        Math.max(
+          0,
+          ...(existingCategory?.activities ?? []).map((activity) => activity.sortOrder),
+        ) + 10,
+      cells: view.dayDates.map((date) => ({
+        date,
+        planned: false,
+        done: false,
+        skipped: false,
+        state: "blank" as const,
+        isPlanningEditable: canTogglePlanningCell({
+          weekStatus: view.week.status,
+          date,
+          today: view.today,
+          planned: false,
+          done: false,
+          skipped: false,
+          state: "blank",
+        }),
+        isTodayCorrectionEditable: false,
+      })),
+    };
+    const nextCategories = existingCategory
+      ? listCategories.map((category) =>
+          category.name === existingCategory.name
+            ? {
+                ...category,
+                activities: [...category.activities, nextActivity].toSorted(
+                  compareListActivities,
+                ),
+              }
+            : category,
+        )
+      : [
+          ...listCategories,
+          {
+            name: normalizedCategoryName,
+            sortOrder: categorySortOrder,
+            activities: [nextActivity],
+          },
+        ].toSorted(
+          (left, right) =>
+            left.sortOrder - right.sortOrder || left.name.localeCompare(right.name),
+        );
+
+    return nextCategories;
+  }
+
+  function addCategoryToList(categoryName: string) {
+    const normalizedName = categoryName.trim();
+
+    if (!normalizedName) {
+      return;
+    }
+
+    const existingCategory = listCategories.find(
+      (category) => category.name.toLowerCase() === normalizedName.toLowerCase(),
+    );
+
+    if (existingCategory) {
+      setAddingCategoryName(existingCategory.name);
+      setIsAddingCategory(false);
+      setNewCategoryName("");
+      return;
+    }
+
+    const nextCategories = [
+      ...listCategories,
+      {
+        name: normalizedName,
+        sortOrder:
+          Math.max(0, ...listCategories.map((category) => category.sortOrder)) + 10,
+        activities: [],
+      },
+    ];
+
+    setListCategories(nextCategories);
+    onCategoriesChange?.(nextCategories);
+    setAddingCategoryName(normalizedName);
+    setIsAddingCategory(false);
+    setNewCategoryName("");
   }
 
   function updateActivityInList({
@@ -331,6 +450,18 @@ export function WeekListEditor({
                     {category.activities.length === 1 ? "activity" : "activities"} hidden
                   </span>
                 ) : null}
+                {!isCollapsed ? (
+                  <button
+                    type="button"
+                    className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-full border border-clay/25 bg-white/80 px-2.5 text-xs font-semibold text-clay transition hover:border-clay hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:px-3"
+                    onClick={() => {
+                      setEditingId(null);
+                      setAddingCategoryName(category.name);
+                    }}
+                  >
+                    + Add
+                  </button>
+                ) : null}
               </div>
               {!isCollapsed ? (
                 <div className="divide-y divide-stone-200">
@@ -408,38 +539,127 @@ export function WeekListEditor({
                             setDragItem({ type: "activity", id: activity.id })
                           }
                           onEdit={() => {
-                            setIsAdding(false);
+                            setAddingCategoryName(null);
                             setEditingId(activity.id);
                           }}
                         />
                       )}
                     </div>
                   ))}
+                  {addingCategoryName === category.name ? (
+                    <div className="bg-paper p-3">
+                      <ActivityEditForm
+                        categories={categories}
+                        action={addWeekActivityListItemAction}
+                        initialCategoryName={category.name}
+                        onCancel={() => setAddingCategoryName(null)}
+                        extraFields={
+                          <input type="hidden" name="weekId" value={view.week.id} />
+                        }
+                        onOptimisticSave={({ formData, values }) => {
+                          const previousCategories = listCategories;
+                          const temporaryId = `new-${crypto.randomUUID()}`;
+                          const nextCategories = addActivityToList({
+                            activityId: temporaryId,
+                            activityName: values.activityName,
+                            categoryName: values.categoryName,
+                            targetCount: values.targetCount,
+                          });
+
+                          setSaveError(null);
+                          setAddingCategoryName(null);
+                          setListCategories(nextCategories);
+                          onCategoriesChange?.(nextCategories);
+
+                          startTransition(() => {
+                            void addWeekActivityListItemClientAction(formData)
+                              .then((response) => {
+                                if (response.status === "updated") {
+                                  if (response.activity) {
+                                    const persistedActivity = response.activity;
+                                    setListCategories((current) => {
+                                      const replaced = replaceTemporaryActivity(
+                                        current,
+                                        temporaryId,
+                                        persistedActivity,
+                                      );
+                                      onCategoriesChange?.(replaced);
+                                      return replaced;
+                                    });
+                                  }
+                                  return;
+                                }
+
+                                setSaveError(
+                                  "message" in response
+                                    ? response.message
+                                    : "That activity could not be added just now.",
+                                );
+                                setListCategories(previousCategories);
+                                onCategoriesChange?.(previousCategories);
+                              })
+                              .catch(() => {
+                                setSaveError(
+                                  "That activity could not be added just now. Try again.",
+                                );
+                                setListCategories(previousCategories);
+                                onCategoriesChange?.(previousCategories);
+                              });
+                          });
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </section>
           );
         })}
 
-        {isAdding ? (
-          <div className="rounded-lg border border-stone-200 bg-paper p-3">
-            <ActivityEditForm
-              categories={categories}
-              action={addWeekActivityListItemAction}
-              onCancel={() => setIsAdding(false)}
-              extraFields={<input type="hidden" name="weekId" value={view.week.id} />}
-            />
-          </div>
+        {isAddingCategory ? (
+          <form
+            className="rounded-lg border border-stone-200 bg-paper p-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              addCategoryToList(newCategoryName);
+            }}
+          >
+            <label className={fieldLabelClassName}>
+              Category name
+              <input
+                className={textInputClassName}
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                required
+              />
+            </label>
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className={secondaryButtonClassName}
+                onClick={() => {
+                  setIsAddingCategory(false);
+                  setNewCategoryName("");
+                }}
+              >
+                Cancel
+              </button>
+              <button type="submit" className={primaryButtonClassName}>
+                Add category
+              </button>
+            </div>
+          </form>
         ) : (
           <button
             type="button"
             className={secondaryButtonClassName}
             onClick={() => {
               setEditingId(null);
-              setIsAdding(true);
+              setAddingCategoryName(null);
+              setIsAddingCategory(true);
             }}
           >
-            + Add activity
+            + Add category
           </button>
         )}
       </div>
@@ -490,6 +710,7 @@ function ActivityEditForm({
   categories,
   action,
   extraFields,
+  initialCategoryName,
   onOptimisticSave,
   canDelete = false,
   onDelete,
@@ -499,6 +720,7 @@ function ActivityEditForm({
   categories: { name: string; sortOrder: number }[];
   action: (formData: FormData) => Promise<void>;
   extraFields: ReactNode;
+  initialCategoryName?: string;
   onOptimisticSave?: ({
     formData,
     values,
@@ -512,7 +734,7 @@ function ActivityEditForm({
 }) {
   const [categoryMode, setCategoryMode] = useState<"existing" | "new">("existing");
   const [selectedCategory, setSelectedCategory] = useState(
-    activity?.categoryName ?? categories[0]?.name ?? "",
+    activity?.categoryName ?? initialCategoryName ?? categories[0]?.name ?? "",
   );
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -746,6 +968,31 @@ function compareListActivities(left: WeekGridActivity, right: WeekGridActivity) 
     left.sortOrder - right.sortOrder ||
     left.activityName.localeCompare(right.activityName)
   );
+}
+
+function replaceTemporaryActivity(
+  categories: WeekListCategory[],
+  temporaryId: string,
+  persistedActivity: AddedWeekActivity,
+) {
+  return categories.map((category) => ({
+    ...category,
+    activities: category.activities.map((activity) =>
+      activity.id === temporaryId
+        ? {
+            ...activity,
+            id: persistedActivity.id,
+            activityTemplateId: persistedActivity.activityTemplateId,
+            categoryId: persistedActivity.categoryId,
+            categoryName: persistedActivity.categoryName,
+            categorySortOrder: persistedActivity.categorySortOrder,
+            activityName: persistedActivity.activityName,
+            targetCount: persistedActivity.targetCount,
+            sortOrder: persistedActivity.sortOrder,
+          }
+        : activity,
+    ),
+  }));
 }
 
 const fieldLabelClassName =

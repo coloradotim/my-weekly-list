@@ -83,6 +83,7 @@ export type WeekGridCell = {
   skipped: boolean;
   state: CellVisualState;
   isPlanningEditable: boolean;
+  isTodayCorrectionEditable: boolean;
 };
 
 export type WeekGridActivity = {
@@ -342,6 +343,24 @@ export function canTogglePlanningCell({
   return compareDateOnly(date, today) >= 0;
 }
 
+export function canCorrectTodayCellFromWeek({
+  week,
+  date,
+  today,
+  done,
+  skipped = false,
+}: {
+  week: Pick<WeekRecord, "status" | "weekStartDate">;
+  date: DateOnly;
+  today: DateOnly;
+  done: boolean;
+  skipped?: boolean;
+}) {
+  return (
+    date === today && (done || skipped) && canMutateCurrentWeekDayFacts({ week, today })
+  );
+}
+
 export function getNextPlanningCellFacts({
   currentCell,
 }: {
@@ -500,6 +519,13 @@ export function buildThisWeekViewModel({
           done,
           skipped,
           state,
+        }),
+        isTodayCorrectionEditable: canCorrectTodayCellFromWeek({
+          week,
+          date,
+          today,
+          done,
+          skipped,
         }),
       };
     });
@@ -733,6 +759,7 @@ export async function setWeekCellPlanned({
 
   const planned = existing.cell?.planned ?? false;
   const done = existing.cell?.done ?? false;
+  const skipped = existing.cell?.skipped ?? false;
   const today = getTodayDateOnly();
   const state = getCellVisualState({
     weekStatus: week.status,
@@ -740,6 +767,7 @@ export async function setWeekCellPlanned({
     today,
     planned,
     done,
+    skipped,
   });
 
   if (
@@ -749,6 +777,7 @@ export async function setWeekCellPlanned({
       today,
       planned,
       done,
+      skipped,
       state,
     })
   ) {
@@ -791,6 +820,96 @@ export async function setWeekCellPlanned({
   }
 
   return { status: "updated" as const };
+}
+
+export async function setWeekCellFacts({
+  supabase,
+  weekActivityId,
+  cellDate,
+  facts,
+}: {
+  supabase: SupabaseClient;
+  weekActivityId: string;
+  cellDate: DateOnly;
+  facts: ActivityDayCellFacts;
+}) {
+  parseDateOnly(cellDate);
+
+  if (facts.done || facts.skipped) {
+    return {
+      status: "blocked" as const,
+      message: "Week can only clear same-day completion or skip facts.",
+    };
+  }
+
+  const owner = await getWeekActivityOwner(supabase, weekActivityId);
+
+  if (owner.status === "error") {
+    return { status: "error" as const, message: owner.message };
+  }
+
+  if (!owner.activity) {
+    return { status: "error" as const, message: "Activity not found." };
+  }
+
+  const week = owner.activity.week;
+
+  if (
+    compareDateOnly(cellDate, week.weekStartDate) < 0 ||
+    compareDateOnly(cellDate, week.weekEndDate) > 0
+  ) {
+    return { status: "blocked" as const, message: "That day is outside this week." };
+  }
+
+  const existing = await getDayCell(supabase, weekActivityId, cellDate);
+
+  if (existing.status === "error") {
+    return { status: "error" as const, message: existing.message };
+  }
+
+  const current = existing.cell ?? {
+    planned: false,
+    done: false,
+    skipped: false,
+  };
+  const today = getTodayDateOnly();
+
+  if (current.done || current.skipped) {
+    if (
+      !canCorrectTodayCellFromWeek({
+        week,
+        date: cellDate,
+        today,
+        done: current.done,
+        skipped: current.skipped,
+      })
+    ) {
+      return { status: "blocked" as const, message: "That day is view-only right now." };
+    }
+
+    const intendedPlanned = current.skipped ? true : current.planned;
+
+    if (facts.planned !== intendedPlanned) {
+      return {
+        status: "blocked" as const,
+        message: "Week correction must preserve the original planned fact.",
+      };
+    }
+
+    return setActivityDayCellFacts({
+      supabase,
+      weekActivityId,
+      cellDate,
+      facts,
+    });
+  }
+
+  return setWeekCellPlanned({
+    supabase,
+    weekActivityId,
+    cellDate,
+    planned: facts.planned,
+  });
 }
 
 export type ActivityDayCellFacts = {
@@ -981,8 +1100,20 @@ export async function moveWeekActivityPlanDate({
   return setDestination;
 }
 
+export type AddedWeekActivity = Pick<
+  PersistedWeekActivity,
+  | "id"
+  | "activityTemplateId"
+  | "categoryId"
+  | "categoryName"
+  | "categorySortOrder"
+  | "activityName"
+  | "targetCount"
+  | "sortOrder"
+>;
+
 export type WeekListMutationResult =
-  | { status: "updated" }
+  | { status: "updated"; activity?: AddedWeekActivity }
   | { status: "removed" }
   | { status: "kept-history" }
   | { status: "blocked"; message: string }
@@ -1151,16 +1282,22 @@ export async function addWeekActivityListItem({
     return sortOrder;
   }
 
-  const { error } = await supabase.from("week_activities").insert({
-    week_id: weekId,
-    activity_template_id: template.template.id,
-    category_id: category.category.id,
-    category_name: category.category.name,
-    category_sort_order: category.category.sortOrder,
-    activity_name: input.activityName,
-    target_count: input.targetCount,
-    sort_order: sortOrder.sortOrder,
-  });
+  const { data, error } = await supabase
+    .from("week_activities")
+    .insert({
+      week_id: weekId,
+      activity_template_id: template.template.id,
+      category_id: category.category.id,
+      category_name: category.category.name,
+      category_sort_order: category.category.sortOrder,
+      activity_name: input.activityName,
+      target_count: input.targetCount,
+      sort_order: sortOrder.sortOrder,
+    })
+    .select(
+      "id, activity_template_id, category_id, category_name, category_sort_order, activity_name, target_count, sort_order",
+    )
+    .single();
 
   if (error) {
     if (error.code === "23505") {
@@ -1170,7 +1307,31 @@ export async function addWeekActivityListItem({
     return { status: "error", message: error.message };
   }
 
-  return { status: "updated" };
+  const row = data as Pick<
+    WeekActivityQueryRow,
+    | "id"
+    | "activity_template_id"
+    | "category_id"
+    | "category_name"
+    | "category_sort_order"
+    | "activity_name"
+    | "target_count"
+    | "sort_order"
+  >;
+
+  return {
+    status: "updated",
+    activity: {
+      id: row.id,
+      activityTemplateId: row.activity_template_id,
+      categoryId: row.category_id,
+      categoryName: row.category_name,
+      categorySortOrder: row.category_sort_order,
+      activityName: row.activity_name,
+      targetCount: row.target_count,
+      sortOrder: row.sort_order,
+    },
+  };
 }
 
 export async function removeWeekActivityFromFuture({

@@ -503,7 +503,10 @@ function DraftListEditor({
   onReorderActivity: (activityId: string, targetActivityId: string) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
+  const [addingCategoryName, setAddingCategoryName] = useState<string | null>(null);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [localCategoryNames, setLocalCategoryNames] = useState<string[]>([]);
   const [dragItem, setDragItem] = useState<
     { type: "category"; id: string } | { type: "activity"; id: string } | null
   >(null);
@@ -515,15 +518,38 @@ function DraftListEditor({
   const activities = activeDraftActivities(week);
   const removedActivities = removedDraftActivities(week);
   const categories = useMemo(() => getDraftCategoryOptions(week), [week]);
+  const categoryOptions = useMemo(
+    () =>
+      [
+        ...categories,
+        ...localCategoryNames
+          .filter(
+            (name) =>
+              !categories.some(
+                (category) => category.name.toLowerCase() === name.toLowerCase(),
+              ),
+          )
+          .map((name, index) => ({
+            name,
+            sortOrder:
+              Math.max(0, ...categories.map((category) => category.sortOrder)) +
+              (index + 1) * 10,
+          })),
+      ].toSorted(
+        (left, right) =>
+          left.sortOrder - right.sortOrder || left.name.localeCompare(right.name),
+      ),
+    [categories, localCategoryNames],
+  );
   const categoryGroups = useMemo(
     () =>
-      categories.map((category) => ({
+      categoryOptions.map((category) => ({
         ...category,
         activities: activities
           .filter((activity) => activity.categoryName === category.name)
           .sort((left, right) => left.sortOrder - right.sortOrder),
       })),
-    [activities, categories],
+    [activities, categoryOptions],
   );
 
   useEffect(() => {
@@ -633,6 +659,16 @@ function DraftListEditor({
                   </button>
                   {category.name}
                 </h3>
+                <button
+                  type="button"
+                  className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-full border border-clay/25 bg-white/80 px-2.5 text-xs font-semibold text-clay transition hover:border-clay hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:px-3"
+                  onClick={() => {
+                    setEditingId(null);
+                    setAddingCategoryName(category.name);
+                  }}
+                >
+                  + Add
+                </button>
               </div>
               <div className="divide-y divide-stone-200">
                 {category.activities.map((activity) => (
@@ -646,7 +682,7 @@ function DraftListEditor({
                     {editingId === activity.id ? (
                       <ActivityEditForm
                         activity={activity}
-                        categories={categories}
+                        categories={categoryOptions}
                         onCancel={() => setEditingId(null)}
                         onRemove={() => {
                           onRemove(activity.id);
@@ -668,39 +704,88 @@ function DraftListEditor({
                           setDragItem({ type: "activity", id: activity.id })
                         }
                         onEdit={() => {
-                          setIsAdding(false);
+                          setAddingCategoryName(null);
                           setEditingId(activity.id);
                         }}
                       />
                     )}
                   </div>
                 ))}
+                {addingCategoryName === category.name ? (
+                  <div className="bg-paper p-3">
+                    <ActivityEditForm
+                      categories={categoryOptions}
+                      initialCategoryName={category.name}
+                      onCancel={() => setAddingCategoryName(null)}
+                      onSave={(activityName, categoryName, targetCount) => {
+                        onAdd(activityName, categoryName, targetCount);
+                        setAddingCategoryName(null);
+                      }}
+                    />
+                  </div>
+                ) : null}
               </div>
             </section>
           ))}
         </div>
 
-        {isAdding ? (
-          <div className="mt-3 rounded-lg border border-stone-200 bg-paper p-3">
-            <ActivityEditForm
-              categories={categories}
-              onCancel={() => setIsAdding(false)}
-              onSave={(activityName, categoryName, targetCount) => {
-                onAdd(activityName, categoryName, targetCount);
-                setIsAdding(false);
-              }}
-            />
-          </div>
+        {isAddingCategory ? (
+          <form
+            className="mt-3 rounded-lg border border-stone-200 bg-paper p-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const categoryName = newCategoryName.trim();
+
+              if (!categoryName) {
+                return;
+              }
+
+              setLocalCategoryNames((current) =>
+                current.some((name) => name.toLowerCase() === categoryName.toLowerCase())
+                  ? current
+                  : [...current, categoryName],
+              );
+              setAddingCategoryName(categoryName);
+              setNewCategoryName("");
+              setIsAddingCategory(false);
+            }}
+          >
+            <label className={fieldLabelClassName}>
+              Category name
+              <input
+                className={textInputClassName}
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                required
+              />
+            </label>
+            <div className="mt-3 flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className={secondaryButtonClassName}
+                onClick={() => {
+                  setIsAddingCategory(false);
+                  setNewCategoryName("");
+                }}
+              >
+                Cancel
+              </button>
+              <button type="submit" className={primaryButtonClassName}>
+                Add category
+              </button>
+            </div>
+          </form>
         ) : (
           <button
             type="button"
             className={`${secondaryButtonClassName} mt-3`}
             onClick={() => {
               setEditingId(null);
-              setIsAdding(true);
+              setAddingCategoryName(null);
+              setIsAddingCategory(true);
             }}
           >
-            + Add activity
+            + Add category
           </button>
         )}
 
@@ -799,12 +884,14 @@ function ActivitySummaryRow({
 function ActivityEditForm({
   activity,
   categories,
+  initialCategoryName,
   onSave,
   onCancel,
   onRemove,
 }: {
   activity?: PlanPreviewActivity;
   categories: { name: string; sortOrder: number }[];
+  initialCategoryName?: string;
   onSave: (activityName: string, categoryName: string, targetCount: number) => void;
   onCancel: () => void;
   onRemove?: () => void;
@@ -812,7 +899,7 @@ function ActivityEditForm({
   const [activityName, setActivityName] = useState(activity?.activityName ?? "");
   const [categoryMode, setCategoryMode] = useState<"existing" | "new">("existing");
   const [categoryName, setCategoryName] = useState(
-    activity?.categoryName ?? categories[0]?.name ?? "",
+    activity?.categoryName ?? initialCategoryName ?? categories[0]?.name ?? "",
   );
   const [newCategoryName, setNewCategoryName] = useState("");
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);

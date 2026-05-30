@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { appRoutes } from "@/lib/routes";
+import { useEffect, useState, type ReactNode } from "react";
+import { appRoutes, getSelectedRouteHref } from "@/lib/routes";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const selectedHref = pendingHref ?? getSelectedRouteHref(pathname);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   return (
     <>
@@ -15,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/" className="text-base font-semibold tracking-normal text-ink">
             My Weekly List
           </Link>
-          <PrimaryNav pathname={pathname} />
+          <PrimaryNav selectedHref={selectedHref} onNavigate={setPendingHref} />
         </div>
       </header>
 
@@ -29,17 +35,18 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <ul className="mx-auto grid max-w-md grid-cols-3 gap-2">
           {appRoutes.map((item) => {
-            const selected = isSelectedRoute(pathname, item.href);
+            const selected = selectedHref === item.href;
 
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onClick={() => setPendingHref(item.href)}
                   aria-current={selected ? "page" : undefined}
-                  className={`flex min-h-12 touch-manipulation items-center justify-center rounded-full border px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
+                  className={`flex min-h-12 touch-manipulation items-center justify-center rounded-full border px-3 text-sm font-semibold transition-colors duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
                     selected
                       ? "border-clay bg-white text-ink shadow-soft"
-                      : "border-stone-200 bg-white/70 text-stone-600 hover:border-clay hover:text-ink"
+                      : "border-stone-200 bg-white/70 text-stone-600"
                   }`}
                 >
                   {item.label}
@@ -53,17 +60,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   );
 }
 
-function PrimaryNav({ pathname }: { pathname: string }) {
+function PrimaryNav({
+  selectedHref,
+  onNavigate,
+}: {
+  selectedHref: string | null;
+  onNavigate: (href: string) => void;
+}) {
   return (
     <nav aria-label="Main navigation">
       <ul className="flex items-center gap-2">
         {appRoutes.map((item) => {
-          const selected = isSelectedRoute(pathname, item.href);
+          const selected = selectedHref === item.href;
 
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
+                onClick={() => onNavigate(item.href)}
                 aria-current={selected ? "page" : undefined}
                 className={`inline-flex min-h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
                   selected
@@ -79,8 +93,4 @@ function PrimaryNav({ pathname }: { pathname: string }) {
       </ul>
     </nav>
   );
-}
-
-function isSelectedRoute(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`);
 }

@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { setWeekPlanningCellAction } from "@/app/(app)/week/actions";
+import { setWeekCellFactsAction } from "@/app/(app)/week/actions";
 import { Notice, ThisWeekGrid } from "@/components/this-week-grid";
 import type { ThisWeekViewModel } from "@/lib/week/current";
 import type { DateOnly } from "@/lib/week/date";
 import {
-  applyOptimisticPlanningCell,
-  getOptimisticPlannedValue,
+  applyOptimisticWeekCellFacts,
+  getOptimisticWeekCellFacts,
   getPlanningCellKey,
   type PlanningCellKey,
 } from "@/lib/week/optimistic";
@@ -64,6 +64,9 @@ export function OptimisticThisWeekGrid({
     }
 
     const grid = document.querySelector<HTMLElement>("[data-week-grid-scroll]");
+    const headerGrid = document.querySelector<HTMLElement>(
+      "[data-week-grid-header-scroll]",
+    );
     const todayHeader = document.querySelector<HTMLElement>(
       `[data-week-day-index="${todayIndex}"]`,
     );
@@ -76,10 +79,16 @@ export function OptimisticThisWeekGrid({
         Math.max(0, todayHeader.offsetLeft - stickyColumn.offsetWidth),
         maxScrollLeft,
       );
+      if (headerGrid) {
+        headerGrid.scrollLeft = grid.scrollLeft;
+      }
     }
 
     if (grid && todayIndex === 0) {
       grid.scrollLeft = 0;
+      if (headerGrid) {
+        headerGrid.scrollLeft = 0;
+      }
     }
   }, [initialView.dayDates, initialView.today, initialView.week.status]);
 
@@ -127,29 +136,40 @@ export function OptimisticThisWeekGrid({
               aria-busy={isPending}
               disabled={isPending}
               onClick={() => {
-                if (!cell.isPlanningEditable || isPending) {
+                if (
+                  (!cell.isPlanningEditable && !cell.isTodayCorrectionEditable) ||
+                  isPending
+                ) {
                   return;
                 }
 
-                const previousPlanned = cell.planned;
-                const planned = getOptimisticPlannedValue(cell);
+                const previousFacts = {
+                  planned: cell.planned,
+                  done: cell.done,
+                  skipped: cell.skipped,
+                };
+                const nextFacts = getOptimisticWeekCellFacts(cell);
+
+                if (!nextFacts) {
+                  return;
+                }
 
                 setSaveStatus("idle");
                 setPending(key, true);
                 setView((currentView) =>
-                  applyOptimisticPlanningCell({
+                  applyOptimisticWeekCellFacts({
                     view: currentView,
                     activityId: activity.id,
                     cellDate,
-                    planned,
+                    ...nextFacts,
                   }),
                 );
 
                 startTransition(() => {
-                  void setWeekPlanningCellAction({
+                  void setWeekCellFactsAction({
                     weekActivityId: activity.id,
                     cellDate,
-                    planned,
+                    ...nextFacts,
                   })
                     .then((result) => {
                       if (result.status === "updated") {
@@ -158,22 +178,22 @@ export function OptimisticThisWeekGrid({
 
                       setSaveStatus("error");
                       setView((currentView) =>
-                        applyOptimisticPlanningCell({
+                        applyOptimisticWeekCellFacts({
                           view: currentView,
                           activityId: activity.id,
                           cellDate,
-                          planned: previousPlanned,
+                          ...previousFacts,
                         }),
                       );
                     })
                     .catch(() => {
                       setSaveStatus("error");
                       setView((currentView) =>
-                        applyOptimisticPlanningCell({
+                        applyOptimisticWeekCellFacts({
                           view: currentView,
                           activityId: activity.id,
                           cellDate,
-                          planned: previousPlanned,
+                          ...previousFacts,
                         }),
                       );
                     })

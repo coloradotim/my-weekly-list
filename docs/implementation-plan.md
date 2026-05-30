@@ -169,11 +169,16 @@ The MVP This Week grid is a planning and overview surface:
 - Active weeks: today and future blank/planned cells toggle directly.
 - Active past cells, done cells, missed cells, and past weeks are view-only for
   planning.
+- The active current-day column also supports a narrow same-day correction:
+  tapping a done cell clears done while preserving the planned fact, and tapping
+  a skipped cell clears skipped back to planned/open. This must not add Move,
+  Skip, Mark done, popovers, or backdated Review correction to Week.
 
 Planning toggles should feel immediate. The persisted Week grid uses local
-optimistic state for editable blank/planned cells and saves an explicit desired
-`planned` value in the background, rather than submitting a full-page form for
-each cell or relying on a blind server-side toggle.
+optimistic state for editable blank/planned cells and current-day correction
+cells, then saves explicit desired facts in the background rather than
+submitting a full-page form for each cell or relying on a blind server-side
+toggle.
 
 Completion entry belongs to Today, and completion corrections belong to Review.
 
@@ -185,6 +190,8 @@ sticky activity column. The current Week view should initially snap to today's
 column, while Review day-by-day details should start at Monday. Treat that
 layout as shared infrastructure rather than separate screen-specific CSS, and
 verify Week, Review, and their development previews together when changing it.
+The weekday/date header row should be sticky during vertical scrolling on both
+Week and Review detail grids while staying aligned with horizontal scroll.
 
 ### Phase 5 — Today view
 
@@ -195,6 +202,8 @@ verify Week, Review, and their development previews together when changing it.
 - Show one unified Done today section for planned and unplanned completions.
 - Show direct row actions: `Mark done`, `Move` when a valid later same-week
   destination exists, and `Skip`.
+- Skipped rows should retain `Mark done` and offer secondary `Unskip`, which
+  clears skipped and returns the item to open Planned for today.
 - Exclude move destinations where the same week activity is already planned or
   done, and never overwrite an existing destination cell.
 - Do not show unresolved prior planned days as a Today backlog; Review owns
@@ -230,6 +239,9 @@ visual language where appropriate.
 - Allow future week editing from Week: activity name, category, new category,
   target, add activity, remove from future weeks, category/activity order, and
   planned days.
+- In the Week list editor, prefer category-local `+ Add activity` actions with
+  the launching category preselected. The bottom list action is `+ Add category`
+  so a new category can be created before adding activities under it.
 - Future-week structural edits update the reusable/template list while
   preserving historical `week_activities` snapshots.
 
@@ -253,6 +265,8 @@ visual language where appropriate.
   and no current week exists.
 - Use compact app navigation focused on Today, Week, and Review. Do not expose
   Plan, Home, Setup, or Sign out as primary navigation items.
+- Derive selected nav state from the committed current route segment so exactly
+  one Today/Week/Review item is active at a time.
 - Provide a stable `/install` route for iPhone Safari Add to Home Screen. It
   should not smart-route away, should not be primary navigation, and should link
   back to `/` so launches still use smart entry.

@@ -420,6 +420,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                 activity={activity}
                 isPending={pendingActivityIds.has(activity.id)}
                 onDone={() => markDone(activity)}
+                onUnskip={() => undoSkip(activity.id)}
               />
             ))}
           </div>
@@ -568,10 +569,12 @@ function SkippedRow({
   activity,
   isPending,
   onDone,
+  onUnskip,
 }: {
   activity: TodayActivity;
   isPending: boolean;
   onDone: () => void;
+  onUnskip: () => void;
 }) {
   return (
     <article className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/75 p-3 shadow-soft">
@@ -582,14 +585,24 @@ function SkippedRow({
         <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
         <p className="mt-1 text-sm font-semibold text-stone-500">Skipped</p>
       </div>
-      <button
-        type="button"
-        className="min-h-11 shrink-0 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:cursor-not-allowed"
-        onClick={onDone}
-        disabled={isPending}
-      >
-        Mark done
-      </button>
+      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+        <button
+          type="button"
+          className="min-h-11 rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:cursor-not-allowed"
+          onClick={onDone}
+          disabled={isPending}
+        >
+          Mark done
+        </button>
+        <button
+          type="button"
+          className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed"
+          onClick={onUnskip}
+          disabled={isPending}
+        >
+          Unskip
+        </button>
+      </div>
     </article>
   );
 }
