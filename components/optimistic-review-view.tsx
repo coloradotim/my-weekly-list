@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { setReviewCellDoneAction } from "@/app/(app)/review/actions";
 import {
   applyOptimisticReviewAction,
@@ -208,10 +208,60 @@ function ReviewDetailGrid({
   onSetCompletion: (activityId: string, cell: ReviewDayCell, done: boolean) => void;
 }) {
   const collapsedCategorySet = new Set(collapsedCategoryNames);
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const [gridMetrics, setGridMetrics] = useState({
+    stickyWidth: 112,
+    dayWidth: 56,
+    endSpacer: 166,
+  });
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+
+    if (!scroller) {
+      return;
+    }
+
+    const scrollerElement = scroller;
+
+    function updateMetrics() {
+      const width = scrollerElement.clientWidth;
+      const isDesktop = window.matchMedia("(min-width: 640px)").matches;
+      const stickyWidth = isDesktop ? 168 : 112;
+      const visibleDays = isDesktop ? 7 : 4;
+      const dayWidth = Math.max(48, (width - stickyWidth) / visibleDays);
+      const endSpacer = Math.max(0, width - stickyWidth - dayWidth);
+
+      setGridMetrics({
+        stickyWidth,
+        dayWidth,
+        endSpacer,
+      });
+    }
+
+    updateMetrics();
+
+    const observer = new ResizeObserver(updateMetrics);
+    observer.observe(scrollerElement);
+
+    return () => observer.disconnect();
+  }, []);
+  const gridWidth = gridMetrics.stickyWidth + gridMetrics.dayWidth * 7;
 
   return (
-    <div className="snap-x snap-mandatory scroll-pl-[112px] overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft sm:scroll-pl-[168px]">
-      <div className="grid min-w-[604px] grid-cols-[minmax(112px,0.9fr)_repeat(7,minmax(50px,1fr))] text-sm sm:min-w-[780px] sm:grid-cols-[minmax(168px,1.3fr)_repeat(7,minmax(64px,1fr))]">
+    <div
+      ref={scrollerRef}
+      className="snap-x snap-mandatory overflow-x-auto rounded-lg border border-stone-200 bg-white/85 shadow-soft"
+      style={{ scrollPaddingLeft: gridMetrics.stickyWidth }}
+    >
+      <div
+        className="grid box-content text-sm"
+        style={{
+          gridTemplateColumns: `${gridMetrics.stickyWidth}px repeat(7, ${gridMetrics.dayWidth}px)`,
+          paddingRight: gridMetrics.endSpacer,
+          width: gridWidth,
+        }}
+      >
         <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3">
           Activity
         </div>
@@ -258,6 +308,10 @@ function ReviewDetailGrid({
                       <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
                         <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
                           {activity.activityName}
+                        </div>
+                        <div className="mt-0.5 text-[11px] leading-4 text-stone-500 sm:text-xs">
+                          {activity.cells.filter((cell) => cell.done).length}/
+                          {activity.targetCount} done
                         </div>
                       </div>
                       {activity.cells.map((cell) => {
@@ -320,13 +374,15 @@ function ReviewDayButton({
 function ReviewCellMark({ cell }: { cell: ReviewDayCell }) {
   if (getReviewDetailDisplayState(cell) === "done") {
     return (
-      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-meadow text-sm font-bold text-white">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-meadow text-sm font-bold text-white sm:h-8 sm:w-8">
         ✓
       </span>
     );
   }
 
-  return <span className="h-7 w-7 rounded-full border border-stone-300 bg-white" />;
+  return (
+    <span className="h-7 w-7 rounded-full border border-stone-300 bg-white sm:h-8 sm:w-8" />
+  );
 }
 
 function formatShortDate(date: string) {

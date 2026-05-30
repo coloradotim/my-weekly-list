@@ -128,6 +128,37 @@ export async function removeWeekActivityFromFutureAction(formData: FormData) {
   redirect(`/week?list=${toListNotice(result.status)}`);
 }
 
+export async function removeWeekActivityFromFutureClientAction(weekActivityId: string) {
+  if (!weekActivityId) {
+    return {
+      status: "blocked" as const,
+      message: "That list change is missing an activity.",
+    };
+  }
+
+  const { supabase } = await requireAllowedUser("/week");
+  const result = await removeWeekActivityFromFuture({
+    supabase,
+    weekActivityId,
+  });
+
+  if (result.status === "removed") {
+    return { status: "removed" as const };
+  }
+
+  if (result.status === "kept-history") {
+    return {
+      status: "kept-history" as const,
+      message: "That activity has week history, so it stayed in this week.",
+    };
+  }
+
+  return {
+    status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
+    message: "message" in result ? result.message : "That activity could not be deleted.",
+  };
+}
+
 export async function reorderWeekCategoriesAction({
   weekId,
   categoryName,

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   addWeekActivityListItemAction,
-  removeWeekActivityFromFutureAction,
+  removeWeekActivityFromFutureClientAction,
   reorderWeekActivitiesAction,
   reorderWeekCategoriesAction,
   updateWeekActivityListItemAction,
@@ -52,6 +52,63 @@ export function WeekListEditor({
         ? current.filter((name) => name !== categoryName)
         : [...current, categoryName],
     );
+  }
+
+  function removeActivityFromList(activityId: string) {
+    let removed = false;
+    const nextCategories = listCategories
+      .map((category) => ({
+        ...category,
+        activities: category.activities.filter((activity) => {
+          if (activity.id === activityId) {
+            removed = true;
+            return false;
+          }
+
+          return true;
+        }),
+      }))
+      .filter((category) => category.activities.length > 0);
+
+    if (!removed) {
+      return null;
+    }
+
+    return nextCategories;
+  }
+
+  function deleteActivity(activityId: string) {
+    const previousCategories = listCategories;
+    const nextCategories = removeActivityFromList(activityId);
+
+    if (!nextCategories) {
+      return;
+    }
+
+    setSaveError(null);
+    setEditingId(null);
+    setListCategories(nextCategories);
+    onCategoriesChange?.(nextCategories);
+
+    startTransition(() => {
+      void removeWeekActivityFromFutureClientAction(activityId)
+        .then((response) => {
+          if (response.status !== "removed") {
+            setSaveError(
+              "message" in response
+                ? (response.message ?? "That activity could not be deleted just now.")
+                : "That activity could not be deleted just now.",
+            );
+            setListCategories(previousCategories);
+            onCategoriesChange?.(previousCategories);
+          }
+        })
+        .catch(() => {
+          setSaveError("That activity could not be deleted just now. Try again.");
+          setListCategories(previousCategories);
+          onCategoriesChange?.(previousCategories);
+        });
+    });
   }
 
   useEffect(() => {
@@ -232,6 +289,7 @@ export function WeekListEditor({
                               value={activity.id}
                             />
                           }
+                          onDelete={() => deleteActivity(activity.id)}
                           canDelete
                         />
                       ) : (
@@ -326,6 +384,7 @@ function ActivityEditForm({
   action,
   extraFields,
   canDelete = false,
+  onDelete,
   onCancel,
 }: {
   activity?: WeekGridActivity;
@@ -333,6 +392,7 @@ function ActivityEditForm({
   action: (formData: FormData) => Promise<void>;
   extraFields: ReactNode;
   canDelete?: boolean;
+  onDelete?: () => void;
   onCancel: () => void;
 }) {
   const [categoryMode, setCategoryMode] = useState<"existing" | "new">("existing");
@@ -445,10 +505,9 @@ function ActivityEditForm({
         <div>
           {canDelete ? (
             <button
-              type="submit"
-              formAction={removeWeekActivityFromFutureAction}
-              formNoValidate
+              type="button"
               className="rounded-full border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+              onClick={onDelete}
             >
               Delete
             </button>

@@ -595,7 +595,8 @@ describe("week action guardrails", () => {
     expect(weekListEditor).not.toContain("Remove from future weeks");
     expect(weekListEditor).toContain("updateWeekActivityListItemAction");
     expect(weekListEditor).toContain("addWeekActivityListItemAction");
-    expect(weekListEditor).toContain("removeWeekActivityFromFutureAction");
+    expect(weekListEditor).toContain("removeWeekActivityFromFutureClientAction");
+    expect(weekListEditor).toContain('type="button"');
     expect(weekListEditor).toContain("reorderWeekCategoriesAction");
     expect(weekListEditor).toContain("reorderWeekActivitiesAction");
     expect(weekListEditor).toContain("data-week-list-category");
