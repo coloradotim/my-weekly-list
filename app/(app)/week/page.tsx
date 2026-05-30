@@ -3,6 +3,7 @@ import { startThisWeekAction } from "@/app/(app)/week/actions";
 import { OptimisticThisWeekGrid } from "@/components/optimistic-this-week-grid";
 import { ScreenShell } from "@/components/screen-shell";
 import { formatDateRange, Notice } from "@/components/this-week-grid";
+import { WeekListEditor } from "@/components/week-list-editor";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadThisWeek } from "@/lib/week/current";
 
@@ -10,6 +11,7 @@ type ThisWeekPageProps = {
   searchParams: Promise<{
     week?: string | string[];
     cell?: string | string[];
+    list?: string | string[];
   }>;
 };
 
@@ -101,11 +103,9 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
             {formatDateRange(state.view.week.weekStartDate, state.view.week.weekEndDate)}
           </h1>
         </div>
-        <p className="w-fit rounded-full border border-stone-200 bg-white/80 px-3 py-1 text-sm font-semibold capitalize text-stone-700 shadow-soft">
-          {formatWeekStatus(state.view.week.status)}
-        </p>
       </header>
       <OptimisticThisWeekGrid initialView={state.view} initialNotice={notice} />
+      <WeekListEditor view={state.view} />
     </section>
   );
 }
@@ -118,12 +118,15 @@ type WeekNotice = {
 function getWeekNotice({
   week,
   cell,
+  list,
 }: {
   week?: string | string[];
   cell?: string | string[];
+  list?: string | string[];
 }): WeekNotice {
   const weekStatus = Array.isArray(week) ? week[0] : week;
   const cellStatus = Array.isArray(cell) ? cell[0] : cell;
+  const listStatus = Array.isArray(list) ? list[0] : list;
 
   if (weekStatus === "started") {
     return { tone: "success", body: "This week is ready." };
@@ -151,12 +154,30 @@ function getWeekNotice({
     };
   }
 
+  if (listStatus === "updated") {
+    return { tone: "success", body: "List updated." };
+  }
+
+  if (listStatus === "kept-history") {
+    return {
+      tone: "neutral",
+      body: "Removed from future weeks. This week keeps existing history for that activity.",
+    };
+  }
+
+  if (listStatus === "blocked") {
+    return { tone: "neutral", body: "That list is view-only right now." };
+  }
+
+  if (listStatus === "error") {
+    return {
+      tone: "error",
+      body: "That list change could not be saved just now. Please try again.",
+    };
+  }
+
   return null;
 }
 
 const primaryButtonClassName =
   "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white";
-
-function formatWeekStatus(status: string) {
-  return status.replace("_", " ");
-}

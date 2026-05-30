@@ -24,6 +24,10 @@ const optimisticGrid = readFileSync(
   join(process.cwd(), "components/optimistic-this-week-grid.tsx"),
   "utf8",
 );
+const weekListEditor = readFileSync(
+  join(process.cwd(), "components/week-list-editor.tsx"),
+  "utf8",
+);
 
 const templates: ActivityTemplateSnapshot[] = [
   {
@@ -508,6 +512,11 @@ describe("week action guardrails", () => {
     expect(weekActions).toContain("supabase.auth.getUser()");
     expect(weekActions).toContain("checkAllowedUser(user.email)");
     expect(weekActions).toContain("setWeekCellPlanned");
+    expect(weekActions).toContain("updateWeekActivityListItemAction");
+    expect(weekActions).toContain("addWeekActivityListItemAction");
+    expect(weekActions).toContain("removeWeekActivityFromFutureAction");
+    expect(weekActions).toContain("reorderWeekCategoriesAction");
+    expect(weekActions).toContain("reorderWeekActivitiesAction");
     expect(weekActions).not.toContain("mark_done");
     expect(weekActions).not.toContain("undo_done");
     expect(weekActions).not.toContain("SERVICE_ROLE");
@@ -534,6 +543,22 @@ describe("week action guardrails", () => {
     expect(weekActions).toContain("planned: boolean");
     expect(weekActions).toContain("setWeekPlanningCellAction");
     expect(weekActions).not.toContain("toggle whatever");
+  });
+
+  it("renders the real Week list editor on the production Week page", () => {
+    expect(weekPage).toContain("WeekListEditor");
+    expect(weekListEditor).toContain("Edit this week’s list");
+    expect(weekListEditor).toContain("Edit next week’s list");
+    expect(weekListEditor).toContain("+ Add activity");
+    expect(weekListEditor).toContain("Remove from future weeks");
+    expect(weekListEditor).toContain("updateWeekActivityListItemAction");
+    expect(weekListEditor).toContain("addWeekActivityListItemAction");
+    expect(weekListEditor).toContain("removeWeekActivityFromFutureAction");
+    expect(weekListEditor).toContain("reorderWeekCategoriesAction");
+    expect(weekListEditor).toContain("reorderWeekActivitiesAction");
+    expect(weekListEditor).toContain("data-week-list-category");
+    expect(weekListEditor).toContain("data-week-list-activity");
+    expect(weekListEditor).toContain("Drag to reorder");
   });
 });
 
