@@ -33,10 +33,9 @@ through a deliberate utility route/script when needed.
 The app should support iPhone Home Screen installation from a stable `/install`
 page. The install page is not a product destination and is not part of primary
 navigation; it exists so Add to Home Screen always uses the same manifest scope
-and launches through `/`, where smart entry sends the user to the right app
-state. Installed app metadata should use `display: standalone`, `start_url: "/"`,
-and `scope: "/"` so `Today`, `Week`, and `Review` stay inside the installed app
-context.
+and launches into Today directly. Installed app metadata should use
+`display: standalone`, `start_url: "/today"`, and `scope: "/"` so `Today`,
+`Week`, and `Review` stay inside the installed app context.
 
 On mobile, the app shell should keep normal document scrolling. The bottom
 navigation should sit at the bottom safe area and content should reserve enough
@@ -157,16 +156,15 @@ The default weekly rhythm is:
 The app should know the current day and use that context. Sunday should gently suggest review and planning, but it must still allow the user to mark Sunday activities done or leave them missed. Monday should start the new week if a planned week exists, or help the user create the current week if it does not.
 
 The root route `/` should not show a content-free dashboard. For an
-authenticated allowed user, it should route into the app: setup if the starter
-list is missing, Today if the current week exists, or current-week assurance
-using the established Week list rules when setup is complete and the current
-week can be created safely. It must not route to Review just because a past week
-has not been reviewed, and it must not require Close or Finalize.
+authenticated allowed user, it should route to Today. Today owns current-week
+assurance: when setup is complete and the current week can be created safely, it
+should create or ensure the week using the established Week list rules before
+showing the daily view. It must not route to Review just because a past week has
+not been reviewed, and it must not require Close or Finalize.
 
 When the installed Home Screen app launches, the product should feel alive even
-if auth, smart entry, or Supabase data takes a moment. Use a lightweight,
-app-branded loading state rather than showing a blank page while the first route
-settles.
+if auth or Supabase data takes a moment. Use a lightweight, app-branded loading
+state rather than showing a blank page while Today settles.
 
 ## Week timing model
 

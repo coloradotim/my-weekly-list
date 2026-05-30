@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  createCurrentWeekFromTemplates,
   loadThisWeek,
   type ThisWeekLoadState,
   type WeekRecord,
@@ -87,8 +88,42 @@ export type TodayOptimisticAction =
   | { type: "move-today-plan"; activityId: string; toDate: DateOnly }
   | { type: "undo-move-today-plan"; activityId: string; fromDate: DateOnly };
 
-export async function loadToday(supabase: SupabaseClient): Promise<TodayLoadState> {
+export async function loadToday(
+  supabase: SupabaseClient,
+  options: { ensureCurrentWeekForUserId?: string } = {},
+): Promise<TodayLoadState> {
   const weekState = await loadThisWeek(supabase);
+
+  if (weekState.status === "no-current-week" && options.ensureCurrentWeekForUserId) {
+    const created = await createCurrentWeekFromTemplates({
+      supabase,
+      userId: options.ensureCurrentWeekForUserId,
+    });
+
+    if (created.status === "needs-setup") {
+      return { status: "needs-setup" };
+    }
+
+    if (created.status === "error") {
+      return { status: "error", message: created.message };
+    }
+
+    const refreshedWeekState = await loadThisWeek(supabase);
+
+    if (refreshedWeekState.status !== "ready") {
+      return refreshedWeekState.status === "no-current-week"
+        ? {
+            status: "error",
+            message: "Today could not find the current week after creating it.",
+          }
+        : refreshedWeekState;
+    }
+
+    return {
+      status: "ready",
+      state: toTodayState(refreshedWeekState),
+    };
+  }
 
   if (weekState.status !== "ready") {
     return weekState;

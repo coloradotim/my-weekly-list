@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "My Weekly List",
     short_name: "My Weekly List",
-    start_url: "/",
+    start_url: "/today",
     scope: "/",
     display: "standalone",
     background_color: "#fffaf2",

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { OptimisticTodayView } from "@/components/optimistic-today-view";
 import { ScreenShell } from "@/components/screen-shell";
 import { Notice } from "@/components/this-week-grid";
@@ -22,7 +23,19 @@ export default async function TodayPage() {
     );
   }
 
-  const state = await loadToday(supabase);
+  let state = await loadToday(supabase);
+
+  if (state.status === "no-current-week") {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      redirect("/login?next=%2Ftoday");
+    }
+
+    state = await loadToday(supabase, { ensureCurrentWeekForUserId: user.id });
+  }
 
   if (state.status === "needs-setup") {
     return (

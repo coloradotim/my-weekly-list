@@ -261,25 +261,23 @@ visual language where appropriate.
 
 ### Phase 8 — Mobile polish and hardening
 
-- Replace the scaffold/home route with smart entry behavior: setup if the
-  starter list is missing, Today if the current week exists, and current-week
-  assurance from the saved list before landing on Today when setup is complete
-  and no current week exists.
+- Replace the scaffold/home route with a lightweight authenticated redirect to
+  Today. Today owns current-week assurance from the saved list when setup is
+  complete and no current week exists.
 - Keep installed-app launch responsive: show a lightweight app-branded loading
-  shell while smart entry, auth, and the first page load resolve. Avoid
-  duplicate Supabase auth checks in the app shell when middleware already
-  guards authenticated app routes.
+  shell while auth and Today data resolve. Avoid duplicate Supabase auth checks
+  in the app shell when middleware already guards authenticated app routes.
 - Use compact app navigation focused on Today, Week, and Review. Do not expose
   Plan, Home, Setup, or Sign out as primary navigation items.
 - Derive selected nav state from the committed current route segment so exactly
   one Today/Week/Review item is active at a time.
 - Provide a stable `/install` route for iPhone Safari Add to Home Screen. It
   should not smart-route away, should not be primary navigation, and should link
-  back to `/` so launches still use smart entry.
-- Provide standalone web app metadata: manifest `start_url: "/"`, `scope: "/"`,
-  `display: "standalone"`, warm theme/background colors, real PNG icons, and
-  iOS Home Screen metadata. Use `/install` for installation rather than
-  installing from route-specific pages such as `/today`, `/week`, or `/review`.
+  to `/today` so launches open the daily execution screen directly.
+- Provide standalone web app metadata: manifest `start_url: "/today"`,
+  `scope: "/"`, `display: "standalone"`, warm theme/background colors, real PNG
+  icons, and iOS Home Screen metadata. Use `/install` for installation rather
+  than installing from route-specific pages such as `/week` or `/review`.
 - On mobile, preserve normal document scrolling. Keep the bottom nav fixed to
   the bottom safe area with content padding for the nav height and safe area.
   Avoid `100dvh` app frames, visual-viewport browser-control offsets, fake top

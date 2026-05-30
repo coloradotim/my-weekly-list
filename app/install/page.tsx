@@ -30,7 +30,7 @@ export default function InstallPage() {
           ))}
         </ol>
         <Link
-          href="/"
+          href="/today"
           className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow"
         >
           Open the app

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { getSupabaseConfig } from "@/lib/supabase/env";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,8 +32,16 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const supabaseConfig = getSupabaseConfig();
+
   return (
     <html lang="en">
+      {supabaseConfig.status === "configured" ? (
+        <head>
+          <link rel="preconnect" href={supabaseConfig.url} />
+          <link rel="dns-prefetch" href={supabaseConfig.url} />
+        </head>
+      ) : null}
       <body>
         <div className="min-h-screen bg-paper text-ink">{children}</div>
       </body>

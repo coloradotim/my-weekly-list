@@ -234,6 +234,7 @@ describe("persisted Today model", () => {
 describe("persisted Today implementation guardrails", () => {
   it("renders the real Today route with the optimistic persisted client", () => {
     expect(todayPage).toContain("loadToday");
+    expect(todayPage).toContain("ensureCurrentWeekForUserId");
     expect(todayPage).toContain("OptimisticTodayView");
     expect(todayPage).not.toContain("PlaceholderCard");
     expect(todayPage).not.toContain("Earlier this week");
