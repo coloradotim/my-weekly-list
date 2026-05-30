@@ -7,6 +7,7 @@ import {
   getInitialWeekPreviewView,
   type WeekPreviewScenario,
 } from "@/lib/week/preview";
+import { PlanPreviewClient } from "../plan-preview/plan-preview-client";
 
 const scenarios: { id: WeekPreviewScenario; label: string }[] = [
   { id: "active", label: "Active" },
@@ -15,6 +16,7 @@ const scenarios: { id: WeekPreviewScenario; label: string }[] = [
 ];
 
 export function WeekPreviewClient() {
+  const [mode, setMode] = useState<"planning" | "grid">("planning");
   const [scenario, setScenario] = useState<WeekPreviewScenario>("active");
   const [view, setView] = useState(() => getInitialWeekPreviewView("active"));
   const [message, setMessage] = useState("Preview state is local to this tab.");
@@ -66,48 +68,85 @@ export function WeekPreviewClient() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2 rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-2" aria-label="Preview scenario">
-          {scenarios.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-clay ${
-                scenario === item.id
-                  ? "border-meadow bg-meadow text-white"
-                  : "border-stone-200 bg-white text-stone-700 hover:bg-paper"
-              }`}
-              onClick={() => selectScenario(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <Notice tone="neutral" body={message} />
+      <div className="flex gap-2 rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft">
+        <button
+          type="button"
+          className={modeButtonClassName(mode === "planning")}
+          onClick={() => setMode("planning")}
+        >
+          Draft/list editing
+        </button>
+        <button
+          type="button"
+          className={modeButtonClassName(mode === "grid")}
+          onClick={() => setMode("grid")}
+        >
+          Grid states
+        </button>
       </div>
-      <ThisWeekGrid
-        view={view}
-        notice={null}
-        renderPlanningControl={({ activity, cell, children, className, ariaLabel }) => (
-          <button
-            type="button"
-            className={className}
-            aria-label={ariaLabel}
-            onClick={() =>
-              togglePlan({
-                activityId: activity.id,
-                cellDate: cell.date,
-              })
-            }
-          >
-            {children}
-          </button>
-        )}
-      />
+
+      {mode === "planning" ? (
+        <PlanPreviewClient />
+      ) : (
+        <>
+          <div className="flex flex-col gap-2 rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-2" aria-label="Preview scenario">
+              {scenarios.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-clay ${
+                    scenario === item.id
+                      ? "border-meadow bg-meadow text-white"
+                      : "border-stone-200 bg-white text-stone-700 hover:bg-paper"
+                  }`}
+                  onClick={() => selectScenario(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+            <Notice tone="neutral" body={message} />
+          </div>
+          <ThisWeekGrid
+            view={view}
+            notice={null}
+            renderPlanningControl={({
+              activity,
+              cell,
+              children,
+              className,
+              ariaLabel,
+            }) => (
+              <button
+                type="button"
+                className={className}
+                aria-label={ariaLabel}
+                onClick={() =>
+                  togglePlan({
+                    activityId: activity.id,
+                    cellDate: cell.date,
+                  })
+                }
+              >
+                {children}
+              </button>
+            )}
+          />
+        </>
+      )}
     </div>
   );
 }
 
 function scenarioLabel(scenario: WeekPreviewScenario) {
   return scenarios.find((item) => item.id === scenario)?.label ?? "Week";
+}
+
+function modeButtonClassName(isSelected: boolean) {
+  return `rounded-full border px-3 py-1.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
+    isSelected
+      ? "border-meadow bg-meadow text-white"
+      : "border-stone-200 bg-white text-stone-700 hover:bg-paper"
+  }`;
 }

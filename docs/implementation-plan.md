@@ -163,6 +163,9 @@ approves auto-merge.
 - Implement direct planning toggles for blank and planned cells.
 - Render done and missed states as display-only in the weekly overview.
 - Make the grid usable on mobile and desktop.
+- Keep Week as the primary home for current-week viewing, future Draft planning,
+  and Draft list editing. `/plan`, if retained, is a compatibility redirect or
+  internal route, not a primary navigation destination.
 
 The first current week is created from active seeded templates when `/week` has
 no current Monday-Sunday week. Creation snapshots category name, category order,
@@ -209,12 +212,23 @@ constraints preventing `done` and `skipped` from both being true.
 Issue #8 Review will later consume planned/completed/skipped/missed
 distinctions for correction and reporting.
 
-### Phase 6 — Draft planning and copy week
+### Phase 6 — Draft planning and copy week inside Week
 
-- Copy prior week into a Draft week before the new week starts.
-- Copy activities, categories, targets, and planned days when planning ahead.
-- If creating the current week late, copy activities and targets but default planned days from today forward only.
-- Allow Draft week editing.
+- Launch next-week planning from Week rather than a standalone Plan screen.
+- Copy the most recent real week into a Draft week before the new week starts.
+- Copy activities, categories, targets, ordering, and planned-day pattern when
+  planning ahead.
+- Never copy done, skipped, missed, or other outcome facts into the Draft.
+- If creating the current week late, copy activities and targets but default
+  planned days from today forward only.
+- Do not create ghost weeks for skipped calendar gaps.
+- Use an existing Draft as the current Active week when its Monday arrives,
+  rather than requiring a Done/Ready/Finalize action or prior-week closure.
+- Allow Draft week editing from Week: activity name, category, new category,
+  target, add activity, remove from future weeks, category/activity order, and
+  planned days.
+- Draft structural edits update the future reusable/template list while
+  preserving historical `week_activities` snapshots.
 
 ### Phase 7 — Review and close week
 
@@ -277,7 +291,7 @@ MVP is done when Tim can:
 
 1. Log in with a Supabase email Magic Link and only his email can access the app.
 2. See or create the current Monday-Sunday week.
-3. Copy the prior week into a new week.
+3. Copy the prior week into a Draft from Week.
 4. Plan days for activities.
 5. Use Today view on iPhone Chrome.
 6. Mark planned and unplanned items done.

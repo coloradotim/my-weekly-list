@@ -12,7 +12,7 @@ const areas = [
   },
   {
     title: "Planning and review",
-    body: "Plan and Review routes are present so navigation can settle before behavior is added.",
+    body: "Week owns planning while Review handles historical reflection and corrections.",
   },
 ];
 
