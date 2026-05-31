@@ -9,6 +9,10 @@ export async function middleware(request: NextRequest) {
   });
   const pathname = request.nextUrl.pathname;
 
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/today", request.url));
+  }
+
   if (
     pathname === "/install" ||
     pathname === "/manifest.webmanifest" ||
@@ -44,11 +48,10 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims;
 
-  if (!user) {
+  if (claimsError || !claims?.sub) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set(
       "next",
@@ -57,6 +60,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  const user = {
+    id: claims.sub,
+    email: typeof claims.email === "string" ? claims.email : null,
+  };
   const access = await getDatabaseUserAccess({ supabase, user });
 
   if (access.status === "must-change-password") {

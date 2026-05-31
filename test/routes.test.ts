@@ -126,6 +126,8 @@ describe("app routes", () => {
   });
 
   it("uses the root route as a lightweight authenticated redirect to Today", () => {
+    expect(middleware).toContain('pathname === "/"');
+    expect(middleware).toContain('new URL("/today", request.url)');
     expect(homePage).toContain('redirect("/today")');
     expect(homePage).not.toContain('redirect("/login")');
     expect(homePage).not.toContain("loadThisWeek");
