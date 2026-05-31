@@ -8,14 +8,16 @@ This is a private/single-user app built for personal use.
 
 This repository contains the responsive Next.js App Router app. It includes
 TypeScript, Tailwind, ESLint, Prettier, Vitest, Supabase Auth, and the persisted
-weekly planning workflow.
+weekly planning workflow. The preferred app-like iPhone path is Safari Add to
+Home Screen from `/install`; local browser testing still works through the
+normal routes.
 
 - Today
 - Week
 - Review
 
-The root route sends the authenticated owner into Today whenever possible. Week
-owns current-week planning, next-week list preparation, and list editing; Review
+The root route sends authenticated users into Today whenever possible. Week owns
+current-week planning, next-week list preparation, and list editing; Review
 summarizes and corrects completion truth. `/plan` is retained only as a
 compatibility redirect to Week, not as a primary app area.
 
@@ -282,6 +284,8 @@ For iPhone Home Screen acceptance, reinstall from the stable install page:
 - Browser code must use the Supabase publishable key only. Do not use service-role keys in browser code.
 - The app is private. Users are manually provisioned with local scripts and database-backed access flags.
 - Configure Supabase Auth for email/password, disable public signup for normal use, and keep service-role credentials local-only.
-- This is a responsive web app, with iPhone Chrome as the primary daily-use target.
+- This is a responsive web app, with Safari Home Screen install as the preferred
+  app-like iPhone path and iPhone Chrome/Safari still important for browser
+  testing.
 - Native iOS, React Native, push notifications, offline-first behavior, streaks, badges, gamification, and AI coaching are out of scope for the MVP.
 - Historical aggregate look-back is deferred from the MVP.

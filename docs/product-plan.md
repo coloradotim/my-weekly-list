@@ -61,7 +61,8 @@ MVP is a responsive web app, not a native iOS app.
 
 Primary use cases:
 
-- iPhone browser, especially Chrome on iPhone
+- iPhone Home Screen app installed from the stable `/install` page
+- iPhone browser, especially Chrome/Safari during testing
 - quick daily use from a mobile browser
 - desktop browser for easier planning and review
 
@@ -73,7 +74,9 @@ MVP should not require:
 - push notifications
 - offline-first behavior
 
-The app may later become a Progressive Web App (PWA) so it can be added to the iPhone home screen, but the first release should focus on a reliable mobile browser experience.
+The app already includes Home Screen install metadata for the responsive web
+app. Native iOS, App Store distribution, push notifications, and offline-first
+behavior remain out of scope.
 
 Design implications:
 
@@ -594,23 +597,25 @@ Important test areas:
 - deriving missed past planned items
 - moving a planned item from one day to another
 - locking past weeks against planning and structure edits
-- review calculations by activity and category
+- Review summary calculations by activity, without category totals
 - access-control behavior for non-allowed users
 
-## First implementation sequence
+## Current implementation status
 
-1. Responsive web foundation: Next.js, TypeScript, linting, test setup, basic app shell, and mobile browser layout baseline.
-2. Supabase setup: client, environment variables, auth guard, database-backed
-   access check.
-3. Database schema: weeks, categories, activities, week activities, day cells, seed data.
-4. Week lifecycle/date logic: current, next, and past week behavior; Monday-Sunday dates; Sunday/Monday/late-start behavior.
-5. This Week grid: display seeded week and support planning-only cell changes with defined visual status language.
-6. Today view: show open planned items, mark same-day completions, record unplanned same-day completions, move today's plan to another remaining day, and explicitly Skip today's planned occurrence.
-7. Copy previous week: create next/current weeks from the prior saved list with correct planned-day behavior.
-8. Week planning / Edit List: add/edit/remove-from-future-weeks for future weeks; keep active weeks constrained.
-9. Review: target vs done summaries by activity, with completion-only day-by-day correction and no required Close Week action.
-10. Mobile polish: make iPhone Chrome the primary acceptance target.
-11. Test hardening: add/expand unit and integration coverage around the core workflow.
+The app now has the main MVP product surfaces in place:
+
+- Today: same-day execution, unplanned same-day completion, Move, Skip, Unskip,
+  and Done today.
+- Week: current-week overview/planning, next-week preparation, list editing,
+  copy-forward, and responsive weekly grid behavior.
+- Review: target summary and completion-only day-by-day correction.
+- `/install`: stable Safari Home Screen install page.
+- `/onboarding`: first-run setup for manually provisioned users with no usable
+  list.
+
+Future work should be driven from current GitHub issues rather than this
+document's old phase sequencing. Historical aggregate look-back remains deferred
+to issue #30.
 
 ## Open questions
 
