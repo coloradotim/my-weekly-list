@@ -11,7 +11,6 @@ The app helps Tim:
 3. Mark which days each activity actually happened.
 4. Move unfinished planned items when the week changes.
 5. Review done days against weekly targets.
-6. Close the week when it is done.
 
 The product should feel warm, calm, welcoming, and practical. It should help the user return to the plan without shame.
 
@@ -32,7 +31,8 @@ Do not invent product behavior that conflicts with `docs/product-plan.md`. If th
 - Sunday is the preferred review and next-week planning day.
 - Monday is the start of the active week.
 - The app is a responsive web app, not a native iOS app.
-- Primary mobile target is Chrome on iPhone.
+- The preferred app-like iPhone path is Safari Home Screen install from `/install`.
+- iPhone browser testing still matters, especially Chrome/Safari.
 - Desktop browser support matters for planning and review.
 - Done-day count determines weekly goal progress.
 - An activity can count at most once per day.
@@ -40,71 +40,53 @@ Do not invent product behavior that conflicts with `docs/product-plan.md`. If th
 - Planned days are helpful structure, not a contract.
 - Missed items are planning information, not failure.
 - Do not create missed items for a week the user had not actually planned.
-- Closed weeks are view-only.
+- Past weeks are reviewable for completion correction, but planning structure is locked.
 
-## Week states
+## User-facing week model
 
-Use the lifecycle from `docs/product-plan.md`:
+Use the user-facing model from `docs/product-plan.md`:
 
 ```text
-Draft
-Active
-Needs Review
-Closed
+This week
+Next week
+Past week
 ```
 
-### Draft
+There is no required Close, Finalize, or user-facing Draft ceremony in the
+product. Internal database status values may still exist for compatibility, but
+normal copy and routing should use `This week`, `Next week`, and `Past week`.
 
-A future week that is being planned.
-
-Allowed:
-
-- edit activities for the week
-- edit categories for the week
-- edit weekly target counts
-- edit planned days
-- copy from the most recent week/list
-
-### Active
+### This week
 
 The current Monday-Sunday week.
 
 Allowed:
 
-- mark day cells done
-- mark unplanned day cells done
-- move planned items to another day in the same week
-- leave prior planned items missed
-- adjust planned days within the active week if needed
+- plan or unplan today and future day cells from Week
+- use Today to mark planned or unplanned activities done
+- use Today to move or skip an item planned for today
+- use Review to correct completion truth up to today
 
-Not allowed in MVP:
+### Next week
 
-- add brand-new activities to the active week
-- delete activities from the active week
-- change category structure for the active week
-- change weekly target counts for the active week
-
-### Needs Review
-
-A prior week that has ended but has not been closed.
+A prepared upcoming Monday-Sunday week, accessed from Week.
 
 Allowed:
 
-- review the week
-- mark remaining unresolved items missed, if needed
-- close the week
+- edit activities, categories, targets, ordering, and planned days
+- copy forward the saved list without copying done/skipped/missed outcomes
 
-Do not block the user from planning or using the current week just because a prior week needs review.
+### Past week
 
-### Closed
-
-A reviewed and closed week.
+An ended Monday-Sunday week.
 
 Allowed:
 
-- view only
+- review summary and day-by-day details
+- correct completion truth only
 
-Do not allow editing planned days, done/missed states, targets, categories, or activities on closed weeks.
+Do not allow planning edits, target edits, category edits, activity edits, or
+template changes from Review or past-week views.
 
 ## Cell behavior
 
@@ -114,12 +96,14 @@ Backend facts:
 
 - `planned`: true/false
 - `done`: true/false
+- `skipped`: true/false
 - date
 - week activity
 
 Derived state:
 
-- `missed`: planned is true, done is false, the cell date is before today, and the week is not Draft
+- `missed`: planned is true, done is false, skipped is false, the cell date is
+  before today, and the week is not a future week being planned
 
 UI states:
 
@@ -127,6 +111,7 @@ UI states:
 - planned
 - done
 - missed
+- skipped, using the calm missed/skipped treatment where shown
 
 Important rules:
 
@@ -135,6 +120,8 @@ Important rules:
 - The backend may retain planned vs unplanned information for review or future analytics.
 - Moving an unfinished planned item changes the planned marker, not the done marker.
 - A done cell cannot be moved; it already happened.
+- Skip is an intentional Today resolution for a planned occurrence; it must not
+  erase the original planned fact.
 
 ## Visual status language
 
@@ -147,7 +134,7 @@ Use this MVP visual language:
 | Blank | Not planned and not done | Empty cell with neutral border/background |
 | Planned | Planned but not done yet | Soft blue outlined circle |
 | Done | Done, whether planned or unplanned | Green filled circle with a white check |
-| Missed | Planned for a past day and not done | Muted gray slash or faded gray X |
+| Missed/skipped | Planned for a past day and not done, or intentionally skipped today where shown | Muted gray X |
 | Today | Current day context | Subtle column/cell highlight, not a separate status |
 
 Avoid heavy red failure styling. Preserve a calm, non-punitive feel.
@@ -170,7 +157,8 @@ MVP is a responsive web app.
 
 Primary use cases:
 
-- iPhone browser, especially Chrome on iPhone
+- iPhone Home Screen app installed from `/install`
+- iPhone browser, especially Chrome/Safari during testing
 - quick daily use from a mobile browser
 - desktop browser for easier planning and review
 
@@ -182,7 +170,8 @@ MVP should not require:
 - push notifications
 - offline-first behavior
 
-A Progressive Web App can be considered later, but MVP should focus on a reliable mobile browser experience.
+The app is a responsive web app with Home Screen install metadata. Do not add a
+native app target unless Tim explicitly asks for it later.
 
 ## Initial categories and activities
 
@@ -219,13 +208,13 @@ If a different stack is proposed, stop and ask before changing direction.
 
 The app is private and single-user.
 
-- Use Supabase Auth email Magic Link login for the configured owner account.
-- Lock access to `cubuff98@gmail.com`.
-- Use `ALLOWED_USER_EMAIL` as an environment variable.
+- Use Supabase Auth email/password login for manually provisioned accounts.
 - Use `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` for browser-safe Supabase client configuration.
-- The login action must derive the recipient from `ALLOWED_USER_EMAIL`, not browser input.
-- Magic-link login must use `shouldCreateUser: false`; provision the owner user in Supabase first and keep public signup disabled for normal use.
-- Reject all other authenticated users.
+- Do not use public signup, magic links, OTP login, or Google OAuth for normal app login.
+- Store app access in `profiles.is_allowed`.
+- Force temporary-password users through password change with `profiles.must_change_password`.
+- Route manually provisioned users with no usable list through `/onboarding`.
+- Use local service-role admin scripts to create users, reset temporary passwords, and disable access.
 - Do not commit secrets.
 - Do not use service-role keys in browser code.
 - Supabase schema and RLS changes must be captured in migrations and docs, not only in the dashboard.
@@ -305,8 +294,8 @@ For every product, UX, feature, data, or workflow change, consider downstream im
 - navigation
 - Today view
 - This Week grid
-- Review and Close Week
-- Draft week planning
+- Review
+- next-week planning
 - empty states and setup prompts
 - Sunday/Monday/late-start behavior
 - mobile browser layout
@@ -334,8 +323,7 @@ Do not:
 - add native iOS, React Native, push notifications, offline-first behavior, gamification, streaks, badges, AI coaching, or calendar integration unless explicitly approved
 - change product direction without asking first
 - silently create ghost weeks or missed items for weeks the user had not planned
-- add brand-new activities to an already-active week in MVP
-- edit closed weeks
+- edit planning or structure for past weeks
 
 ## Autonomy expectations
 

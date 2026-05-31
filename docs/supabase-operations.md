@@ -194,7 +194,7 @@ Use this checklist for a production release:
    normal app routes.
 4. A disabled/non-allowed user is blocked.
 5. `/` routes into Today when the current week exists.
-6. If setup is complete and no current week exists, `/` safely ensures the
+6. If a usable list exists and no current week exists, `/` safely ensures the
    current week from the saved list when possible, then lands on Today.
 7. Late current-week assurance does not create elapsed-day planned, missed,
    skipped, or done history.
@@ -210,9 +210,11 @@ Use this checklist for a production release:
 17. Repeated navigation and refresh do not create duplicate current weeks or
     duplicate week-activity snapshots.
 
-iPhone Chrome acceptance should confirm bottom navigation, touch targets,
-current Week opening near today, Week scroll preservation after planning
-changes, Next/Past Week opening at Monday, and compact readable Review.
+iPhone acceptance should prefer the installed Home Screen app from `/install`
+and should confirm bottom navigation, touch targets, current Week opening near
+today, Week scroll preservation after planning changes, Next/Past Week opening
+at Monday, and compact readable Review. Browser testing in iPhone Chrome/Safari
+is still useful for comparison.
 
 ## Seed Function
 

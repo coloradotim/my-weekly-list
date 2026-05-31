@@ -112,9 +112,15 @@ and they should be removed once the persisted flow is stable. High-impact
 screens should stay open for Tim's interaction review unless he explicitly
 approves auto-merge.
 
-## Build sequence
+## Current implementation map
 
-### Phase 0 — Repo and project foundation
+The original MVP build sequence is complete enough that future work should be
+driven by GitHub issues and verified against the real Today, Week, Review,
+onboarding, install, auth, and Supabase flows. The sections below summarize the
+current architecture by area; they are not instructions to rebuild the app in
+order.
+
+### Repo and project foundation
 
 - Initialize the Next.js app.
 - Add TypeScript, Tailwind, linting, formatting, Vitest, and basic scripts.
@@ -122,7 +128,7 @@ approves auto-merge.
 - Add a responsive app shell and placeholder routes.
 - Ensure mobile viewport behavior is considered from the start.
 
-### Phase 1 — Auth and environment
+### Auth and environment
 
 - Add Supabase client setup.
 - Add Supabase email/password auth.
@@ -138,7 +144,7 @@ approves auto-merge.
   browser code or public Vercel runtime env vars.
 - Document required environment variables.
 
-### Phase 2 — Database and seed data
+### Database and seed/onboarding data
 
 - Add Supabase migrations.
 - Add tables for weeks, categories, activities/templates, week activities, and day cells.
@@ -148,16 +154,15 @@ approves auto-merge.
   are not repeatedly sent back through onboarding.
 - Document schema and RLS in `docs/supabase-contract.md`.
 
-### Phase 3 — Week lifecycle logic
+### Week lifecycle logic
 
-- Implement Monday-Sunday date helpers.
 - Implement Monday-Sunday date helpers and internal status handling.
 - Implement Sunday prompt behavior.
 - Implement Monday transition behavior.
 - Implement late-start behavior.
 - Add tests for lifecycle and date rules.
 
-### Phase 4 — This Week grid
+### Week grid
 
 - Show categories, activities, targets, and seven day cells.
 - Implement direct planning toggles for blank and planned cells.
@@ -203,7 +208,7 @@ verify Week and Review production screens/tests together when changing it.
 The weekday/date header row should be sticky during vertical scrolling on both
 Week and Review detail grids while staying aligned with horizontal scroll.
 
-### Phase 5 — Today view
+### Today view
 
 - Preserve the approved production Today interaction model and verify changes
   against the real route or focused component tests.
@@ -235,7 +240,7 @@ completion truth only in day-by-day details: checks for completed days and blank
 cells for all not-completed days. This Week may still use planned/missed/skipped
 visual language where appropriate.
 
-### Phase 6 — Next-week planning and copy week inside Week
+### Next-week planning and copy-forward inside Week
 
 - Launch next-week planning from Week rather than a standalone Plan screen.
 - Copy the most recent real week into next week before the new week starts.
@@ -256,7 +261,7 @@ visual language where appropriate.
 - Future-week structural edits update the reusable/template list while
   preserving historical `week_activities` snapshots.
 
-### Phase 7 — Review and historical completion correction
+### Review and historical completion correction
 
 - Show done-day counts against target counts.
 - Show summary-first target-met and short-of-target sections by activity.
@@ -268,7 +273,7 @@ visual language where appropriate.
 - Do not require or expose Close Week, Finalize Week, or user-facing Draft
   actions in Review.
 
-### Phase 8 — Mobile polish and hardening
+### Mobile shell, install, and hardening
 
 - Replace the scaffold/home route with a lightweight authenticated redirect to
   Today. Today owns current-week assurance from the saved list when setup is
@@ -307,12 +312,13 @@ visual language where appropriate.
   Week and Past Week open at Monday. Do not reset the manual scroll position
   during optimistic planning interactions.
 - Preserve the Today direct action model while polishing navigation and spacing.
-- Make iPhone Chrome the primary acceptance target.
+- Make the iPhone Home Screen install path the primary app-like acceptance
+  target, with iPhone Chrome/Safari browser testing still important.
 - Polish touch targets, spacing, empty states, and copy.
 - Add high-value Playwright flows if the foundation supports it.
 - Confirm deployment and environment setup.
 
-### Phase 9 — Production readiness
+### Production readiness
 
 - Verify Vercel production deploys from `main` and uses the expected Supabase
   project.
@@ -322,7 +328,7 @@ visual language where appropriate.
 - Verify remote Supabase migrations match repo migrations before relying on
   production data behavior.
 - Do not ship obsolete development preview routes.
-- Maintain a concise production smoke-test and iPhone Chrome acceptance
+- Maintain a concise production smoke-test and iPhone/Home Screen acceptance
   checklist in the README/Supabase operations docs.
 
 ## Testing strategy
@@ -374,7 +380,7 @@ MVP is done when Tim can:
 2. See or create the current Monday-Sunday week.
 3. Open Week for current-week planning and next-week list preparation.
 4. Plan days for activities.
-5. Use Today view on iPhone Chrome.
+5. Use Today view on iPhone, preferably from the installed Home Screen app.
 6. Mark planned and unplanned items done.
 7. Move unfinished planned items.
 8. Review done days against target counts and correct completion truth.

@@ -220,17 +220,20 @@ Keeping missed derived avoids creating missed rows for unplanned or ghost weeks.
 Skip is stored distinctly from missed so Review can later distinguish intentional
 same-day resolution from a planned occurrence that simply was not completed.
 
-The This Week grid is a planning and weekly-overview surface. It mutates only
-the `planned` fact:
+The Week grid is primarily a planning and weekly-overview surface:
 
-- Draft weeks: blank and planned cells toggle directly.
+- Future weeks being planned: blank and planned cells toggle directly.
 - Active weeks: today and future blank/planned cells toggle directly.
 - Active past cells, done cells, missed cells, and closed weeks are display-only.
+- The current-day column has a narrow same-day correction exception: if today's
+  cell is already done or skipped, tapping it may clear that same-day fact and
+  return the cell to planned/open or blank. Past completion correction remains
+  in Review.
 
 The app may show an immediate optimistic planning toggle in the browser, but the
-server action still persists an explicit intended `planned` value through the
-authenticated Supabase session and existing RLS. Fresh loads use Supabase as the
-source of truth.
+server action still persists explicit intended facts through the authenticated
+Supabase session and existing RLS. Fresh loads use Supabase as the source of
+truth.
 
 Marking an unplanned cell done will store `planned = false`, `done = true`, and
 `skipped = false` from the Today flow. Marking a planned cell done will store
