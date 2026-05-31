@@ -6,6 +6,8 @@ import {
   buildTodayViewModel,
   getAvailableMoveDates,
   getRemainingMoveDates,
+  getTodayCorrectionCellState,
+  getTodayDayDates,
   type TodayState,
 } from "@/lib/today/current";
 
@@ -229,6 +231,104 @@ describe("persisted Today model", () => {
       }),
     ).toEqual([]);
   });
+
+  it("builds a full current-week correction row for each Today activity", () => {
+    const view = buildTodayViewModel(fixtureState());
+    const walk = view.activities.find((activity) => activity.id === "walk");
+
+    expect(view.dayDates).toEqual(getTodayDayDates("2026-06-01"));
+    expect(walk?.cells.map((cell) => cell.date)).toEqual([
+      "2026-06-01",
+      "2026-06-02",
+      "2026-06-03",
+      "2026-06-04",
+      "2026-06-05",
+      "2026-06-06",
+      "2026-06-07",
+    ]);
+  });
+
+  it("corrects past, today, skipped, and unplanned completions without changing planning", () => {
+    const pastBlankDone = applyOptimisticTodayAction(fixtureState(), {
+      type: "set-completion",
+      activityId: "walk",
+      date: "2026-06-02",
+      done: true,
+    });
+    expect(cellFor(pastBlankDone, "walk", "2026-06-02")).toMatchObject({
+      planned: false,
+      done: true,
+      skipped: false,
+    });
+
+    const pastDoneRemoved = applyOptimisticTodayAction(fixtureState(), {
+      type: "set-completion",
+      activityId: "walk",
+      date: "2026-06-01",
+      done: false,
+    });
+    expect(cellFor(pastDoneRemoved, "walk", "2026-06-01")).toMatchObject({
+      planned: true,
+      done: false,
+      skipped: false,
+    });
+
+    const todayBlankDone = applyOptimisticTodayAction(fixtureState(), {
+      type: "set-completion",
+      activityId: "journal",
+      date: "2026-06-04",
+      done: true,
+    });
+    expect(cellFor(todayBlankDone, "journal", "2026-06-04")).toMatchObject({
+      planned: false,
+      done: true,
+      skipped: false,
+    });
+
+    const skippedTodayDone = applyOptimisticTodayAction(fixtureState(), {
+      type: "set-completion",
+      activityId: "meditation",
+      date: "2026-06-04",
+      done: true,
+    });
+    expect(cellFor(skippedTodayDone, "meditation", "2026-06-04")).toMatchObject({
+      planned: true,
+      done: true,
+      skipped: false,
+    });
+  });
+
+  it("updates weekly progress after focused completion correction", () => {
+    const correctedView = buildTodayViewModel(
+      applyOptimisticTodayAction(fixtureState(), {
+        type: "set-completion",
+        activityId: "walk",
+        date: "2026-06-02",
+        done: true,
+      }),
+    );
+
+    expect(
+      correctedView.activities.find((activity) => activity.id === "walk"),
+    ).toMatchObject({
+      progressLabel: "2/4",
+    });
+  });
+
+  it("keeps future days visible but not editable in the focused correction sheet", () => {
+    expect(
+      getTodayCorrectionCellState({
+        cell: { date: "2026-06-05", done: false },
+        today: "2026-06-04",
+      }),
+    ).toEqual({ display: "blank", isEditable: false });
+    expect(
+      getTodayCorrectionCellState({
+        cell: { date: "2026-06-04", done: false },
+        today: "2026-06-04",
+      }),
+    ).toEqual({ display: "blank", isEditable: true });
+  });
 });
 
 describe("persisted Today implementation guardrails", () => {
@@ -263,6 +363,8 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayActions).toContain("getTodayDateOnly()");
     expect(todayActions).toContain("moveWeekActivityPlanDate");
     expect(todayActions).toContain("moveTodayPlanAction");
+    expect(todayActions).toContain("setTodayCompletionCorrectionAction");
+    expect(todayActions).toContain("setReviewCellDone");
     expect(todayActions).not.toContain("toggle");
     expect(todayActions).not.toContain("SERVICE_ROLE");
     expect(todayActions).not.toContain("service_role");
@@ -273,6 +375,11 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Couldn’t save that change. Try again.");
     expect(todayClient).toContain("rollback");
     expect(todayClient).toContain("pendingActivityIds");
+    expect(todayClient).toContain("pendingCorrectionKeys");
+    expect(todayClient).toContain("getBoundingClientRect");
+    expect(todayClient).toContain("onPointerDown={onClose}");
+    expect(todayClient).toContain('event.key === "Escape"');
+    expect(todayClient).toContain("Close correction sheet");
     expect(todayClient).toContain("getTodayStateScope");
     expect(todayClient).not.toContain("router.refresh");
   });
@@ -288,6 +395,9 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Skip");
     expect(todayClient).toContain("Unskip");
     expect(todayClient).toContain("onUnskip");
+    expect(todayClient).toContain('this week <span aria-hidden="true">›</span>');
+    expect(todayClient).toContain("Tap any day to correct whether you did it.");
+    expect(todayClient).toContain("Future day, not editable.");
     expect(todayClient).toContain("Collapse");
     expect(todayClient).toContain("Expand");
     expect(todayClient).not.toContain("Also done today");
@@ -300,6 +410,12 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).not.toContain("Skip for the week");
   });
 });
+
+function cellFor(state: TodayState, activityId: string, date: string) {
+  return state.activities
+    .find((activity) => activity.id === activityId)
+    ?.cells.find((cell) => cell.date === date);
+}
 
 function fixtureState(): TodayState {
   return {

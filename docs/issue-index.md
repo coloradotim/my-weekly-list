@@ -24,7 +24,8 @@ not a required implementation sequence for future work.
 | 15 | #61 | Add first-run onboarding for manually provisioned users | Guide newly provisioned allowed users with no usable list through creating first categories, activities, targets, a current-week plan, and a short Today/Week/Review tour. This is not public signup. | Closed |
 | 16 | #62 | Audit repository docs and archive-readiness | Align README/docs/issues with the current production app before pausing active development. | Closed |
 | Backlog | #65 | Add system light/dark theme support | Follow the browser/device appearance setting with a warm dark theme, keeping light mode visually close to the original app and without adding an MVP theme toggle. | Closed |
-| Backlog | #67 | Fix edit-list category picker, drag scrolling, and category rename | Improve Week/Edit list category picker freshness and mobile usability, add category rename, improve activity drag feedback/auto-scroll, and keep desktop navigation fixed while scrolling. | In progress |
+| Backlog | #67 | Fix edit-list category picker, drag scrolling, and category rename | Improve Week/Edit list category picker freshness and mobile usability, add category rename, improve activity drag feedback/auto-scroll, and keep desktop navigation fixed while scrolling. | Closed |
+| Backlog | #69 | Add quick weekly completion correction from Today | Make each Today progress line open an activity-specific current-week completion correction sheet without adding an earlier-week backlog queue or planning controls. | In progress |
 | Backlog | #30 | Add simple historical activity look-back | Deferred activity-level historical summaries over real recorded weeks only; do not build until Tim resumes this backlog feature. | Open / deferred |
 
 ## Label suggestions

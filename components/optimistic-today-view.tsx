@@ -3,18 +3,21 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   moveTodayPlanAction,
+  setTodayCompletionCorrectionAction,
   setTodayCellFactsAction,
   undoMoveTodayPlanAction,
 } from "@/app/(app)/today/actions";
 import {
   applyOptimisticTodayAction,
   buildTodayViewModel,
+  getTodayCorrectionCellState,
   type TodayActivity,
+  type TodayDayCell,
   type TodayMoveDate,
   type TodayOptimisticAction,
   type TodayState,
 } from "@/lib/today/current";
-import type { DateOnly } from "@/lib/week/date";
+import { compareDateOnly, type DateOnly } from "@/lib/week/date";
 
 type TemporaryUndo =
   | {
@@ -35,13 +38,25 @@ type Notice = {
   body: string;
 } | null;
 
+type CorrectionPopover = {
+  activityId: string;
+  top: number;
+  left: number;
+};
+
 export function OptimisticTodayView({ initialState }: { initialState: TodayState }) {
   const [state, setState] = useState(initialState);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
   const [movingActivityId, setMovingActivityId] = useState<string | null>(null);
+  const [correctionPopover, setCorrectionPopover] = useState<CorrectionPopover | null>(
+    null,
+  );
   const [temporaryUndo, setTemporaryUndo] = useState<TemporaryUndo | null>(null);
   const [pendingActivityIds, setPendingActivityIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [pendingCorrectionKeys, setPendingCorrectionKeys] = useState<Set<string>>(
     () => new Set(),
   );
   const [saveStatus, setSaveStatus] = useState<"idle" | "error">("idle");
@@ -59,14 +74,19 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
       setIsPickerOpen(false);
       setCollapsedCategories([]);
       setMovingActivityId(null);
+      setCorrectionPopover(null);
       setTemporaryUndo(null);
     }
 
     setPendingActivityIds(new Set());
+    setPendingCorrectionKeys(new Set());
     setSaveStatus("idle");
   }, [initialState]);
 
   const view = buildTodayViewModel(state);
+  const correctionActivity = correctionPopover
+    ? view.activities.find((activity) => activity.id === correctionPopover.activityId)
+    : null;
   const notice = useMemo<Notice>(() => {
     if (saveStatus === "error") {
       return { tone: "error", body: "Couldn’t save that change. Try again." };
@@ -74,6 +94,21 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
 
     return null;
   }, [saveStatus]);
+
+  useEffect(() => {
+    if (!correctionPopover) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setCorrectionPopover(null);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [correctionPopover]);
 
   function setPending(activityId: string, pending: boolean) {
     setPendingActivityIds((current) => {
@@ -83,6 +118,20 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
         next.add(activityId);
       } else {
         next.delete(activityId);
+      }
+
+      return next;
+    });
+  }
+
+  function setCorrectionPending(cellKey: string, pending: boolean) {
+    setPendingCorrectionKeys((current) => {
+      const next = new Set(current);
+
+      if (pending) {
+        next.add(cellKey);
+      } else {
+        next.delete(cellKey);
       }
 
       return next;
@@ -260,6 +309,76 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
     });
   }
 
+  function openCorrection(activityId: string, target: HTMLElement) {
+    const rect = target.getBoundingClientRect();
+    const popoverWidth = Math.min(384, window.innerWidth - 24);
+    const left = Math.min(Math.max(12, rect.left), window.innerWidth - popoverWidth - 12);
+
+    setCorrectionPopover({
+      activityId,
+      top: rect.bottom + 6,
+      left,
+    });
+  }
+
+  function setCorrectionCompletion(activity: TodayActivity, cell: TodayDayCell) {
+    const cellState = getTodayCorrectionCellState({ cell, today: state.today });
+    const nextDone = !cell.done;
+    const cellKey = `${activity.id}:${cell.date}`;
+
+    if (!cellState.isEditable || pendingCorrectionKeys.has(cellKey)) {
+      return;
+    }
+
+    setSaveStatus("idle");
+    setCorrectionPending(cellKey, true);
+    setState((current) =>
+      applyOptimisticTodayAction(current, {
+        type: "set-completion",
+        activityId: activity.id,
+        date: cell.date,
+        done: nextDone,
+      }),
+    );
+
+    startTransition(() => {
+      void setTodayCompletionCorrectionAction({
+        weekActivityId: activity.id,
+        cellDate: cell.date,
+        done: nextDone,
+      })
+        .then((result) => {
+          if (result.status === "updated") {
+            return;
+          }
+
+          setSaveStatus("error");
+          setState((current) =>
+            applyOptimisticTodayAction(current, {
+              type: "set-completion",
+              activityId: activity.id,
+              date: cell.date,
+              done: cell.done,
+            }),
+          );
+        })
+        .catch(() => {
+          setSaveStatus("error");
+          setState((current) =>
+            applyOptimisticTodayAction(current, {
+              type: "set-completion",
+              activityId: activity.id,
+              date: cell.date,
+              done: cell.done,
+            }),
+          );
+        })
+        .finally(() => {
+          setCorrectionPending(cellKey, false);
+        });
+    });
+  }
+
   function togglePickerCategory(categoryName: string) {
     setCollapsedCategories((current) =>
       current.includes(categoryName)
@@ -290,6 +409,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                 isPending={pendingActivityIds.has(activity.id)}
                 isMoving={movingActivityId === activity.id}
                 moveDates={activity.moveDates}
+                onOpenCorrection={(target) => openCorrection(activity.id, target)}
                 onDone={() => markDone(activity)}
                 onSkip={() => skipTodayPlan(activity)}
                 onToggleMove={() => {
@@ -403,6 +523,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                 key={activity.id}
                 activity={activity}
                 isPending={pendingActivityIds.has(activity.id)}
+                onOpenCorrection={(target) => openCorrection(activity.id, target)}
                 onUndoDone={() => undoDone(activity)}
               />
             ))}
@@ -419,12 +540,24 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                 key={activity.id}
                 activity={activity}
                 isPending={pendingActivityIds.has(activity.id)}
+                onOpenCorrection={(target) => openCorrection(activity.id, target)}
                 onDone={() => markDone(activity)}
                 onUnskip={() => undoSkip(activity.id)}
               />
             ))}
           </div>
         </section>
+      ) : null}
+
+      {correctionActivity ? (
+        <TodayCorrectionPopover
+          activity={correctionActivity}
+          popover={correctionPopover}
+          today={state.today}
+          pendingCorrectionKeys={pendingCorrectionKeys}
+          onClose={() => setCorrectionPopover(null)}
+          onSetCompletion={(cell) => setCorrectionCompletion(correctionActivity, cell)}
+        />
       ) : null}
     </div>
   );
@@ -436,6 +569,7 @@ function OpenPlannedRow({
   isPending,
   isMoving,
   moveDates,
+  onOpenCorrection,
   onDone,
   onSkip,
   onToggleMove,
@@ -447,6 +581,7 @@ function OpenPlannedRow({
   isPending: boolean;
   isMoving: boolean;
   moveDates: TodayMoveDate[];
+  onOpenCorrection: (target: HTMLElement) => void;
   onDone: () => void;
   onSkip: () => void;
   onToggleMove: () => void;
@@ -460,7 +595,7 @@ function OpenPlannedRow({
           <h2 className="text-base font-semibold leading-6 text-ink">
             {activity.activityName}
           </h2>
-          <p className="text-sm text-muted">{activity.progressLabel} this week</p>
+          <ProgressButton activity={activity} onOpenCorrection={onOpenCorrection} />
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <button
@@ -539,10 +674,12 @@ function MovePlanPanel({
 function DoneTodayRow({
   activity,
   isPending,
+  onOpenCorrection,
   onUndoDone,
 }: {
   activity: TodayActivity;
   isPending: boolean;
+  onOpenCorrection: (target: HTMLElement) => void;
   onUndoDone: () => void;
 }) {
   return (
@@ -551,7 +688,7 @@ function DoneTodayRow({
         <h2 className="text-base font-semibold leading-6 text-ink">
           {activity.activityName}
         </h2>
-        <p className="text-sm text-muted">{activity.progressLabel} this week</p>
+        <ProgressButton activity={activity} onOpenCorrection={onOpenCorrection} />
       </div>
       <button
         type="button"
@@ -568,11 +705,13 @@ function DoneTodayRow({
 function SkippedRow({
   activity,
   isPending,
+  onOpenCorrection,
   onDone,
   onUnskip,
 }: {
   activity: TodayActivity;
   isPending: boolean;
+  onOpenCorrection: (target: HTMLElement) => void;
   onDone: () => void;
   onUnskip: () => void;
 }) {
@@ -582,7 +721,7 @@ function SkippedRow({
         <h2 className="text-base font-semibold leading-6 text-ink">
           {activity.activityName}
         </h2>
-        <p className="text-sm text-muted">{activity.progressLabel} this week</p>
+        <ProgressButton activity={activity} onOpenCorrection={onOpenCorrection} />
         <p className="mt-1 text-sm font-semibold text-skipped">Skipped</p>
       </div>
       <div className="flex shrink-0 flex-wrap justify-end gap-2">
@@ -604,6 +743,105 @@ function SkippedRow({
         </button>
       </div>
     </article>
+  );
+}
+
+function ProgressButton({
+  activity,
+  onOpenCorrection,
+}: {
+  activity: TodayActivity;
+  onOpenCorrection: (target: HTMLElement) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="-ml-1 mt-0.5 rounded px-1 py-0.5 text-left text-sm text-muted transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+      onClick={(event) => onOpenCorrection(event.currentTarget)}
+      aria-label={`Correct ${activity.activityName} completions this week`}
+    >
+      {activity.progressLabel} this week <span aria-hidden="true">›</span>
+    </button>
+  );
+}
+
+function TodayCorrectionPopover({
+  activity,
+  popover,
+  today,
+  pendingCorrectionKeys,
+  onClose,
+  onSetCompletion,
+}: {
+  activity: TodayActivity;
+  popover: CorrectionPopover | null;
+  today: DateOnly;
+  pendingCorrectionKeys: Set<string>;
+  onClose: () => void;
+  onSetCompletion: (cell: TodayDayCell) => void;
+}) {
+  if (!popover) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-50" onPointerDown={onClose}>
+      <section
+        className="absolute max-h-[min(28rem,calc(100vh-1.5rem))] w-[min(24rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-soft"
+        style={{
+          top: popover.top,
+          left: popover.left,
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-ink">
+              {activity.activityName} this week
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-secondary">
+              Tap any day to correct whether you did it.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xl leading-none text-muted transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+            onClick={onClose}
+            aria-label="Close correction sheet"
+          >
+            ×
+          </button>
+        </div>
+        <div className="mt-4 grid grid-cols-7 gap-1">
+          {activity.cells.map((cell) => {
+            const cellKey = `${activity.id}:${cell.date}`;
+            const cellState = getTodayCorrectionCellState({ cell, today });
+            const isFuture = compareDateOnly(cell.date, today) > 0;
+
+            return (
+              <div key={cell.date} className="text-center">
+                <div className="text-xs font-semibold text-secondary">
+                  {formatShortWeekday(cell.date)}
+                </div>
+                <button
+                  type="button"
+                  className="mt-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-sm font-bold text-transparent transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed disabled:border-line-soft disabled:bg-paper data-[done=true]:border-meadow data-[done=true]:bg-meadow data-[done=true]:text-white"
+                  data-done={cellState.display === "done"}
+                  aria-label={`${activity.activityName}, ${formatLongDate(cell.date)}: ${
+                    cell.done ? "completed" : "not completed"
+                  }${isFuture ? ". Future day, not editable." : ". Toggle completion."}`}
+                  aria-busy={pendingCorrectionKeys.has(cellKey)}
+                  disabled={!cellState.isEditable || pendingCorrectionKeys.has(cellKey)}
+                  onClick={() => onSetCompletion(cell)}
+                >
+                  {cellState.display === "done" ? "✓" : ""}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -669,4 +907,18 @@ function EmptyNote({ body }: { body: string }) {
 
 function getTodayStateScope(state: TodayState) {
   return `${state.week.id}:${state.today}`;
+}
+
+function formatShortWeekday(date: DateOnly) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+  }).format(new Date(`${date}T12:00:00Z`));
+}
+
+function formatLongDate(date: DateOnly) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  }).format(new Date(`${date}T12:00:00Z`));
 }

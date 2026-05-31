@@ -5,7 +5,12 @@ import {
   type ThisWeekLoadState,
   type WeekRecord,
 } from "@/lib/week/current";
-import { addDays, compareDateOnly, type DateOnly } from "@/lib/week/date";
+import {
+  addDays,
+  compareDateOnly,
+  getWeekStartDate,
+  type DateOnly,
+} from "@/lib/week/date";
 
 export type TodayLoadState =
   | { status: "needs-setup" }
@@ -48,6 +53,7 @@ export type TodayActivity = {
   activityName: string;
   targetCount: number;
   sortOrder: number;
+  cells: TodayDayCell[];
   doneCount: number;
   progressLabel: string;
   isPlannedToday: boolean;
@@ -69,10 +75,12 @@ export type TodayPickerGroup = {
 export type TodayViewModel = {
   week: WeekRecord;
   today: DateOnly;
+  dayDates: DateOnly[];
   todayLabel: string;
   weekRangeLabel: string;
   isSunday: boolean;
   remainingMoveDates: TodayMoveDate[];
+  activities: TodayActivity[];
   openPlannedToday: TodayActivity[];
   doneToday: TodayActivity[];
   skippedToday: TodayActivity[];
@@ -86,7 +94,8 @@ export type TodayOptimisticAction =
   | { type: "skip-today"; activityId: string }
   | { type: "undo-skip"; activityId: string }
   | { type: "move-today-plan"; activityId: string; toDate: DateOnly }
-  | { type: "undo-move-today-plan"; activityId: string; fromDate: DateOnly };
+  | { type: "undo-move-today-plan"; activityId: string; fromDate: DateOnly }
+  | { type: "set-completion"; activityId: string; date: DateOnly; done: boolean };
 
 export async function loadToday(
   supabase: SupabaseClient,
@@ -159,6 +168,7 @@ export function toTodayState(weekState: Extract<ThisWeekLoadState, { status: "re
 }
 
 export function buildTodayViewModel(state: TodayState): TodayViewModel {
+  const dayDates = getTodayDayDates(state.week.weekStartDate);
   const remainingMoveDates = getRemainingMoveDates({
     today: state.today,
     weekEndDate: state.week.weekEndDate,
@@ -168,6 +178,7 @@ export function buildTodayViewModel(state: TodayState): TodayViewModel {
     .map<TodayActivity>((activity) => {
       const todayCell = activity.cells.find((cell) => cell.date === state.today);
       const doneCount = activity.cells.filter((cell) => cell.done).length;
+      const cellMap = new Map(activity.cells.map((cell) => [cell.date, cell]));
 
       return {
         id: activity.id,
@@ -176,6 +187,15 @@ export function buildTodayViewModel(state: TodayState): TodayViewModel {
         activityName: activity.activityName,
         targetCount: activity.targetCount,
         sortOrder: activity.sortOrder,
+        cells: dayDates.map(
+          (date) =>
+            cellMap.get(date) ?? {
+              date,
+              planned: false,
+              done: false,
+              skipped: false,
+            },
+        ),
         doneCount,
         progressLabel: `${doneCount}/${activity.targetCount}`,
         isPlannedToday: todayCell?.planned ?? false,
@@ -205,12 +225,14 @@ export function buildTodayViewModel(state: TodayState): TodayViewModel {
   return {
     week: state.week,
     today: state.today,
+    dayDates,
     todayLabel: formatTodayLabel(state.today),
     weekRangeLabel: `${formatShortDate(state.week.weekStartDate)}-${formatShortDate(
       state.week.weekEndDate,
     )}`,
     isSunday: state.today === state.week.weekEndDate,
     remainingMoveDates,
+    activities,
     openPlannedToday,
     doneToday,
     skippedToday,
@@ -272,12 +294,42 @@ export function applyOptimisticTodayAction(
         });
       }
 
-      return undoMoveTodayPlan({
-        activity,
-        today: state.today,
-        fromDate: action.fromDate,
-      });
+      if (action.type === "undo-move-today-plan") {
+        return undoMoveTodayPlan({
+          activity,
+          today: state.today,
+          fromDate: action.fromDate,
+        });
+      }
+
+      return upsertActivityCell(activity, action.date, (cell) => ({
+        ...cell,
+        done: action.done,
+        skipped: false,
+      }));
     }),
+  };
+}
+
+export function getTodayDayDates(weekStartDate: DateOnly) {
+  const start = getWeekStartDate(weekStartDate);
+  return Array.from({ length: 7 }, (_, index) => addDays(start, index));
+}
+
+export function getIsTodayCorrectionEditable(date: DateOnly, today: DateOnly) {
+  return compareDateOnly(date, today) <= 0;
+}
+
+export function getTodayCorrectionCellState({
+  cell,
+  today,
+}: {
+  cell: Pick<TodayDayCell, "date" | "done">;
+  today: DateOnly;
+}) {
+  return {
+    display: cell.done ? ("done" as const) : ("blank" as const),
+    isEditable: getIsTodayCorrectionEditable(cell.date, today),
   };
 }
 
