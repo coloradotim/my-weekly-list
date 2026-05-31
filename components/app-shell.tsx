@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <header className="hidden border-b border-line bg-paper/95 backdrop-blur sm:block">
+      <header className="fixed inset-x-0 top-0 z-40 hidden border-b border-line bg-paper/95 backdrop-blur sm:block">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3 lg:px-8">
           <Link href="/" className="text-base font-semibold tracking-normal text-ink">
             My Weekly List
@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-8 sm:pt-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-8 sm:pt-20 lg:px-8">
         {children}
       </main>
 

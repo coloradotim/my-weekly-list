@@ -8,6 +8,7 @@ import {
   addWeekActivityListItem,
   createCurrentWeekFromTemplates,
   removeWeekActivityFromFuture,
+  renameWeekCategory,
   reorderWeekActivities,
   reorderWeekCategories,
   setWeekCellFacts,
@@ -258,6 +259,40 @@ export async function removeWeekActivityFromFutureClientAction(weekActivityId: s
     status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
     message: "message" in result ? result.message : "That activity could not be deleted.",
   };
+}
+
+export async function renameWeekCategoryAction({
+  weekId,
+  categoryName,
+  nextCategoryName,
+}: {
+  weekId: string;
+  categoryName: string;
+  nextCategoryName: string;
+}) {
+  if (!weekId || !categoryName || !nextCategoryName) {
+    return {
+      status: "blocked" as const,
+      message: "Category name is required.",
+    };
+  }
+
+  const { supabase, userId } = await requireAllowedUser("/week");
+  const result = await renameWeekCategory({
+    supabase,
+    userId,
+    weekId,
+    categoryName,
+    nextCategoryName,
+  });
+
+  return result.status === "updated"
+    ? { status: "updated" as const }
+    : {
+        status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
+        message:
+          "message" in result ? result.message : "That category could not be renamed.",
+      };
 }
 
 export async function reorderWeekCategoriesAction({

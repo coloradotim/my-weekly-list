@@ -6,6 +6,7 @@ import {
   addWeekActivityListItemClientAction,
   addWeekActivityListItemAction,
   removeWeekActivityFromFutureClientAction,
+  renameWeekCategoryAction,
   reorderWeekActivitiesAction,
   reorderWeekCategoriesAction,
   updateWeekActivityListItemAction,
@@ -32,6 +33,8 @@ export function WeekListEditor({
   const [addingCategoryName, setAddingCategoryName] = useState<string | null>(null);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [renamingCategoryName, setRenamingCategoryName] = useState<string | null>(null);
+  const [renameCategoryValue, setRenameCategoryValue] = useState("");
   const [dragItem, setDragItem] = useState<
     { type: "category"; id: string } | { type: "activity"; id: string } | null
   >(null);
@@ -84,6 +87,108 @@ export function WeekListEditor({
     }
 
     return nextCategories;
+  }
+
+  function renameCategoryInList(categoryName: string, nextCategoryName: string) {
+    const normalizedName = nextCategoryName.trim();
+
+    if (!normalizedName) {
+      return null;
+    }
+
+    const existingCategory = listCategories.find(
+      (category) =>
+        category.name !== categoryName &&
+        category.name.toLowerCase() === normalizedName.toLowerCase(),
+    );
+
+    if (existingCategory) {
+      setSaveError("That category name already exists.");
+      return null;
+    }
+
+    const sourceCategory = listCategories.find(
+      (category) => category.name === categoryName,
+    );
+
+    if (!sourceCategory) {
+      return null;
+    }
+
+    return listCategories.map((category) =>
+      category.name === categoryName
+        ? {
+            ...category,
+            name: normalizedName,
+            activities: category.activities.map((activity) => ({
+              ...activity,
+              categoryName: normalizedName,
+            })),
+          }
+        : category,
+    );
+  }
+
+  function renameCategory(categoryName: string, nextCategoryName: string) {
+    const previousCategories = listCategories;
+    const previousCollapsedCategoryNames = collapsedCategoryNames;
+    const previousAddingCategoryName = addingCategoryName;
+    const nextCategories = renameCategoryInList(categoryName, nextCategoryName);
+
+    if (!nextCategories) {
+      return;
+    }
+
+    const normalizedName = nextCategoryName.trim();
+    const sourceCategory = previousCategories.find(
+      (category) => category.name === categoryName,
+    );
+
+    setSaveError(null);
+    setRenamingCategoryName(null);
+    setRenameCategoryValue("");
+    setCollapsedCategoryNames((current) =>
+      current.map((name) => (name === categoryName ? normalizedName : name)),
+    );
+    setAddingCategoryName((current) =>
+      current === categoryName ? normalizedName : current,
+    );
+    setListCategories(nextCategories);
+    onCategoriesChange?.(nextCategories);
+
+    if (!sourceCategory || sourceCategory.activities.length === 0) {
+      return;
+    }
+
+    startTransition(() => {
+      void renameWeekCategoryAction({
+        weekId: view.week.id,
+        categoryName,
+        nextCategoryName: normalizedName,
+      })
+        .then((response) => {
+          if (response.status === "updated") {
+            return;
+          }
+
+          setSaveError(
+            "message" in response
+              ? response.message
+              : "That category could not be renamed.",
+          );
+          setListCategories(previousCategories);
+          setCollapsedCategoryNames(previousCollapsedCategoryNames);
+          setAddingCategoryName(previousAddingCategoryName);
+          onCategoriesChange?.(previousCategories);
+        })
+        .catch(() => {
+          setSaveError("That category could not be renamed just now. Try again.");
+          setListCategories(previousCategories);
+          setCollapsedCategoryNames(previousCollapsedCategoryNames);
+          setAddingCategoryName(previousAddingCategoryName);
+          onCategoriesChange?.(previousCategories);
+        });
+    });
   }
 
   function deleteActivity(activityId: string) {
@@ -319,6 +424,7 @@ export function WeekListEditor({
 
     function handlePointerMove(event: PointerEvent) {
       event.preventDefault();
+      autoScrollForDrag(event.clientY);
       setDragOverId(getDropTarget(event) ?? null);
     }
 
@@ -413,8 +519,10 @@ export function WeekListEditor({
             <section
               key={category.name}
               data-week-list-category={category.name}
-              className={`overflow-hidden rounded-lg border bg-surface transition ${
-                dragOverId === category.name ? "border-clay shadow-soft" : "border-line"
+              className={`overflow-visible rounded-lg border bg-surface transition ${
+                dragOverId === category.name && dragItem?.type === "category"
+                  ? "border-clay shadow-soft"
+                  : "border-line"
               }`}
             >
               <div className="flex items-center justify-between gap-2 border-b border-line bg-paper px-3 py-2">
@@ -442,108 +550,172 @@ export function WeekListEditor({
                   </button>
                   <span className="truncate">{category.name}</span>
                 </h2>
-                {isCollapsed ? (
-                  <span className="shrink-0 text-xs text-muted">
-                    {category.activities.length}{" "}
-                    {category.activities.length === 1 ? "activity" : "activities"} hidden
-                  </span>
-                ) : null}
-                {!isCollapsed ? (
-                  <button
-                    type="button"
-                    className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-full border border-clay/25 bg-surface/80 px-2.5 text-xs font-semibold text-clay transition hover:border-clay hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:px-3"
-                    onClick={() => {
-                      setEditingId(null);
-                      setAddingCategoryName(category.name);
-                    }}
-                  >
-                    + Add
-                  </button>
-                ) : null}
+                <div className="flex shrink-0 items-center gap-1">
+                  {isCollapsed ? (
+                    <span className="text-xs text-muted">
+                      {category.activities.length}{" "}
+                      {category.activities.length === 1 ? "activity" : "activities"}{" "}
+                      hidden
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-8 items-center justify-center rounded-full border border-line bg-surface/80 px-2.5 text-xs font-semibold text-muted transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:px-3"
+                        onClick={() => {
+                          setAddingCategoryName(null);
+                          setEditingId(null);
+                          setRenamingCategoryName(category.name);
+                          setRenameCategoryValue(category.name);
+                        }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex min-h-8 items-center justify-center rounded-full border border-clay/25 bg-surface/80 px-2.5 text-xs font-semibold text-clay transition hover:border-clay hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:px-3"
+                        onClick={() => {
+                          setRenamingCategoryName(null);
+                          setEditingId(null);
+                          setAddingCategoryName(category.name);
+                        }}
+                      >
+                        + Add
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
               {!isCollapsed ? (
                 <div className="divide-y divide-line">
-                  {category.activities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      data-week-list-activity={activity.id}
-                      className={`p-2 transition ${
-                        dragOverId === activity.id ? "bg-mist/35" : ""
-                      }`}
+                  {renamingCategoryName === category.name ? (
+                    <form
+                      className="bg-paper p-3"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        renameCategory(category.name, renameCategoryValue);
+                      }}
                     >
-                      {editingId === activity.id ? (
-                        <ActivityEditForm
-                          activity={activity}
-                          categories={categories}
-                          action={updateWeekActivityListItemAction}
-                          onCancel={() => setEditingId(null)}
-                          extraFields={
-                            <input
-                              type="hidden"
-                              name="weekActivityId"
-                              value={activity.id}
-                            />
-                          }
-                          onOptimisticSave={({ formData, values }) => {
-                            const previousCategories = listCategories;
-                            const nextCategories = updateActivityInList({
-                              activityId: activity.id,
-                              activityName: values.activityName,
-                              categoryName: values.categoryName,
-                              targetCount: values.targetCount,
-                            });
+                      <label className={fieldLabelClassName}>
+                        Category name
+                        <input
+                          className={textInputClassName}
+                          value={renameCategoryValue}
+                          onChange={(event) => setRenameCategoryValue(event.target.value)}
+                          required
+                        />
+                      </label>
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          className={secondaryButtonClassName}
+                          onClick={() => {
+                            setRenamingCategoryName(null);
+                            setRenameCategoryValue("");
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button type="submit" className={primaryButtonClassName}>
+                          Save
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+                  {category.activities.map((activity) => {
+                    const dragPosition = getDragIndicatorPosition({
+                      categories: listCategories,
+                      dragItem,
+                      targetId: activity.id,
+                    });
 
-                            if (!nextCategories) {
-                              setSaveError("That activity could not be saved.");
-                              return;
+                    return (
+                      <div
+                        key={activity.id}
+                        data-week-list-activity={activity.id}
+                        className={`relative p-2 transition ${
+                          dragOverId === activity.id && dragItem?.type === "activity"
+                            ? dragPosition === "after"
+                              ? "after:absolute after:inset-x-2 after:-bottom-px after:h-0.5 after:rounded-full after:bg-clay after:content-['']"
+                              : "before:absolute before:inset-x-2 before:-top-px before:h-0.5 before:rounded-full before:bg-clay before:content-['']"
+                            : ""
+                        }`}
+                      >
+                        {editingId === activity.id ? (
+                          <ActivityEditForm
+                            activity={activity}
+                            categories={categories}
+                            action={updateWeekActivityListItemAction}
+                            onCancel={() => setEditingId(null)}
+                            extraFields={
+                              <input
+                                type="hidden"
+                                name="weekActivityId"
+                                value={activity.id}
+                              />
                             }
+                            onOptimisticSave={({ formData, values }) => {
+                              const previousCategories = listCategories;
+                              const nextCategories = updateActivityInList({
+                                activityId: activity.id,
+                                activityName: values.activityName,
+                                categoryName: values.categoryName,
+                                targetCount: values.targetCount,
+                              });
 
-                            setSaveError(null);
-                            setEditingId(null);
-                            setListCategories(nextCategories);
-                            onCategoriesChange?.(nextCategories);
+                              if (!nextCategories) {
+                                setSaveError("That activity could not be saved.");
+                                return;
+                              }
 
-                            startTransition(() => {
-                              void updateWeekActivityListItemClientAction(formData)
-                                .then((response) => {
-                                  if (response.status === "updated") {
-                                    return;
-                                  }
+                              setSaveError(null);
+                              setEditingId(null);
+                              setListCategories(nextCategories);
+                              onCategoriesChange?.(nextCategories);
 
-                                  setSaveError(
-                                    "message" in response
-                                      ? response.message
-                                      : "That activity could not be saved just now.",
-                                  );
-                                  setListCategories(previousCategories);
-                                  onCategoriesChange?.(previousCategories);
-                                })
-                                .catch(() => {
-                                  setSaveError(
-                                    "That activity could not be saved just now. Try again.",
-                                  );
-                                  setListCategories(previousCategories);
-                                  onCategoriesChange?.(previousCategories);
-                                });
-                            });
-                          }}
-                          onDelete={() => deleteActivity(activity.id)}
-                          canDelete
-                        />
-                      ) : (
-                        <ActivitySummaryRow
-                          activity={activity}
-                          onStartDrag={() =>
-                            setDragItem({ type: "activity", id: activity.id })
-                          }
-                          onEdit={() => {
-                            setAddingCategoryName(null);
-                            setEditingId(activity.id);
-                          }}
-                        />
-                      )}
-                    </div>
-                  ))}
+                              startTransition(() => {
+                                void updateWeekActivityListItemClientAction(formData)
+                                  .then((response) => {
+                                    if (response.status === "updated") {
+                                      return;
+                                    }
+
+                                    setSaveError(
+                                      "message" in response
+                                        ? response.message
+                                        : "That activity could not be saved just now.",
+                                    );
+                                    setListCategories(previousCategories);
+                                    onCategoriesChange?.(previousCategories);
+                                  })
+                                  .catch(() => {
+                                    setSaveError(
+                                      "That activity could not be saved just now. Try again.",
+                                    );
+                                    setListCategories(previousCategories);
+                                    onCategoriesChange?.(previousCategories);
+                                  });
+                              });
+                            }}
+                            onDelete={() => deleteActivity(activity.id)}
+                            canDelete
+                          />
+                        ) : (
+                          <ActivitySummaryRow
+                            activity={activity}
+                            onStartDrag={() =>
+                              setDragItem({ type: "activity", id: activity.id })
+                            }
+                            onEdit={() => {
+                              setAddingCategoryName(null);
+                              setRenamingCategoryName(null);
+                              setEditingId(activity.id);
+                            }}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                   {addingCategoryName === category.name ? (
                     <div className="bg-paper p-3">
                       <ActivityEditForm
@@ -654,6 +826,7 @@ export function WeekListEditor({
             onClick={() => {
               setEditingId(null);
               setAddingCategoryName(null);
+              setRenamingCategoryName(null);
               setIsAddingCategory(true);
             }}
           >
@@ -739,6 +912,46 @@ function ActivityEditForm({
   const [targetCount, setTargetCount] = useState(activity?.targetCount ?? 1);
   const categoryLabel = categoryMode === "new" ? "New category" : selectedCategory;
 
+  useEffect(() => {
+    if (
+      categoryMode === "existing" &&
+      categories.length > 0 &&
+      !categories.some((category) => category.name === selectedCategory)
+    ) {
+      setSelectedCategory(categories[0]?.name ?? "");
+    }
+  }, [categories, categoryMode, selectedCategory]);
+
+  useEffect(() => {
+    if (!isCategoryOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target instanceof Element ? event.target : null;
+
+      if (target?.closest("[data-week-category-picker]")) {
+        return;
+      }
+
+      setIsCategoryOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsCategoryOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isCategoryOpen]);
+
   return (
     <form
       action={action}
@@ -779,87 +992,89 @@ function ActivityEditForm({
         />
       </label>
 
-      <div>
-        <p className={fieldLabelClassName}>Category</p>
-        <div className="relative mt-1">
-          <button
-            type="button"
-            className={`${textInputClassName} flex items-center justify-between text-left`}
-            aria-expanded={isCategoryOpen}
-            onClick={() => setIsCategoryOpen((open) => !open)}
-          >
-            <span>{categoryLabel}</span>
-            <span aria-hidden="true" className="text-muted">
-              ▾
-            </span>
-          </button>
-          {isCategoryOpen ? (
-            <div className="absolute left-0 right-0 z-30 mt-1 overflow-hidden rounded-lg border border-line bg-elevated shadow-soft">
-              {categories.map((category) => (
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
+        <div>
+          <p className={fieldLabelClassName}>Category</p>
+          <div className="relative mt-1" data-week-category-picker>
+            <button
+              type="button"
+              className={`${textInputClassName} flex items-center justify-between text-left`}
+              aria-expanded={isCategoryOpen}
+              onClick={() => setIsCategoryOpen((open) => !open)}
+            >
+              <span>{categoryLabel}</span>
+              <span aria-hidden="true" className="text-muted">
+                ▾
+              </span>
+            </button>
+            {isCategoryOpen ? (
+              <div className="fixed inset-x-3 bottom-[calc(6.25rem+env(safe-area-inset-bottom))] z-[80] max-h-[min(22rem,calc(100vh-9rem))] overflow-y-auto rounded-lg border border-line bg-elevated shadow-soft sm:absolute sm:inset-x-0 sm:bottom-auto sm:top-full sm:mt-1 sm:max-h-64 sm:w-auto">
+                {categories.map((category) => (
+                  <button
+                    key={category.name}
+                    type="button"
+                    className="block w-full px-3 py-2 text-left text-sm font-medium text-secondary transition hover:bg-paper focus:bg-paper focus:outline-none"
+                    onClick={() => {
+                      setCategoryMode("existing");
+                      setSelectedCategory(category.name);
+                      setIsCategoryOpen(false);
+                    }}
+                  >
+                    {category.name}
+                  </button>
+                ))}
                 <button
-                  key={category.name}
                   type="button"
-                  className="block w-full px-3 py-2 text-left text-sm font-medium text-secondary transition hover:bg-paper focus:bg-paper focus:outline-none"
+                  className="block w-full border-t border-line px-3 py-2 text-left text-sm font-semibold text-clay transition hover:bg-paper focus:bg-paper focus:outline-none"
                   onClick={() => {
-                    setCategoryMode("existing");
-                    setSelectedCategory(category.name);
+                    setCategoryMode("new");
                     setIsCategoryOpen(false);
                   }}
                 >
-                  {category.name}
+                  New category
                 </button>
-              ))}
-              <button
-                type="button"
-                className="block w-full border-t border-line px-3 py-2 text-left text-sm font-semibold text-clay transition hover:bg-paper focus:bg-paper focus:outline-none"
-                onClick={() => {
-                  setCategoryMode("new");
-                  setIsCategoryOpen(false);
-                }}
-              >
-                New category
-              </button>
-            </div>
-          ) : null}
+              </div>
+            ) : null}
+          </div>
+          {categoryMode === "new" ? (
+            <label className={fieldLabelClassName}>
+              New category
+              <input
+                className={textInputClassName}
+                name="categoryName"
+                value={newCategoryName}
+                onChange={(event) => setNewCategoryName(event.target.value)}
+                required
+              />
+            </label>
+          ) : (
+            <input type="hidden" name="categoryName" value={selectedCategory} />
+          )}
         </div>
-        {categoryMode === "new" ? (
-          <label className={fieldLabelClassName}>
-            New category
-            <input
-              className={textInputClassName}
-              name="categoryName"
-              value={newCategoryName}
-              onChange={(event) => setNewCategoryName(event.target.value)}
-              required
-            />
-          </label>
-        ) : (
-          <input type="hidden" name="categoryName" value={selectedCategory} />
-        )}
-      </div>
 
-      <div>
-        <p className={fieldLabelClassName}>Weekly target</p>
-        <input type="hidden" name="targetCount" value={targetCount} />
-        <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-line bg-surface">
-          <button
-            type="button"
-            className="min-h-10 px-4 text-sm font-semibold text-muted disabled:opacity-40"
-            disabled={targetCount <= 0}
-            onClick={() => setTargetCount((value) => Math.max(0, value - 1))}
-          >
-            -
-          </button>
-          <span className="min-w-16 px-2 text-center text-sm font-semibold text-ink">
-            {targetCount}/wk
-          </span>
-          <button
-            type="button"
-            className="min-h-10 px-4 text-sm font-semibold text-muted"
-            onClick={() => setTargetCount((value) => value + 1)}
-          >
-            +
-          </button>
+        <div>
+          <p className={fieldLabelClassName}>Weekly target</p>
+          <input type="hidden" name="targetCount" value={targetCount} />
+          <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-line bg-surface">
+            <button
+              type="button"
+              className="min-h-10 px-4 text-sm font-semibold text-muted disabled:opacity-40"
+              disabled={targetCount <= 0}
+              onClick={() => setTargetCount((value) => Math.max(0, value - 1))}
+            >
+              -
+            </button>
+            <span className="min-w-16 px-2 text-center text-sm font-semibold text-ink">
+              {targetCount}/wk
+            </span>
+            <button
+              type="button"
+              className="min-h-10 px-4 text-sm font-semibold text-muted"
+              onClick={() => setTargetCount((value) => value + 1)}
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
 
@@ -991,6 +1206,57 @@ function replaceTemporaryActivity(
         : activity,
     ),
   }));
+}
+
+function getDragIndicatorPosition({
+  categories,
+  dragItem,
+  targetId,
+}: {
+  categories: WeekListCategory[];
+  dragItem: { type: "category"; id: string } | { type: "activity"; id: string } | null;
+  targetId: string;
+}) {
+  if (!dragItem || dragItem.type !== "activity") {
+    return "before";
+  }
+
+  const source = findActivityPosition(categories, dragItem.id);
+  const target = findActivityPosition(categories, targetId);
+
+  if (!source || !target || source.categoryName !== target.categoryName) {
+    return "before";
+  }
+
+  return source.index < target.index ? "after" : "before";
+}
+
+function findActivityPosition(categories: WeekListCategory[], activityId: string) {
+  for (const category of categories) {
+    const index = category.activities.findIndex((activity) => activity.id === activityId);
+
+    if (index >= 0) {
+      return { categoryName: category.name, index };
+    }
+  }
+
+  return null;
+}
+
+function autoScrollForDrag(clientY: number) {
+  const edgeSize = Math.min(96, Math.max(56, window.innerHeight * 0.16));
+  const maxSpeed = 18;
+
+  if (clientY < edgeSize) {
+    const intensity = (edgeSize - clientY) / edgeSize;
+    window.scrollBy({ top: -Math.ceil(maxSpeed * intensity), behavior: "auto" });
+    return;
+  }
+
+  if (window.innerHeight - clientY < edgeSize) {
+    const intensity = (edgeSize - (window.innerHeight - clientY)) / edgeSize;
+    window.scrollBy({ top: Math.ceil(maxSpeed * intensity), behavior: "auto" });
+  }
 }
 
 const fieldLabelClassName =

@@ -22,8 +22,9 @@ not a required implementation sequence for future work.
 | 13 | #49 | Remove obsolete development preview routes and fixture UI | Remove old `/dev` preview harnesses, fixture-only preview state, and preview-first docs now that production auth and persisted Today/Week/Review flows are stable. | Closed |
 | 14 | #58 | Replace email auth links with manual user management | Replace magic links/OTP with email/password login, database-backed access flags, forced password change, and local scripts for creating, resetting, and disabling users. | Closed |
 | 15 | #61 | Add first-run onboarding for manually provisioned users | Guide newly provisioned allowed users with no usable list through creating first categories, activities, targets, a current-week plan, and a short Today/Week/Review tour. This is not public signup. | Closed |
-| 16 | #62 | Audit repository docs and archive-readiness | Align README/docs/issues with the current production app before pausing active development. | In progress |
-| Backlog | #65 | Add system light/dark theme support | Follow the browser/device appearance setting with a warm dark theme, keeping light mode visually close to the original app and without adding an MVP theme toggle. | In progress |
+| 16 | #62 | Audit repository docs and archive-readiness | Align README/docs/issues with the current production app before pausing active development. | Closed |
+| Backlog | #65 | Add system light/dark theme support | Follow the browser/device appearance setting with a warm dark theme, keeping light mode visually close to the original app and without adding an MVP theme toggle. | Closed |
+| Backlog | #67 | Fix edit-list category picker, drag scrolling, and category rename | Improve Week/Edit list category picker freshness and mobile usability, add category rename, improve activity drag feedback/auto-scroll, and keep desktop navigation fixed while scrolling. | In progress |
 | Backlog | #30 | Add simple historical activity look-back | Deferred activity-level historical summaries over real recorded weeks only; do not build until Tim resumes this backlog feature. | Open / deferred |
 
 ## Label suggestions
@@ -86,4 +87,5 @@ For non-trivial changes, inspect impact on:
   horizontal overscroll containment; keep their scroll/snap behavior aligned
   when changing either grid.
 - Week list editing should stay category-first: add activities within categories
-  and add new categories at the bottom.
+  add new categories at the bottom, and allow compact category rename from
+  inside the Week list editor.
