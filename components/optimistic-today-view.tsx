@@ -785,14 +785,14 @@ function TodayCorrectionPopover({
   }
 
   return (
-    <div className="fixed inset-0 z-50" onPointerDown={onClose}>
+    <div className="fixed inset-0 z-50" onClick={onClose}>
       <section
         className="absolute max-h-[min(28rem,calc(100vh-1.5rem))] w-[min(24rem,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-line bg-surface p-4 shadow-soft"
         style={{
           top: popover.top,
           left: popover.left,
         }}
-        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
