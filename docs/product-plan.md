@@ -258,7 +258,8 @@ Today is the primary mobile execution screen.
 It should show:
 
 - open items planned for today
-- each item's weekly progress, such as `2/4`
+- each item's weekly progress, such as `2/4 this week ›`, as a quiet shortcut
+  to correct that activity's current-week completion truth
 - a fast `Mark done` action for activities planned today
 - a quiet way to move or skip an incomplete plan scheduled for today
 - a compact `+ Something else` picker for unplanned same-day completion
@@ -268,6 +269,15 @@ It should show:
 
 Today is same-day execution and same-day plan resolution. It should not become
 a prior-day backlog cleanup screen.
+
+Today may support focused completion correction from an activity's weekly
+progress line because that count often reminds the user about an unrecorded
+earlier completion. This correction stays activity-specific: tapping the
+progress line opens that activity's week, shows completed days as checks and
+not-completed days as blanks, and lets the user toggle completion for past days
+and today only. It must not add an `Earlier this week` backlog queue, edit
+planning, or show missed/skipped distinctions. Review remains the fuller
+day-by-day correction surface.
 
 Today should be organized by current state:
 

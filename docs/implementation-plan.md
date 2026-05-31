@@ -228,6 +228,11 @@ Week and Review detail grids while staying aligned with horizontal scroll.
   clears skipped and returns the item to open Planned for today.
 - Exclude move destinations where the same week activity is already planned or
   done, and never overwrite an existing destination cell.
+- The weekly progress line is lightly actionable (`X/Y this week ›`). It opens
+  a focused one-activity correction sheet for the current week, reusing the
+  Review completion-correction domain helper so correction changes completion
+  truth only, clears skipped when marking done, preserves planning facts, and
+  blocks future dates.
 - Do not show unresolved prior planned days as a Today backlog; Review owns
   backdated correction before relying on the week as history.
 

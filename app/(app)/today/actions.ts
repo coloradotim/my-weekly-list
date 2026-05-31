@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getDatabaseUserAccess, getUnauthorizedEmail } from "@/lib/auth/access";
+import { setReviewCellDone } from "@/lib/review/current";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   getTodayDateOnly,
@@ -55,6 +56,41 @@ export async function setTodayCellFactsAction({
 
   revalidatePath("/today");
   revalidatePath("/week");
+  return { status: "updated" };
+}
+
+export async function setTodayCompletionCorrectionAction({
+  weekActivityId,
+  cellDate,
+  done,
+}: {
+  weekActivityId: string;
+  cellDate: DateOnly;
+  done: boolean;
+}): Promise<TodayActionResult> {
+  if (!weekActivityId || !cellDate) {
+    return { status: "error" };
+  }
+
+  const { supabase } = await requireAllowedUser("/today");
+  const result = await setReviewCellDone({
+    supabase,
+    weekActivityId,
+    cellDate,
+    done,
+  });
+
+  if (result.status === "blocked") {
+    return { status: "blocked" };
+  }
+
+  if (result.status === "error") {
+    return { status: "error" };
+  }
+
+  revalidatePath("/today");
+  revalidatePath("/week");
+  revalidatePath("/review");
   return { status: "updated" };
 }
 
