@@ -55,6 +55,7 @@ describe("email/password auth", () => {
     expect(changePasswordForm).toContain("Those passwords do not match.");
     expect(changePasswordAction).toContain("updateUser");
     expect(changePasswordAction).toContain("clear_own_password_change_required");
+    expect(middleware).toContain("auth.getClaims()");
     expect(middleware).toContain('redirect(new URL("/change-password"');
   });
 

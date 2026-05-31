@@ -565,6 +565,24 @@ export async function loadThisWeek(
   supabase: SupabaseClient,
   today = getTodayDateOnly(),
 ): Promise<ThisWeekLoadState> {
+  const weekStartDate = getWeekStartDate(today);
+  const week = await getWeekByStartDate(supabase, weekStartDate);
+
+  if (week.status === "error") {
+    return { status: "error", message: week.message };
+  }
+
+  if (week.week && week.activities.length > 0) {
+    return {
+      status: "ready",
+      view: buildThisWeekViewModel({
+        week: week.week,
+        activities: week.activities,
+        today,
+      }),
+    };
+  }
+
   const templates = await getActiveTemplateSnapshots(supabase);
 
   if (templates.status === "error") {
@@ -573,13 +591,6 @@ export async function loadThisWeek(
 
   if (templates.templates.length === 0) {
     return { status: "needs-setup" };
-  }
-
-  const weekStartDate = getWeekStartDate(today);
-  const week = await getWeekByStartDate(supabase, weekStartDate);
-
-  if (week.status === "error") {
-    return { status: "error", message: week.message };
   }
 
   if (!week.week) {
