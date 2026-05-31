@@ -21,7 +21,7 @@ export async function startThisWeekAction() {
   const result = await createCurrentWeekFromTemplates({ supabase, userId });
 
   if (result.status === "needs-setup") {
-    redirect("/setup");
+    redirect("/onboarding");
   }
 
   if (result.status === "error") {

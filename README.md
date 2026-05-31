@@ -136,6 +136,11 @@ that password in the app before Today, Week, or Review can be used. Tim does not
 need to know the user's final password. `SUPABASE_SERVICE_ROLE_KEY` is local
 admin-only; never put it in browser code or public Vercel variables.
 
+After a newly provisioned user signs in and changes a temporary password, the
+app routes them through first-run onboarding if they do not have a usable weekly
+list yet. Onboarding is not signup; it simply lets an allowed user create their
+first categories, activities, target counts, and current-week plan.
+
 ## Vercel production setup
 
 Production is hosted at:
@@ -190,25 +195,20 @@ SUPABASE_MIGRATION_MODE=apply \
 scripts/supabase-migrate.sh
 ```
 
-After the allowed user signs in for the first time, open the protected setup
-flow and create the starter list:
+After a newly provisioned user signs in, use the protected onboarding flow if
+the app sends them there:
 
 ```text
-/setup
+/onboarding
 ```
 
-The setup flow calls the authenticated, idempotent Supabase RPC:
+Onboarding creates user-owned categories and activity templates, creates the
+current Monday-Sunday week when activities exist, and lets the user plan day
+cells in the normal Week grid. It does not create public signup, starter packs,
+ghost weeks, or elapsed-day planned/missed/skipped/done history.
 
-```sql
-select public.seed_initial_weekly_list();
-```
-
-Do not run this from the Supabase SQL Editor without an authenticated app
-session; it will fail by design because it uses `auth.uid()` to create
-user-owned rows. Do not use service-role keys in browser code.
-
-After setup has created active reusable categories and activity templates, open
-the protected Week screen:
+After onboarding has created active reusable categories and activity templates,
+open the protected Week screen:
 
 ```text
 /week

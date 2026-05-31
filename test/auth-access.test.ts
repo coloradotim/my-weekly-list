@@ -88,6 +88,7 @@ describe("database-backed access control", () => {
     expect(getSafeAuthNextPath("/today")).toBe("/today");
     expect(getSafeAuthNextPath("/week")).toBe("/week");
     expect(getSafeAuthNextPath("/review")).toBe("/review");
+    expect(getSafeAuthNextPath("/onboarding")).toBe("/onboarding");
     expect(getSafeAuthNextPath("/change-password")).toBe("/change-password");
     expect(getSafeAuthNextPath("https://example.com")).toBe("/");
   });

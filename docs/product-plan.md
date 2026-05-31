@@ -162,6 +162,12 @@ should create or ensure the week using the established Week list rules before
 showing the daily view. It must not route to Review just because a past week has
 not been reviewed, and it must not require Close or Finalize.
 
+Manually provisioned users who do not have a usable weekly list yet should be
+sent through first-run onboarding after login and any required password change.
+This onboarding is not public signup. It asks the allowed user to create their
+first categories, activities, target counts, and current-week plan, then exits
+to Today. Future edits happen from Week and Edit list.
+
 When the installed Home Screen app launches, it should route quickly into Today.
 Avoid textual loading interstitials during normal Today, Week, and Review
 navigation; they make the app feel slower than it is.

@@ -38,17 +38,7 @@ export default async function TodayPage() {
   }
 
   if (state.status === "needs-setup") {
-    return (
-      <ScreenShell
-        eyebrow="Today"
-        title="Create your starter list first."
-        description="Today needs your reusable categories and activities before it can show the daily plan."
-      >
-        <Link className={primaryButtonClassName} href="/setup">
-          Go to setup
-        </Link>
-      </ScreenShell>
-    );
+    redirect("/onboarding");
   }
 
   if (state.status === "no-current-week") {
