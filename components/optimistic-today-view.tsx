@@ -273,7 +273,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
       {notice ? <Notice tone={notice.tone} body={notice.body} /> : null}
 
       {view.isSunday ? (
-        <p className="rounded-lg border border-mist bg-mist/35 px-3 py-2 text-sm leading-5 text-stone-700">
+        <p className="rounded-lg border border-mist bg-mist/35 px-3 py-2 text-sm leading-5 text-secondary">
           Sunday stays in this week. Finish today or skip what will not happen.
         </p>
       ) : null}
@@ -320,11 +320,11 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
         />
       ) : null}
 
-      <section className="rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft">
+      <section className="rounded-lg border border-line bg-surface/80 p-3 shadow-soft">
         <div className="flex items-center justify-between gap-3">
           <button
             type="button"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-white px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-surface px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
             onClick={() => setIsPickerOpen((current) => !current)}
           >
             + Something else
@@ -332,7 +332,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
           {isPickerOpen ? (
             <button
               type="button"
-              className="rounded-full px-2 py-1 text-sm font-semibold text-stone-500 transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+              className="rounded-full px-2 py-1 text-sm font-semibold text-muted transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
               onClick={() => setIsPickerOpen(false)}
             >
               Close
@@ -340,7 +340,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
           ) : null}
         </div>
         {isPickerOpen ? (
-          <div className="mt-3 border-t border-stone-200 pt-3">
+          <div className="mt-3 border-t border-line pt-3">
             {view.pickerGroups.length > 0 ? (
               <div className="space-y-2">
                 {view.pickerGroups.map((group) => {
@@ -349,7 +349,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                   return (
                     <div
                       key={group.categoryName}
-                      className="rounded-lg border border-stone-200 bg-white/70"
+                      className="rounded-lg border border-line bg-surface/70"
                     >
                       <button
                         type="button"
@@ -364,7 +364,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                         <span>{group.categoryName}</span>
                       </button>
                       {!isCollapsed ? (
-                        <div className="border-t border-stone-100">
+                        <div className="border-t border-line-soft">
                           {group.activities.map((activity) => (
                             <button
                               key={activity.id}
@@ -454,13 +454,13 @@ function OpenPlannedRow({
   onMove: (moveDate: TodayMoveDate) => void;
 }) {
   return (
-    <article className="rounded-lg border border-stone-200 bg-white/85 p-3 shadow-soft">
+    <article className="rounded-lg border border-line bg-surface/85 p-3 shadow-soft">
       <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold leading-6 text-ink">
             {activity.activityName}
           </h2>
-          <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
+          <p className="text-sm text-muted">{activity.progressLabel} this week</p>
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           <button
@@ -473,7 +473,7 @@ function OpenPlannedRow({
           </button>
           <button
             type="button"
-            className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed"
+            className="min-h-11 rounded-full border border-line bg-surface px-3 text-sm font-semibold text-muted transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed"
             onClick={onSkip}
             disabled={isPending}
           >
@@ -482,7 +482,7 @@ function OpenPlannedRow({
           {!isSunday ? (
             <button
               type="button"
-              className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed disabled:border-stone-100 disabled:bg-stone-50 disabled:text-stone-300"
+              className="min-h-11 rounded-full border border-line bg-surface px-3 text-sm font-semibold text-muted transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed disabled:border-line-soft disabled:bg-paper disabled:text-disabled"
               onClick={onToggleMove}
               disabled={isPending || moveDates.length === 0}
               aria-expanded={isMoving}
@@ -514,7 +514,7 @@ function MovePlanPanel({
         <p className="text-sm font-semibold text-ink">Move</p>
         <button
           type="button"
-          className="rounded-full px-2 py-1 text-sm font-semibold text-stone-500 transition hover:bg-white hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+          className="rounded-full px-2 py-1 text-sm font-semibold text-muted transition hover:bg-surface hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
           onClick={onCancel}
         >
           Cancel
@@ -525,7 +525,7 @@ function MovePlanPanel({
           <button
             key={moveDate.date}
             type="button"
-            className="min-h-10 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-700 transition hover:border-meadow hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow"
+            className="min-h-10 rounded-full border border-line bg-surface px-3 text-sm font-semibold text-secondary transition hover:border-meadow hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow"
             onClick={() => onMove(moveDate)}
           >
             {moveDate.weekdayLabel}
@@ -546,12 +546,12 @@ function DoneTodayRow({
   onUndoDone: () => void;
 }) {
   return (
-    <article className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/75 p-3 shadow-soft">
+    <article className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface/75 p-3 shadow-soft">
       <div className="min-w-0">
         <h2 className="text-base font-semibold leading-6 text-ink">
           {activity.activityName}
         </h2>
-        <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
+        <p className="text-sm text-muted">{activity.progressLabel} this week</p>
       </div>
       <button
         type="button"
@@ -577,13 +577,13 @@ function SkippedRow({
   onUnskip: () => void;
 }) {
   return (
-    <article className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white/75 p-3 shadow-soft">
+    <article className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface/75 p-3 shadow-soft">
       <div className="min-w-0">
         <h2 className="text-base font-semibold leading-6 text-ink">
           {activity.activityName}
         </h2>
-        <p className="text-sm text-stone-600">{activity.progressLabel} this week</p>
-        <p className="mt-1 text-sm font-semibold text-stone-500">Skipped</p>
+        <p className="text-sm text-muted">{activity.progressLabel} this week</p>
+        <p className="mt-1 text-sm font-semibold text-skipped">Skipped</p>
       </div>
       <div className="flex shrink-0 flex-wrap justify-end gap-2">
         <button
@@ -596,7 +596,7 @@ function SkippedRow({
         </button>
         <button
           type="button"
-          className="min-h-11 rounded-full border border-stone-200 bg-white px-3 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed"
+          className="min-h-11 rounded-full border border-line bg-surface px-3 text-sm font-semibold text-muted transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed"
           onClick={onUnskip}
           disabled={isPending}
         >
@@ -620,7 +620,7 @@ function TemporaryUndoMessage({
       : `Skipped ${undo.activityName}.`;
 
   return (
-    <p className="rounded-lg border border-mist bg-mist/30 px-3 py-2 text-sm text-stone-700">
+    <p className="rounded-lg border border-mist bg-mist/30 px-3 py-2 text-sm text-secondary">
       {message}{" "}
       <button
         type="button"
@@ -639,8 +639,8 @@ function Notice({ tone, body }: { tone: "error" | "neutral"; body: string }) {
       role={tone === "error" ? "alert" : "status"}
       className={`rounded-lg border px-3 py-2 text-sm leading-6 ${
         tone === "error"
-          ? "border-clay/30 bg-clay/10 text-stone-800"
-          : "border-stone-200 bg-paper text-stone-700"
+          ? "border-clay/30 bg-clay/10 text-ink"
+          : "border-line bg-paper text-secondary"
       }`}
     >
       {body}
@@ -652,7 +652,7 @@ function SectionHeading({ title, count }: { title: string; count: number }) {
   return (
     <div className="flex items-center justify-between px-1">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-clay">{title}</h2>
-      <span className="rounded-full bg-white/80 px-2 py-1 text-xs font-semibold text-stone-600">
+      <span className="rounded-full bg-surface/80 px-2 py-1 text-xs font-semibold text-muted">
         {count}
       </span>
     </div>
@@ -661,7 +661,7 @@ function SectionHeading({ title, count }: { title: string; count: number }) {
 
 function EmptyNote({ body }: { body: string }) {
   return (
-    <p className="rounded-lg border border-stone-200 bg-white/75 p-3 text-sm leading-6 text-stone-600">
+    <p className="rounded-lg border border-line bg-surface/75 p-3 text-sm leading-6 text-muted">
       {body}
     </p>
   );

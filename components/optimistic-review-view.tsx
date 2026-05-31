@@ -109,11 +109,11 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
 
   return (
     <section className="space-y-3">
-      <article className="rounded-lg border border-stone-200 bg-white/90 p-3 shadow-soft sm:p-4">
+      <article className="rounded-lg border border-line bg-surface/90 p-3 shadow-soft sm:p-4">
         <p className="text-sm font-semibold text-clay">Review · {view.rangeLabel}</p>
 
         {view.isSundayCurrentWeek ? (
-          <p className="mt-3 rounded-lg border border-mist bg-mist/20 px-3 py-2 text-sm leading-6 text-stone-700">
+          <p className="mt-3 rounded-lg border border-mist bg-mist/20 px-3 py-2 text-sm leading-6 text-secondary">
             This week is still active through today. You can update anything you complete
             later.
           </p>
@@ -127,7 +127,7 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
 
       {saveStatus === "error" ? (
         <div
-          className="rounded-lg border border-clay/30 bg-clay/10 px-3 py-2 text-sm leading-6 text-stone-800"
+          className="rounded-lg border border-clay/30 bg-clay/10 px-3 py-2 text-sm leading-6 text-ink"
           role="alert"
         >
           Couldn’t save that change. Try again.
@@ -135,7 +135,7 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
       ) : null}
 
       <details
-        className="rounded-lg border border-stone-200 bg-white/90 p-3 shadow-soft"
+        className="rounded-lg border border-line bg-surface/90 p-3 shadow-soft"
         open={detailsOpen}
         onToggle={(event) => setDetailsOpen(event.currentTarget.open)}
       >
@@ -143,7 +143,7 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
           Review day-by-day details
         </summary>
         <div className="mt-3 space-y-3">
-          <p className="text-sm leading-6 text-stone-700">
+          <p className="text-sm leading-6 text-secondary">
             Review what happened. Tap any day to correct whether you completed that
             activity.
           </p>
@@ -167,7 +167,7 @@ function SummarySection({ title, rows }: { title: string; rows: ReviewSummaryRow
   return (
     <section className="mt-5">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-clay">{title}</h2>
-      <div className="mt-2 divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white">
+      <div className="mt-2 divide-y divide-line rounded-lg border border-line bg-surface">
         {rows.length > 0 ? (
           rows.map((row) => (
             <div
@@ -175,7 +175,7 @@ function SummarySection({ title, rows }: { title: string; rows: ReviewSummaryRow
               className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 text-sm"
             >
               <span className="font-semibold text-ink">{row.activityName}</span>
-              <span className="whitespace-nowrap text-stone-700">
+              <span className="whitespace-nowrap text-secondary">
                 {row.doneCount} of {row.targetCount} days{" "}
                 {row.isTargetMet ? (
                   <span className="font-semibold text-meadow" aria-label="target met">
@@ -186,7 +186,7 @@ function SummarySection({ title, rows }: { title: string; rows: ReviewSummaryRow
             </div>
           ))
         ) : (
-          <p className="px-3 py-2 text-sm text-stone-600">Nothing here yet.</p>
+          <p className="px-3 py-2 text-sm text-muted">Nothing here yet.</p>
         )}
       </div>
     </section>
@@ -220,24 +220,24 @@ function ReviewDetailGrid({
       <div
         ref={gridLayout.headerScrollerRef}
         data-week-grid-header-scroll
-        className="sticky top-0 z-30 w-full max-w-full overflow-hidden rounded-t-lg border border-b-0 border-stone-200 bg-white"
+        className="sticky top-0 z-30 w-full max-w-full overflow-hidden rounded-t-lg border border-b-0 border-line bg-surface"
         style={gridLayout.scrollerStyle}
       >
         <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
-          <div className="sticky left-0 z-40 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3">
+          <div className="sticky left-0 z-40 border-b border-r border-line bg-surface px-2 py-2 font-semibold text-secondary sm:px-3">
             Activity
           </div>
           {dayDates.map((date, index) => (
             <div
               key={date}
-              className={`snap-start border-b border-stone-200 px-1 py-2 text-center font-semibold ${
+              className={`snap-start border-b border-line px-1 py-2 text-center font-semibold ${
                 isSundayCurrentWeek && date === today
                   ? "bg-mist/45 text-ink"
-                  : "bg-white text-stone-700"
+                  : "bg-surface text-secondary"
               }`}
             >
               <span className="block">{dayLabels[index]}</span>
-              <span className="mt-1 block text-xs font-medium text-stone-500">
+              <span className="mt-1 block text-xs font-medium text-muted">
                 {formatShortDate(date)}
               </span>
             </div>
@@ -256,7 +256,7 @@ function ReviewDetailGrid({
 
             return (
               <div key={group.categoryName} className="contents">
-                <div className="sticky left-0 z-20 border-b border-r border-stone-200 bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
+                <div className="sticky left-0 z-20 border-b border-r border-line bg-paper px-2 py-2 text-xs font-semibold uppercase leading-4 tracking-wide text-clay">
                   <button
                     type="button"
                     className="flex w-full items-center gap-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
@@ -270,16 +270,16 @@ function ReviewDetailGrid({
                     <span>{group.categoryName}</span>
                   </button>
                 </div>
-                <div className="col-span-7 border-b border-stone-200 bg-paper" />
+                <div className="col-span-7 border-b border-line bg-paper" />
 
                 {!isCollapsed
                   ? group.activities.map((activity) => (
                       <div key={activity.id} className="contents">
-                        <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-2">
+                        <div className="sticky left-0 z-10 border-b border-r border-line bg-surface px-2 py-2">
                           <div className="text-xs font-semibold leading-4 text-ink sm:text-sm">
                             {activity.activityName}
                           </div>
-                          <div className="mt-0.5 text-[11px] leading-4 text-stone-500 sm:text-xs">
+                          <div className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">
                             {activity.cells.filter((cell) => cell.done).length}/
                             {activity.targetCount} done
                           </div>
@@ -331,8 +331,8 @@ function ReviewDayButton({
   return (
     <button
       type="button"
-      className={`flex min-h-11 snap-start items-center justify-center border-b border-stone-200 px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-inset disabled:cursor-not-allowed ${
-        isToday ? "bg-mist/35" : "bg-white"
+      className={`flex min-h-11 snap-start items-center justify-center border-b border-line px-1 py-1.5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-inset disabled:cursor-not-allowed ${
+        isToday ? "bg-mist/35" : "bg-surface"
       }`}
       aria-label={label}
       aria-busy={isPending}
@@ -354,7 +354,7 @@ function ReviewCellMark({ cell }: { cell: ReviewDayCell }) {
   }
 
   return (
-    <span className="h-7 w-7 rounded-full border border-stone-300 bg-white sm:h-8 sm:w-8" />
+    <span className="h-7 w-7 rounded-full border border-line bg-surface sm:h-8 sm:w-8" />
   );
 }
 

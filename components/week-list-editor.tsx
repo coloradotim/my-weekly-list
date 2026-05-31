@@ -393,7 +393,7 @@ export function WeekListEditor({
   }
 
   return (
-    <details className="rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft">
+    <details className="rounded-lg border border-line bg-surface/80 p-3 shadow-soft">
       <summary className="cursor-pointer text-sm font-semibold text-clay">
         {title}
       </summary>
@@ -401,7 +401,7 @@ export function WeekListEditor({
         {saveError ? (
           <p
             role="alert"
-            className="rounded-lg border border-clay/30 bg-clay/10 px-3 py-2 text-sm text-stone-800"
+            className="rounded-lg border border-clay/30 bg-clay/10 px-3 py-2 text-sm text-ink"
           >
             {saveError}
           </p>
@@ -413,13 +413,11 @@ export function WeekListEditor({
             <section
               key={category.name}
               data-week-list-category={category.name}
-              className={`overflow-hidden rounded-lg border bg-white transition ${
-                dragOverId === category.name
-                  ? "border-clay shadow-soft"
-                  : "border-stone-200"
+              className={`overflow-hidden rounded-lg border bg-surface transition ${
+                dragOverId === category.name ? "border-clay shadow-soft" : "border-line"
               }`}
             >
-              <div className="flex items-center justify-between gap-2 border-b border-stone-200 bg-paper px-3 py-2">
+              <div className="flex items-center justify-between gap-2 border-b border-line bg-paper px-3 py-2">
                 <h2 className="flex min-w-0 items-center gap-1 text-xs font-semibold uppercase tracking-wide text-clay">
                   <button
                     type="button"
@@ -433,7 +431,7 @@ export function WeekListEditor({
                   <button
                     type="button"
                     aria-label={`Drag ${category.name} category`}
-                    className="mr-1 inline-flex min-h-9 min-w-9 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-stone-400 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                    className="mr-1 inline-flex min-h-9 min-w-9 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-muted active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
                     onPointerDown={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -445,7 +443,7 @@ export function WeekListEditor({
                   <span className="truncate">{category.name}</span>
                 </h2>
                 {isCollapsed ? (
-                  <span className="shrink-0 text-xs text-stone-500">
+                  <span className="shrink-0 text-xs text-muted">
                     {category.activities.length}{" "}
                     {category.activities.length === 1 ? "activity" : "activities"} hidden
                   </span>
@@ -453,7 +451,7 @@ export function WeekListEditor({
                 {!isCollapsed ? (
                   <button
                     type="button"
-                    className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-full border border-clay/25 bg-white/80 px-2.5 text-xs font-semibold text-clay transition hover:border-clay hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:px-3"
+                    className="inline-flex min-h-8 shrink-0 items-center justify-center rounded-full border border-clay/25 bg-surface/80 px-2.5 text-xs font-semibold text-clay transition hover:border-clay hover:bg-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:px-3"
                     onClick={() => {
                       setEditingId(null);
                       setAddingCategoryName(category.name);
@@ -464,7 +462,7 @@ export function WeekListEditor({
                 ) : null}
               </div>
               {!isCollapsed ? (
-                <div className="divide-y divide-stone-200">
+                <div className="divide-y divide-line">
                   {category.activities.map((activity) => (
                     <div
                       key={activity.id}
@@ -618,7 +616,7 @@ export function WeekListEditor({
 
         {isAddingCategory ? (
           <form
-            className="rounded-lg border border-stone-200 bg-paper p-3"
+            className="rounded-lg border border-line bg-paper p-3"
             onSubmit={(event) => {
               event.preventDefault();
               addCategoryToList(newCategoryName);
@@ -682,7 +680,7 @@ function ActivitySummaryRow({
         <button
           type="button"
           aria-label={`Drag ${activity.activityName}`}
-          className="inline-flex min-h-9 min-w-9 shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-stone-400 active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+          className="inline-flex min-h-9 min-w-9 shrink-0 cursor-grab touch-none select-none items-center justify-center rounded-full text-lg leading-none text-muted active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
           onPointerDown={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -693,10 +691,10 @@ function ActivitySummaryRow({
         </button>
         <span className="min-w-0 truncate">{activity.activityName}</span>
       </div>
-      <div className="text-stone-700">{activity.targetCount}/wk</div>
+      <div className="text-secondary">{activity.targetCount}/wk</div>
       <button
         type="button"
-        className="rounded-full border border-stone-200 bg-white px-3 py-1.5 text-sm font-semibold text-clay transition hover:border-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+        className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-semibold text-clay transition hover:border-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
         onClick={onEdit}
       >
         Edit
@@ -791,17 +789,17 @@ function ActivityEditForm({
             onClick={() => setIsCategoryOpen((open) => !open)}
           >
             <span>{categoryLabel}</span>
-            <span aria-hidden="true" className="text-stone-500">
+            <span aria-hidden="true" className="text-muted">
               ▾
             </span>
           </button>
           {isCategoryOpen ? (
-            <div className="absolute left-0 right-0 z-30 mt-1 overflow-hidden rounded-lg border border-stone-200 bg-white shadow-soft">
+            <div className="absolute left-0 right-0 z-30 mt-1 overflow-hidden rounded-lg border border-line bg-elevated shadow-soft">
               {categories.map((category) => (
                 <button
                   key={category.name}
                   type="button"
-                  className="block w-full px-3 py-2 text-left text-sm font-medium text-stone-700 transition hover:bg-paper focus:bg-paper focus:outline-none"
+                  className="block w-full px-3 py-2 text-left text-sm font-medium text-secondary transition hover:bg-paper focus:bg-paper focus:outline-none"
                   onClick={() => {
                     setCategoryMode("existing");
                     setSelectedCategory(category.name);
@@ -813,7 +811,7 @@ function ActivityEditForm({
               ))}
               <button
                 type="button"
-                className="block w-full border-t border-stone-200 px-3 py-2 text-left text-sm font-semibold text-clay transition hover:bg-paper focus:bg-paper focus:outline-none"
+                className="block w-full border-t border-line px-3 py-2 text-left text-sm font-semibold text-clay transition hover:bg-paper focus:bg-paper focus:outline-none"
                 onClick={() => {
                   setCategoryMode("new");
                   setIsCategoryOpen(false);
@@ -843,10 +841,10 @@ function ActivityEditForm({
       <div>
         <p className={fieldLabelClassName}>Weekly target</p>
         <input type="hidden" name="targetCount" value={targetCount} />
-        <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-stone-200 bg-white">
+        <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-line bg-surface">
           <button
             type="button"
-            className="min-h-10 px-4 text-sm font-semibold text-stone-600 disabled:opacity-40"
+            className="min-h-10 px-4 text-sm font-semibold text-muted disabled:opacity-40"
             disabled={targetCount <= 0}
             onClick={() => setTargetCount((value) => Math.max(0, value - 1))}
           >
@@ -857,7 +855,7 @@ function ActivityEditForm({
           </span>
           <button
             type="button"
-            className="min-h-10 px-4 text-sm font-semibold text-stone-600"
+            className="min-h-10 px-4 text-sm font-semibold text-muted"
             onClick={() => setTargetCount((value) => value + 1)}
           >
             +
@@ -870,7 +868,7 @@ function ActivityEditForm({
           {canDelete ? (
             <button
               type="button"
-              className="rounded-full border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-600 transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+              className="rounded-full border border-line bg-surface px-3 py-2 text-sm font-semibold text-muted transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
               onClick={onDelete}
             >
               Delete
@@ -999,10 +997,10 @@ const fieldLabelClassName =
   "block text-xs font-semibold uppercase tracking-wide text-clay";
 
 const textInputClassName =
-  "mt-1 min-h-10 w-full rounded-lg border border-stone-200 bg-white px-3 text-sm font-medium text-ink outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/20";
+  "mt-1 min-h-10 w-full rounded-lg border border-line bg-elevated px-3 text-sm font-medium text-ink outline-none transition focus:border-clay focus:ring-2 focus:ring-clay/20";
 
 const primaryButtonClassName =
   "inline-flex min-h-10 items-center justify-center rounded-full bg-meadow px-4 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow disabled:opacity-50";
 
 const secondaryButtonClassName =
-  "inline-flex min-h-10 items-center justify-center rounded-full border border-clay/40 bg-white px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay";
+  "inline-flex min-h-10 items-center justify-center rounded-full border border-clay/40 bg-surface px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay";

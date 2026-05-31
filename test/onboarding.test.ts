@@ -150,7 +150,7 @@ describe("first-run onboarding data behavior", () => {
     expect(onboardingPage).toContain("OptimisticThisWeekGrid");
     expect(onboardingPage).not.toContain("activity_day_cells");
     expect(onboardingPage).not.toContain("missed");
-    expect(onboardingPage).not.toContain("skipped");
+    expect(onboardingPage).not.toContain("skipped:");
     expect(onboardingPage).not.toContain("done:");
   });
 

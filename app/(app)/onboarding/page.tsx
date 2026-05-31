@@ -93,7 +93,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         {error ? (
           <Notice tone="error" body="That category could not be saved. Try again." />
         ) : null}
-        <section className="rounded-lg border border-stone-200 bg-white/80 p-4 shadow-soft">
+        <section className="rounded-lg border border-line bg-surface/80 p-4 shadow-soft">
           <form action={addOnboardingCategoryAction} className="space-y-4">
             <label className={labelClassName} htmlFor="categoryName">
               What is one area of life you want to pay attention to?
@@ -106,7 +106,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
               autoComplete="off"
               className={inputClassName}
             />
-            <p className="text-sm leading-6 text-stone-600">
+            <p className="text-sm leading-6 text-muted">
               Examples: Health, Home, Relationships, Work, Music
             </p>
             <button type="submit" className={primaryButtonClassName}>
@@ -146,7 +146,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         {error ? (
           <Notice tone="error" body="Onboarding could not be completed. Try again." />
         ) : null}
-        <section className="space-y-3 rounded-lg border border-stone-200 bg-white/80 p-4 shadow-soft">
+        <section className="space-y-3 rounded-lg border border-line bg-surface/80 p-4 shadow-soft">
           <OnboardingTourItem
             title="Today"
             body="Use Today to mark planned activities done. If nothing is planned for today, or you do something extra, use + Something else."
@@ -161,9 +161,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
           />
         </section>
         <div className="flex flex-col gap-3 rounded-lg border border-meadow/25 bg-meadow/10 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-semibold text-stone-800">
-            Ready to use My Weekly List?
-          </p>
+          <p className="text-sm font-semibold text-ink">Ready to use My Weekly List?</p>
           <form action={completeOnboardingAction}>
             <button type="submit" className={primaryButtonClassName}>
               Go to Today
@@ -185,9 +183,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       ) : null}
       <PlanLegend />
       <div className="flex flex-col gap-3 rounded-lg border border-meadow/25 bg-meadow/10 p-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-stone-800">
-          Ready to see how you’ll use it?
-        </p>
+        <p className="text-sm font-semibold text-ink">Ready to see how you’ll use it?</p>
         <Link href="/onboarding?step=guide" className={primaryButtonClassName}>
           Next
         </Link>
@@ -199,28 +195,28 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
 
 function OnboardingTourItem({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-paper/70 px-3 py-2">
+    <div className="rounded-lg border border-line bg-paper/70 px-3 py-2">
       <h2 className="text-sm font-semibold text-ink">{title}</h2>
-      <p className="mt-1 text-sm leading-6 text-stone-700">{body}</p>
+      <p className="mt-1 text-sm leading-6 text-secondary">{body}</p>
     </div>
   );
 }
 
 function PlanLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-stone-200 bg-white/80 px-3 py-2 text-sm text-stone-700 shadow-soft">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line bg-surface/80 px-3 py-2 text-sm text-secondary shadow-soft">
       <span>Tap a day to switch it between:</span>
       <span className="inline-flex items-center gap-2">
         <span
           aria-hidden="true"
-          className="h-5 w-5 rounded-full border border-stone-400 bg-white"
+          className="h-5 w-5 rounded-full border border-skipped bg-surface"
         />
         not planned
       </span>
       <span className="inline-flex items-center gap-2">
         <span
           aria-hidden="true"
-          className="h-5 w-5 rounded-full border-2 border-sky-500 bg-sky-100 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.72)]"
+          className="h-5 w-5 rounded-full border-2 border-planned-ring bg-planned-fill shadow-[inset_0_0_0_3px_rgb(var(--color-surface)/0.72)]"
         />
         planned
       </span>
@@ -241,14 +237,14 @@ function OnboardingFrame({
 }) {
   return (
     <section className="mx-auto max-w-3xl space-y-4">
-      <div className="rounded-lg border border-stone-200 bg-white/80 p-4 shadow-soft sm:p-6">
+      <div className="rounded-lg border border-line bg-surface/80 p-4 shadow-soft sm:p-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-clay">
           {eyebrow}
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-normal text-ink sm:text-4xl">
           {title}
         </h1>
-        <p className="mt-2 text-base leading-7 text-stone-700">{description}</p>
+        <p className="mt-2 text-base leading-7 text-secondary">{description}</p>
       </div>
       {children}
     </section>
@@ -262,7 +258,7 @@ function getParam(value: string | string[] | undefined) {
 const labelClassName = "block text-xs font-semibold uppercase tracking-wide text-clay";
 
 const inputClassName =
-  "min-h-11 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-base text-ink shadow-inner shadow-stone-100 focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/40";
+  "min-h-11 w-full rounded-lg border border-line bg-elevated px-3 py-2 text-base text-ink shadow-inner shadow-line-soft focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/40";
 
 const primaryButtonClassName =
-  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-paper";

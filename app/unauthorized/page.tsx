@@ -9,25 +9,25 @@ export default async function UnauthorizedPage({ searchParams }: UnauthorizedPag
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl items-center px-4 py-10 sm:px-6">
-      <section className="w-full rounded-2xl border border-stone-200 bg-white/80 p-6 shadow-soft sm:p-8">
+      <section className="w-full rounded-2xl border border-line bg-surface/80 p-6 shadow-soft sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-wide text-clay">
           Private app
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-normal text-ink">
           This email account cannot open My Weekly List.
         </h1>
-        <p className="mt-3 leading-7 text-stone-700">
+        <p className="mt-3 leading-7 text-secondary">
           {email
             ? `${email} is signed in, but app access is not enabled for that account.`
             : "You are signed in, but app access is not enabled for that account."}
         </p>
-        <p className="mt-3 leading-7 text-stone-700">
+        <p className="mt-3 leading-7 text-secondary">
           Ask Tim to enable access or use a different account.
         </p>
         <form action="/auth/sign-out" method="post" className="mt-6">
           <button
             type="submit"
-            className="inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white"
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-paper"
           >
             Sign out
           </button>

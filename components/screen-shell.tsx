@@ -19,7 +19,7 @@ export function ScreenShell({
 }: ScreenShellProps) {
   return (
     <section className="space-y-4 sm:space-y-6">
-      <div className="rounded-lg border border-stone-200 bg-white/80 p-4 shadow-soft sm:rounded-2xl sm:p-8">
+      <div className="rounded-lg border border-line bg-surface/80 p-4 shadow-soft sm:rounded-2xl sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-wide text-clay">
           {eyebrow}
         </p>
@@ -28,12 +28,12 @@ export function ScreenShell({
             <h1 className="text-2xl font-semibold tracking-normal text-ink sm:text-4xl">
               {title}
             </h1>
-            <p className="text-base leading-7 text-stone-700">{description}</p>
+            <p className="text-base leading-7 text-secondary">{description}</p>
           </div>
           {primaryHref && primaryLabel ? (
             <Link
               href={primaryHref}
-              className="inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-paper"
             >
               {primaryLabel}
             </Link>

@@ -23,6 +23,7 @@ not a required implementation sequence for future work.
 | 14 | #58 | Replace email auth links with manual user management | Replace magic links/OTP with email/password login, database-backed access flags, forced password change, and local scripts for creating, resetting, and disabling users. | Closed |
 | 15 | #61 | Add first-run onboarding for manually provisioned users | Guide newly provisioned allowed users with no usable list through creating first categories, activities, targets, a current-week plan, and a short Today/Week/Review tour. This is not public signup. | Closed |
 | 16 | #62 | Audit repository docs and archive-readiness | Align README/docs/issues with the current production app before pausing active development. | In progress |
+| Backlog | #65 | Add system light/dark theme support | Follow the browser/device appearance setting with a warm dark theme, keeping light mode visually close to the original app and without adding an MVP theme toggle. | In progress |
 | Backlog | #30 | Add simple historical activity look-back | Deferred activity-level historical summaries over real recorded weeks only; do not build until Tim resumes this backlog feature. | Open / deferred |
 
 ## Label suggestions

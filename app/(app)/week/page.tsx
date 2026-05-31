@@ -74,9 +74,9 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
           state.weekEndDate,
         )} week from your active starter activities.`}
       >
-        <div className="rounded-lg border border-stone-200 bg-white/80 p-5 shadow-soft">
+        <div className="rounded-lg border border-line bg-surface/80 p-5 shadow-soft">
           {notice ? <Notice tone={notice.tone} body={notice.body} /> : null}
-          <p className="text-sm leading-6 text-stone-700">
+          <p className="text-sm leading-6 text-secondary">
             {state.isLateStart
               ? "Because this week is already underway, earlier days will stay blank unless you intentionally record something."
               : "No days will be planned until you choose them in the grid."}
@@ -174,4 +174,4 @@ function getWeekNotice({
 }
 
 const primaryButtonClassName =
-  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-paper";

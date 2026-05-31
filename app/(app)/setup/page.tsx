@@ -103,21 +103,21 @@ function SetupFrame({
 }) {
   return (
     <section className="mx-auto max-w-2xl">
-      <div className="rounded-2xl border border-stone-200 bg-white/80 p-5 shadow-soft sm:p-8">
+      <div className="rounded-2xl border border-line bg-surface/80 p-5 shadow-soft sm:p-8">
         <p className="text-sm font-semibold uppercase tracking-wide text-clay">
           {eyebrow}
         </p>
         <h1 className="mt-3 text-3xl font-semibold tracking-normal text-ink sm:text-4xl">
           {title}
         </h1>
-        <p className="mt-3 text-base leading-7 text-stone-700">{body}</p>
+        <p className="mt-3 text-base leading-7 text-secondary">{body}</p>
 
         {notice ? (
           <div
             className={`mt-5 rounded-xl border p-4 text-sm leading-6 ${
               notice.tone === "success"
-                ? "border-meadow/25 bg-meadow/10 text-stone-800"
-                : "border-clay/30 bg-clay/10 text-stone-800"
+                ? "border-meadow/25 bg-meadow/10 text-ink"
+                : "border-clay/30 bg-clay/10 text-ink"
             }`}
             role={notice.tone === "error" ? "alert" : "status"}
           >
@@ -135,7 +135,7 @@ function SetupFrame({
 }
 
 const primaryButtonClassName =
-  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-paper";
 
 const secondaryButtonClassName =
-  "inline-flex min-h-11 items-center justify-center rounded-full border border-stone-200 bg-white/70 px-5 text-sm font-semibold text-stone-700 transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 focus:ring-offset-white";
+  "inline-flex min-h-11 items-center justify-center rounded-full border border-line bg-surface/70 px-5 text-sm font-semibold text-secondary transition hover:border-clay hover:text-ink focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 focus:ring-offset-paper";
