@@ -377,7 +377,8 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("pendingActivityIds");
     expect(todayClient).toContain("pendingCorrectionKeys");
     expect(todayClient).toContain("getBoundingClientRect");
-    expect(todayClient).toContain("onPointerDown={onClose}");
+    expect(todayClient).toContain("onClick={onClose}");
+    expect(todayClient).toContain("event.stopPropagation()");
     expect(todayClient).toContain('event.key === "Escape"');
     expect(todayClient).toContain("Close correction sheet");
     expect(todayClient).toContain("getTodayStateScope");
