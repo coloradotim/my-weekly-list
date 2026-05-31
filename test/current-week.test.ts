@@ -552,6 +552,7 @@ describe("week action guardrails", () => {
     expect(weekActions).toContain("updateWeekActivityListItemAction");
     expect(weekActions).toContain("addWeekActivityListItemAction");
     expect(weekActions).toContain("removeWeekActivityFromFutureAction");
+    expect(weekActions).toContain("renameWeekCategoryAction");
     expect(weekActions).toContain("reorderWeekCategoriesAction");
     expect(weekActions).toContain("reorderWeekActivitiesAction");
     expect(weekActions).not.toContain("mark_done");
@@ -592,6 +593,7 @@ describe("week action guardrails", () => {
     expect(weekListEditor).toContain("initialCategoryName={category.name}");
     expect(weekListEditor).toContain("addWeekActivityListItemClientAction");
     expect(weekListEditor).toContain("Delete");
+    expect(weekListEditor).toContain("Rename");
     expect(weekListEditor).toContain("min-h-9 min-w-9");
     expect(weekListEditor).not.toContain(
       "<form action={removeWeekActivityFromFutureAction}",
@@ -605,8 +607,12 @@ describe("week action guardrails", () => {
     expect(weekListEditor).toContain('type="button"');
     expect(weekListEditor).toContain("reorderWeekCategoriesAction");
     expect(weekListEditor).toContain("reorderWeekActivitiesAction");
+    expect(weekListEditor).toContain("renameWeekCategoryAction");
     expect(weekListEditor).toContain("data-week-list-category");
     expect(weekListEditor).toContain("data-week-list-activity");
+    expect(weekListEditor).toContain("before:bg-clay");
+    expect(weekListEditor).toContain("after:bg-clay");
+    expect(weekListEditor).toContain("getDragIndicatorPosition");
   });
 
   it("keeps Week category collapse and reorder interactions local", () => {
@@ -618,8 +624,10 @@ describe("week action guardrails", () => {
     expect(weekPageClient).toContain("onCategoriesChange");
     expect(weekListEditor).toContain("fromIndex < targetIndex");
     expect(weekListEditor).toContain("sourceIndex < targetIndex");
-    expect(weekListEditor).toContain("} hidden");
-    expect(weekListEditor).not.toContain("previousCollapsedCategoryNames");
+    expect(weekListEditor).toContain("autoScrollForDrag(event.clientY)");
+    expect(weekListEditor).toContain("window.scrollBy");
+    expect(weekListEditor).toContain("hidden");
+    expect(thisWeekGrid).toContain("sm:top-16");
     expect(weekListEditor).not.toContain(
       "current.filter((name) => name !== currentDragItem.id)",
     );
@@ -674,6 +682,35 @@ describe("week action guardrails", () => {
     expect(weekModel).toContain("deactivateCategoryIfEmpty");
     expect(weekModel).toContain('.from("categories")');
     expect(weekModel).toContain(".update({ is_active: false })");
+  });
+
+  it("supports category rename without merging or rewriting historical snapshots", () => {
+    expect(weekModel).toContain("export async function renameWeekCategory");
+    expect(weekModel).toContain("That category name already exists.");
+    expect(weekModel).toContain('.eq("week_id", weekId)');
+    expect(weekModel).toContain(".update({ category_name: normalizedNextCategoryName })");
+    expect(weekModel).toContain('.from("categories")');
+    expect(weekModel).toContain(
+      ".update({ name: normalizedNextCategoryName, is_active: true })",
+    );
+    expect(weekModel).not.toContain('.neq("week_id", weekId)');
+  });
+
+  it("keeps the edit category picker mobile-usable and fed by editable categories", () => {
+    expect(weekListEditor).toContain("const categories = useMemo");
+    expect(weekListEditor).toContain("listCategories.map((category)");
+    expect(weekListEditor).toContain("grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]");
+    expect(weekListEditor).toContain("fixed inset-x-3");
+    expect(weekListEditor).toContain("z-[80]");
+    expect(weekListEditor).toContain("max-h-[min(22rem,calc(100vh-9rem))]");
+    expect(weekListEditor).toContain("sm:absolute");
+    expect(weekListEditor).toContain("sm:top-full");
+    expect(weekListEditor).toContain("sm:inset-x-0");
+    expect(weekListEditor).toContain("overflow-y-auto");
+    expect(weekListEditor).toContain("data-week-category-picker");
+    expect(weekListEditor).toContain('event.key === "Escape"');
+    expect(weekListEditor).toContain('document.addEventListener("pointerdown"');
+    expect(weekListEditor).toContain("New category");
   });
 });
 

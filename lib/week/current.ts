@@ -1206,6 +1206,133 @@ export type WeekListMutationResult =
   | { status: "blocked"; message: string }
   | { status: "error"; message: string };
 
+export async function renameWeekCategory({
+  supabase,
+  userId,
+  weekId,
+  categoryName,
+  nextCategoryName,
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  weekId: string;
+  categoryName: string;
+  nextCategoryName: string;
+}): Promise<WeekListMutationResult> {
+  const normalizedCategoryName = categoryName.trim();
+  const normalizedNextCategoryName = nextCategoryName.trim();
+
+  if (!normalizedCategoryName || !normalizedNextCategoryName) {
+    return { status: "blocked", message: "Category name is required." };
+  }
+
+  if (
+    normalizeCategoryKey(normalizedCategoryName) ===
+    normalizeCategoryKey(normalizedNextCategoryName)
+  ) {
+    return { status: "updated" };
+  }
+
+  const week = await getWeekById(supabase, weekId);
+
+  if (week.status !== "success") {
+    return week;
+  }
+
+  if (!week.week) {
+    return { status: "error", message: "Week not found." };
+  }
+
+  if (!canEditWeekList(week.week.status)) {
+    return { status: "blocked", message: "That week list is view-only." };
+  }
+
+  const activities = await getWeekActivitiesForListEdit(supabase, weekId);
+
+  if (activities.status !== "success") {
+    return activities;
+  }
+
+  const sourceActivities = activities.activities.filter(
+    (activity) =>
+      normalizeCategoryKey(activity.categoryName) ===
+      normalizeCategoryKey(normalizedCategoryName),
+  );
+
+  if (sourceActivities.length === 0) {
+    return { status: "blocked", message: "Category not found." };
+  }
+
+  const weekAlreadyHasName = activities.activities.some(
+    (activity) =>
+      normalizeCategoryKey(activity.categoryName) ===
+      normalizeCategoryKey(normalizedNextCategoryName),
+  );
+
+  if (weekAlreadyHasName) {
+    return {
+      status: "blocked",
+      message: "That category name already exists.",
+    };
+  }
+
+  const sourceCategoryIds = new Set(
+    sourceActivities
+      .map((activity) => activity.categoryId)
+      .filter((id): id is string => Boolean(id)),
+  );
+  const userCategories = await getUserCategories(supabase);
+
+  if (userCategories.status !== "success") {
+    return userCategories;
+  }
+
+  const reusableNameConflict = userCategories.categories.some(
+    (category) =>
+      !sourceCategoryIds.has(category.id) &&
+      normalizeCategoryKey(category.name) ===
+        normalizeCategoryKey(normalizedNextCategoryName),
+  );
+
+  if (reusableNameConflict) {
+    return {
+      status: "blocked",
+      message: "That category name already exists.",
+    };
+  }
+
+  for (const categoryId of sourceCategoryIds) {
+    const { error } = await supabase
+      .from("categories")
+      .update({ name: normalizedNextCategoryName, is_active: true })
+      .eq("id", categoryId)
+      .eq("user_id", userId);
+
+    if (error) {
+      if (error.code === "23505") {
+        return {
+          status: "blocked",
+          message: "That category name already exists.",
+        };
+      }
+
+      return { status: "error", message: error.message };
+    }
+  }
+
+  const { error: weekActivityError } = await supabase
+    .from("week_activities")
+    .update({ category_name: normalizedNextCategoryName })
+    .eq("week_id", weekId)
+    .eq("category_name", normalizedCategoryName);
+
+  if (weekActivityError) {
+    return { status: "error", message: weekActivityError.message };
+  }
+
+  return { status: "updated" };
+}
+
 export async function updateWeekActivityListItem({
   supabase,
   userId,

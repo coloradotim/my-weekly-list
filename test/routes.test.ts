@@ -41,6 +41,8 @@ describe("app routes", () => {
     expect(appLayout).not.toContain("supabase.auth.getUser()");
     expect(appLayout).not.toContain("checkAllowedUser");
     expect(appShell).toContain("fixed inset-x-0 bottom-0");
+    expect(appShell).toContain("fixed inset-x-0 top-0");
+    expect(appShell).toContain("sm:pt-20");
     expect(appShell).toContain("touch-manipulation");
     expect(appShell).toContain("env(safe-area-inset-bottom)");
     expect(appShell).toContain('aria-label="Main navigation"');

@@ -322,6 +322,7 @@ It should support future-week list editing:
 
 - add activity from within a category, with that category preselected
 - add a category from the bottom of the list editor
+- rename an existing category
 - edit activity name
 - edit category
 - create a new category when adding or editing an activity
@@ -445,7 +446,8 @@ correction of forgotten prior-day completions.
 - Week owns current-week viewing, next-week planning, and future list editing.
 - Week's day header should remain visible during vertical grid scrolling.
 - The app nav should derive active state from the current route segment and show
-  exactly one active item.
+  exactly one active item. Mobile uses fixed bottom navigation; desktop uses a
+  fixed compact top navigation with content space reserved below it.
 - There is no permanent top-level Plan workflow in the product model.
 - Copy previous week should default to copying activities, target counts, categories, and planned days when planning before the new week starts.
 - If creating the current week late, copy activities and target counts but default to planned days from today forward only.

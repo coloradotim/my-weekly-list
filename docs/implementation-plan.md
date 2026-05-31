@@ -259,8 +259,8 @@ visual language where appropriate.
 - Use an existing prepared next week as the current week when its Monday arrives,
   rather than requiring a Done/Ready/Finalize action or prior-week ceremony.
 - Allow future week editing from Week: activity name, category, new category,
-  target, add activity, remove from future weeks, category/activity order, and
-  planned days.
+  rename category, target, add activity, remove from future weeks,
+  category/activity order, and planned days.
 - In the Week list editor, prefer category-local `+ Add activity` actions with
   the launching category preselected. The bottom list action is `+ Add category`
   so a new category can be created before adding activities under it.
@@ -295,6 +295,9 @@ visual language where appropriate.
   Plan, Home, Setup, or Sign out as primary navigation items.
 - Derive selected nav state from the committed current route segment so exactly
   one Today/Week/Review item is active at a time.
+- Keep mobile navigation fixed to the bottom safe area, and keep desktop
+  navigation fixed to the top with content offset so it remains available while
+  scrolling long Week and Review screens.
 - Provide a stable `/install` route for iPhone Safari Add to Home Screen. It
   should not smart-route away, should not be primary navigation, and should link
   to `/today` so launches open the daily execution screen directly.
