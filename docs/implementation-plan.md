@@ -92,6 +92,12 @@ Build for these user moments first:
 
 The app should feel warm, calm, and non-punitive.
 
+The app follows the browser/device light or dark appearance setting. MVP does
+not include an in-app theme toggle, per-user theme preference, or localStorage
+theme override. Light mode should remain visually close to the original warm
+palette, and dark mode should use the same semantic roles in a warmer charcoal
+palette rather than pure black or neon colors.
+
 Use the visual status language from `docs/product-plan.md` and `AGENTS.md`:
 
 - Blank: empty neutral cell

@@ -113,7 +113,7 @@ export function OnboardingActivityBuilder({
 
       {activities.length > 0 ? (
         <div className="flex flex-col gap-3 rounded-lg border border-meadow/25 bg-meadow/10 p-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-semibold text-stone-800">
+          <p className="text-sm font-semibold text-ink">
             Done for now? Ready to plan your first week?
           </p>
           <Link href="/onboarding?step=plan" className={primaryButtonClassName}>
@@ -128,9 +128,9 @@ export function OnboardingActivityBuilder({
         return (
           <section
             key={category.id}
-            className="rounded-lg border border-stone-200 bg-white/80 shadow-soft"
+            className="rounded-lg border border-line bg-surface/80 shadow-soft"
           >
-            <div className="border-b border-stone-200 bg-paper px-4 py-3">
+            <div className="border-b border-line bg-paper px-4 py-3">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-clay">
                 {category.name}
               </h2>
@@ -140,7 +140,7 @@ export function OnboardingActivityBuilder({
                 {categoryActivities.map((activity) => (
                   <li
                     key={activity.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm shadow-inner shadow-stone-100"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface px-3 py-2 text-sm shadow-inner shadow-line-soft"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span
@@ -153,7 +153,7 @@ export function OnboardingActivityBuilder({
                         {activity.name}
                       </span>
                     </span>
-                    <span className="shrink-0 rounded-full bg-paper px-2 py-1 text-xs font-semibold text-stone-700">
+                    <span className="shrink-0 rounded-full bg-paper px-2 py-1 text-xs font-semibold text-secondary">
                       {activity.targetCount}/wk
                     </span>
                   </li>
@@ -169,7 +169,7 @@ export function OnboardingActivityBuilder({
         );
       })}
 
-      <section className="rounded-lg border border-stone-200 bg-white/80 p-4 shadow-soft">
+      <section className="rounded-lg border border-line bg-surface/80 p-4 shadow-soft">
         <form
           className="space-y-3"
           onSubmit={(event) => {
@@ -234,10 +234,10 @@ function ActivityAddForm({
       <div>
         <p className={labelClassName}>Target days per week</p>
         <input type="hidden" name="targetCount" value={targetCount} />
-        <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-stone-200 bg-white">
+        <div className="mt-1 flex w-fit items-center overflow-hidden rounded-full border border-line bg-surface">
           <button
             type="button"
-            className="min-h-10 px-4 text-sm font-semibold text-stone-600 disabled:opacity-40"
+            className="min-h-10 px-4 text-sm font-semibold text-muted disabled:opacity-40"
             onClick={() => setTargetCount((value) => Math.max(0, value - 1))}
             disabled={disabled || targetCount <= 0}
           >
@@ -248,7 +248,7 @@ function ActivityAddForm({
           </span>
           <button
             type="button"
-            className="min-h-10 px-4 text-sm font-semibold text-stone-600 disabled:opacity-40"
+            className="min-h-10 px-4 text-sm font-semibold text-muted disabled:opacity-40"
             onClick={() => setTargetCount((value) => Math.min(7, value + 1))}
             disabled={disabled || targetCount >= 7}
           >
@@ -269,8 +269,8 @@ function InlineNotice({ tone, body }: { tone: "success" | "error"; body: string 
       role={tone === "error" ? "alert" : "status"}
       className={`rounded-lg border px-3 py-2 text-sm leading-6 ${
         tone === "success"
-          ? "border-meadow/25 bg-meadow/10 text-stone-800"
-          : "border-clay/30 bg-clay/10 text-stone-800"
+          ? "border-meadow/25 bg-meadow/10 text-ink"
+          : "border-clay/30 bg-clay/10 text-ink"
       }`}
     >
       {body}
@@ -304,10 +304,10 @@ function mergeActivity(activities: OnboardingActivity[], activity: OnboardingAct
 const labelClassName = "block text-xs font-semibold uppercase tracking-wide text-clay";
 
 const inputClassName =
-  "min-h-11 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-base text-ink shadow-inner shadow-stone-100 focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/40 disabled:bg-stone-100";
+  "min-h-11 w-full rounded-lg border border-line bg-elevated px-3 py-2 text-base text-ink shadow-inner shadow-line-soft focus:border-clay focus:outline-none focus:ring-2 focus:ring-clay/40 disabled:bg-paper disabled:text-disabled";
 
 const primaryButtonClassName =
-  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-white";
+  "inline-flex min-h-11 items-center justify-center rounded-full bg-meadow px-5 text-sm font-semibold text-white transition hover:bg-meadow/90 focus:outline-none focus:ring-2 focus:ring-meadow focus:ring-offset-2 focus:ring-offset-paper";
 
 const secondaryButtonClassName =
-  "inline-flex min-h-10 items-center justify-center rounded-full border border-stone-200 bg-white px-4 text-sm font-semibold text-clay transition hover:border-clay focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 focus:ring-offset-white disabled:opacity-50";
+  "inline-flex min-h-10 items-center justify-center rounded-full border border-line bg-surface px-4 text-sm font-semibold text-clay transition hover:border-clay focus:outline-none focus:ring-2 focus:ring-clay focus:ring-offset-2 focus:ring-offset-paper disabled:opacity-50";

@@ -55,12 +55,12 @@ export function ThisWeekGrid({
   return (
     <section className="space-y-2 sm:space-y-3">
       {showStatusPanel ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-stone-200 bg-white/80 p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 rounded-lg border border-line bg-surface/80 p-3 shadow-soft sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-clay">
               {formatStatus(view.week.status)}
             </p>
-            <p className="mt-1 text-sm leading-6 text-stone-700">
+            <p className="mt-1 text-sm leading-6 text-secondary">
               {view.isEditable
                 ? "Tap blank or planned circles to adjust the plan."
                 : "This week is view-only."}
@@ -73,23 +73,23 @@ export function ThisWeekGrid({
       <div
         ref={gridLayout.headerScrollerRef}
         data-week-grid-header-scroll
-        className="sticky top-0 z-30 w-full max-w-full overflow-hidden rounded-t-lg border border-b-0 border-stone-200 bg-white"
+        className="sticky top-0 z-30 w-full max-w-full overflow-hidden rounded-t-lg border border-b-0 border-line bg-surface"
         style={gridLayout.scrollerStyle}
       >
         <div className={weekGridColumnsClassName} style={gridLayout.gridStyle}>
-          <div className="sticky left-0 z-40 border-b border-r border-stone-200 bg-white px-2 py-2 font-semibold text-stone-700 sm:px-3 sm:py-3">
+          <div className="sticky left-0 z-40 border-b border-r border-line bg-surface px-2 py-2 font-semibold text-secondary sm:px-3 sm:py-3">
             Activity
           </div>
           {view.dayDates.map((date, index) => (
             <div
               key={date}
               data-week-day-index={index}
-              className={`snap-start border-b border-stone-200 px-1 py-2 text-center font-semibold sm:px-2 sm:py-3 ${
-                date === view.today ? "bg-mist/45 text-ink" : "bg-white text-stone-700"
+              className={`snap-start border-b border-line px-1 py-2 text-center font-semibold sm:px-2 sm:py-3 ${
+                date === view.today ? "bg-mist/45 text-ink" : "bg-surface text-secondary"
               }`}
             >
               <span className="block">{weekDayLabels[index]}</span>
-              <span className="mt-1 block text-xs font-medium text-stone-500">
+              <span className="mt-1 block text-xs font-medium text-muted">
                 {formatShortDate(date)}
               </span>
             </div>
@@ -110,7 +110,7 @@ export function ThisWeekGrid({
 
             return (
               <div key={category.name} className="contents">
-                <div className="sticky left-0 z-20 border-b border-r border-t border-stone-200 bg-paper px-2 py-1 text-xs font-semibold uppercase tracking-wide text-clay sm:px-3 sm:py-1.5">
+                <div className="sticky left-0 z-20 border-b border-r border-t border-line bg-paper px-2 py-1 text-xs font-semibold uppercase tracking-wide text-clay sm:px-3 sm:py-1.5">
                   {canCollapseCategories ? (
                     <button
                       type="button"
@@ -130,7 +130,7 @@ export function ThisWeekGrid({
                 </div>
                 <div
                   aria-hidden="true"
-                  className="col-span-7 border-b border-t border-stone-200 bg-paper"
+                  className="col-span-7 border-b border-t border-line bg-paper"
                 />
                 {!isCollapsed
                   ? category.activities.map((activity) => (
@@ -162,11 +162,11 @@ function ActivityRow({
 }) {
   return (
     <div className="contents">
-      <div className="sticky left-0 z-10 border-b border-r border-stone-200 bg-white px-2 py-1.5 sm:px-3 sm:py-2.5">
+      <div className="sticky left-0 z-10 border-b border-r border-line bg-surface px-2 py-1.5 sm:px-3 sm:py-2.5">
         <div className="text-xs font-semibold leading-4 text-ink sm:text-sm sm:leading-5">
           {activity.activityName}
         </div>
-        <div className="mt-0.5 text-[11px] leading-4 text-stone-500 sm:text-xs">
+        <div className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">
           {activity.doneCount}/{activity.targetCount} done
         </div>
       </div>
@@ -205,13 +205,13 @@ function WeekCell({
     cell.state,
   )}${isEditable ? `. ${actionLabel}.` : "."}`;
   const controlClassName =
-    "flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full transition hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-white sm:min-h-11 sm:min-w-11";
+    "flex min-h-10 min-w-10 cursor-pointer items-center justify-center rounded-full transition hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay focus-visible:ring-offset-2 focus-visible:ring-offset-paper sm:min-h-11 sm:min-w-11";
   const mark = <CellMark editable={isEditable} state={cell.state} />;
 
   return (
     <div
-      className={`relative flex min-h-12 snap-start items-center justify-center border-b border-stone-200 px-0.5 py-1.5 sm:min-h-[4.5rem] sm:px-2 sm:py-2.5 ${
-        isToday ? "bg-mist/35" : "bg-white"
+      className={`relative flex min-h-12 snap-start items-center justify-center border-b border-line px-0.5 py-1.5 sm:min-h-[4.5rem] sm:px-2 sm:py-2.5 ${
+        isToday ? "bg-mist/35" : "bg-surface"
       }`}
     >
       {isEditable ? (
@@ -246,8 +246,8 @@ function CellMark({ editable, state }: { editable: boolean; state: CellVisualSta
   if (state === "planned") {
     return (
       <span
-        className={`h-7 w-7 rounded-full border-2 border-sky-500 bg-sky-100 shadow-[inset_0_0_0_3px_rgba(255,255,255,0.72)] sm:h-8 sm:w-8 ${
-          editable ? "ring-1 ring-sky-200" : ""
+        className={`h-7 w-7 rounded-full border-2 border-planned-ring bg-planned-fill shadow-[inset_0_0_0_3px_rgb(var(--color-surface)/0.72)] sm:h-8 sm:w-8 ${
+          editable ? "ring-1 ring-planned-ring/25" : ""
         }`}
       />
     );
@@ -255,7 +255,7 @@ function CellMark({ editable, state }: { editable: boolean; state: CellVisualSta
 
   if (state === "missed") {
     return (
-      <span className="flex h-7 w-7 items-center justify-center rounded-full border border-stone-300 bg-stone-100 text-base font-semibold leading-none text-stone-500 sm:h-8 sm:w-8 sm:text-lg">
+      <span className="flex h-7 w-7 items-center justify-center rounded-full border border-line bg-skipped-fill text-base font-semibold leading-none text-skipped sm:h-8 sm:w-8 sm:text-lg">
         ×
       </span>
     );
@@ -265,8 +265,8 @@ function CellMark({ editable, state }: { editable: boolean; state: CellVisualSta
     <span
       className={`rounded-full ${
         editable
-          ? "h-7 w-7 border border-stone-400 bg-white sm:h-8 sm:w-8"
-          : "h-2 w-2 bg-stone-200/70"
+          ? "h-7 w-7 border border-skipped bg-surface sm:h-8 sm:w-8"
+          : "h-2 w-2 bg-line/70"
       }`}
     />
   );
@@ -284,10 +284,10 @@ export function Notice({
       role={tone === "error" ? "alert" : "status"}
       className={`rounded-lg border px-3 py-2 text-sm leading-6 ${
         tone === "success"
-          ? "border-meadow/25 bg-meadow/10 text-stone-800"
+          ? "border-meadow/25 bg-meadow/10 text-ink"
           : tone === "error"
-            ? "border-clay/30 bg-clay/10 text-stone-800"
-            : "border-stone-200 bg-paper text-stone-700"
+            ? "border-clay/30 bg-clay/10 text-ink"
+            : "border-line bg-paper text-secondary"
       }`}
     >
       {body}

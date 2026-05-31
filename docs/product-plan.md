@@ -100,6 +100,9 @@ Visual direction:
 - friendly empty states
 - no gamified streak pressure
 - no heavy red failure styling
+- follow the browser/device light or dark appearance setting without an in-app
+  theme toggle in MVP
+- keep dark mode warm and calm, preserving the same state meanings as light mode
 
 Tone direction:
 

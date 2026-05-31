@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <header className="hidden border-b border-stone-200/80 bg-paper/95 backdrop-blur sm:block">
+      <header className="hidden border-b border-line bg-paper/95 backdrop-blur sm:block">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3 lg:px-8">
           <Link href="/" className="text-base font-semibold tracking-normal text-ink">
             My Weekly List
@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="Main navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-stone-200 bg-paper/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgba(47,48,43,0.08)] backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgb(var(--color-shadow-soft)/0.08)] backdrop-blur sm:hidden"
       >
         <ul className="mx-auto grid max-w-md grid-cols-3 gap-2">
           {appRoutes.map((item) => {
@@ -45,8 +45,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                   aria-current={selected ? "page" : undefined}
                   className={`flex min-h-12 touch-manipulation items-center justify-center rounded-full border px-3 text-sm font-semibold transition-colors duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
                     selected
-                      ? "border-clay bg-white text-ink shadow-soft"
-                      : "border-stone-200 bg-white/70 text-stone-600"
+                      ? "border-clay bg-surface text-ink shadow-soft"
+                      : "border-line bg-surface/70 text-muted"
                   }`}
                 >
                   {item.label}
@@ -81,8 +81,8 @@ function PrimaryNav({
                 aria-current={selected ? "page" : undefined}
                 className={`inline-flex min-h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
                   selected
-                    ? "border-clay bg-white text-ink shadow-soft"
-                    : "border-stone-200 bg-white/70 text-stone-600 hover:border-clay hover:text-ink"
+                    ? "border-clay bg-surface text-ink shadow-soft"
+                    : "border-line bg-surface/70 text-muted hover:border-clay hover:text-ink"
                 }`}
               >
                 {item.label}
