@@ -66,6 +66,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
 
   return (
     <OptimisticReviewView
+      key={state.state.week.weekStartDate}
       initialState={state.state}
       initialNotice={
         planningStatus === "error"

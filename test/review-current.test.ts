@@ -219,6 +219,7 @@ describe("persisted Review implementation guardrails", () => {
   it("renders the real Review route with the optimistic persisted client", () => {
     expect(reviewPage).toContain("loadReview");
     expect(reviewPage).toContain("OptimisticReviewView");
+    expect(reviewPage).toContain("key={state.state.week.weekStartDate}");
     expect(reviewPage).not.toContain("PlaceholderCard");
     expect(reviewPage).not.toContain("Close week");
   });
