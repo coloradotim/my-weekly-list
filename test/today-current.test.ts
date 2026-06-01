@@ -459,6 +459,8 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayClient).toContain("Plan this week, or record something you do today.");
     expect(todayClient).toContain("Nothing else planned for today.");
     expect(todayClient).toContain('href="/week"');
+    expect(todayClient).toContain("showStandalonePicker");
+    expect(todayClient).toContain("view.openPlannedToday.length > 0 ||");
     expect(todayClient).toContain("+ Something else");
     expect(todayClient).toContain("Done today");
     expect(todayClient).toContain("Skipped");
