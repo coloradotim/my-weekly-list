@@ -373,6 +373,34 @@ not-completed day. Planned, skipped, missed, and unplanned-not-done facts remain
 stored for This Week, Today, and future reporting, but Review MVP does not
 visually distinguish them.
 
+### History
+
+History is a secondary Review-linked surface for opening previous weekly
+Reviews and noticing simple activity patterns over time. It is reached from a
+small `History` action near the Review date context, not from the primary
+Today/Week/Review navigation.
+
+History should show:
+
+- `Last week`, with the immediately previous Monday-Sunday date range when that
+  week exists as a real recorded week
+- `Previous weeks`, newest first, for earlier recorded ended weeks
+- `Patterns`, using the last four ended recorded weeks and historical
+  `week_activities` snapshots
+
+History summaries count completed activity-day records, targets met, and
+activities short of target using each week's historical targets. Pattern rows
+stay activity-level and use copy like `Walk 13 days · target met 3 of 4 weeks`.
+They count planned and unplanned completions, exclude the current in-progress
+week, exclude weeks where that activity did not exist from the denominator, and
+update naturally after Review correction reloads.
+
+History should not create missing week records for display. If the immediately
+previous week does not exist, `Last week` shows a calm empty state rather than a
+ghost week. History should also avoid scores, percentages, streaks, charts,
+category rollups, planned-adherence metrics, skipped-versus-missed metrics,
+planned-versus-unplanned breakdowns, trend arrows, or coaching language.
+
 ## Cell behavior
 
 Each activity/day cell should track planning and completion separately but keep the UI simple.
@@ -629,13 +657,14 @@ The app now has the main MVP product surfaces in place:
 - Week: current-week overview/planning, next-week preparation, list editing,
   copy-forward, and responsive weekly grid behavior.
 - Review: target summary and completion-only day-by-day correction.
+- History: secondary Review-linked access to previous weekly Reviews and simple
+  last-four-ended-week activity patterns over real recorded weeks only.
 - `/install`: stable Safari Home Screen install page.
 - `/onboarding`: first-run setup for manually provisioned users with no usable
   list.
 
 Future work should be driven from current GitHub issues rather than this
-document's old phase sequencing. Historical aggregate look-back remains deferred
-to issue #30.
+document's old phase sequencing.
 
 ## Open questions
 

@@ -25,6 +25,7 @@ describe("app routes", () => {
     expect(getSelectedRouteHref("/today")).toBe("/today");
     expect(getSelectedRouteHref("/week/history")).toBe("/week");
     expect(getSelectedRouteHref("/review")).toBe("/review");
+    expect(getSelectedRouteHref("/history")).toBeNull();
     expect(getSelectedRouteHref("/")).toBeNull();
     expect(getSelectedRouteHref("/install")).toBeNull();
   });
