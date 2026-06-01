@@ -124,8 +124,10 @@ describe("History implementation guardrails", () => {
   it("adds History as a secondary Review action without adding primary nav", () => {
     expect(reviewClient).toContain('href="/history"');
     expect(reviewClient).toContain("History");
+    expect(reviewClient).toContain("Back to History");
+    expect(reviewClient).toContain("Current week");
     expect(historyPage).toContain("loadHistory");
-    expect(historyPage).toContain("Back to Review");
+    expect(historyPage).toContain("Back to current week");
     expect(historyPage).toContain("Open review");
   });
 

@@ -131,12 +131,22 @@ export function OptimisticReviewView({
       <article className="rounded-lg border border-line bg-surface/90 p-3 shadow-soft sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm font-semibold text-clay">Review · {view.rangeLabel}</p>
-          <Link
-            href="/history"
-            className="inline-flex min-h-9 items-center justify-center rounded-full border border-line bg-surface px-3 text-sm font-semibold text-secondary transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-          >
-            History
-          </Link>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {!view.isCurrentWeek ? (
+              <Link
+                href="/review"
+                className="inline-flex min-h-9 items-center justify-center rounded-full border border-line bg-surface px-3 text-sm font-semibold text-secondary transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+              >
+                Current week
+              </Link>
+            ) : null}
+            <Link
+              href="/history"
+              className="inline-flex min-h-9 items-center justify-center rounded-full border border-line bg-surface px-3 text-sm font-semibold text-secondary transition hover:border-clay hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+            >
+              {view.isCurrentWeek ? "History" : "Back to History"}
+            </Link>
+          </div>
         </div>
 
         {view.isSundayCurrentWeek ? (

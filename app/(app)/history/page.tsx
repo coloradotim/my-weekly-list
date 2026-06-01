@@ -53,7 +53,7 @@ export default async function HistoryPage() {
         description="After you finish your first week, this is where you’ll be able to open past reviews and see simple patterns."
       >
         <Link className={secondaryButtonClassName} href="/review">
-          Back to Review
+          Back to current week
         </Link>
       </ScreenShell>
     );
@@ -72,7 +72,7 @@ export default async function HistoryPage() {
             </h1>
           </div>
           <Link className={secondaryButtonClassName} href="/review">
-            Review
+            Back to current week
           </Link>
         </div>
       </header>
