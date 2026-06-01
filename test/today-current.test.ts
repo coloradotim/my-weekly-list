@@ -8,6 +8,7 @@ import {
   getRemainingMoveDates,
   getTodayCorrectionCellState,
   getTodayDayDates,
+  loadToday,
   type TodayState,
 } from "@/lib/today/current";
 
@@ -331,6 +332,73 @@ describe("persisted Today model", () => {
   });
 });
 
+describe("Today current-week assurance", () => {
+  it("creates Monday's current week from active templates without planned cells", async () => {
+    const client = createWeeklyListClient();
+
+    const result = await loadToday(client.supabase, {
+      ensureCurrentWeekForUserId: "user-1",
+      today: "2026-06-01",
+    });
+
+    expect(result.status).toBe("ready");
+    expect(client.weeks).toHaveLength(1);
+    expect(client.weekActivities).toHaveLength(2);
+    expect(client.activityDayCells).toEqual([]);
+
+    if (result.status !== "ready") {
+      return;
+    }
+
+    expect(result.state.week).toMatchObject({
+      weekStartDate: "2026-06-01",
+      weekEndDate: "2026-06-07",
+      status: "active",
+    });
+    expect(result.state.activities.map((activity) => activity.activityName)).toEqual([
+      "Walk",
+      "Read",
+    ]);
+    expect(
+      result.state.activities.every((activity) =>
+        activity.cells.every((cell) => !cell.planned && !cell.done && !cell.skipped),
+      ),
+    ).toBe(true);
+    expect(buildTodayViewModel(result.state).openPlannedToday).toEqual([]);
+  });
+
+  it("repairs a current-week row that has zero week activities", async () => {
+    const client = createWeeklyListClient({
+      weeks: [weekRow({ id: "week-existing", week_start_date: "2026-06-01" })],
+    });
+
+    const result = await loadToday(client.supabase, { today: "2026-06-01" });
+
+    expect(result.status).toBe("ready");
+    expect(client.weeks).toHaveLength(1);
+    expect(client.weekActivities).toHaveLength(2);
+    expect(client.activityDayCells).toEqual([]);
+  });
+
+  it("does not duplicate weeks or week activities on refresh or retry", async () => {
+    const client = createWeeklyListClient();
+
+    await loadToday(client.supabase, {
+      ensureCurrentWeekForUserId: "user-1",
+      today: "2026-06-01",
+    });
+    await loadToday(client.supabase, {
+      ensureCurrentWeekForUserId: "user-1",
+      today: "2026-06-01",
+    });
+
+    expect(client.weeks.map((week) => week.week_start_date)).toEqual(["2026-06-01"]);
+    expect(
+      client.weekActivities.map((activity) => activity.activity_template_id),
+    ).toEqual(["walk-template", "read-template"]);
+  });
+});
+
 describe("persisted Today implementation guardrails", () => {
   it("renders the real Today route with the optimistic persisted client", () => {
     expect(todayPage).toContain("loadToday");
@@ -387,6 +455,10 @@ describe("persisted Today implementation guardrails", () => {
 
   it("uses the approved Today copy without prior-missed backlog language", () => {
     expect(todayClient).toContain("Planned for today");
+    expect(todayClient).toContain("Nothing planned for today yet.");
+    expect(todayClient).toContain("Plan this week, or record something you do today.");
+    expect(todayClient).toContain("Nothing else planned for today.");
+    expect(todayClient).toContain('href="/week"');
     expect(todayClient).toContain("+ Something else");
     expect(todayClient).toContain("Done today");
     expect(todayClient).toContain("Skipped");
@@ -518,5 +590,245 @@ function cell(date: string, planned: boolean, done: boolean, skipped = false) {
     planned,
     done,
     skipped,
+  };
+}
+
+type WeekRow = {
+  id: string;
+  user_id: string;
+  week_start_date: string;
+  week_end_date: string;
+  status: "active";
+};
+
+type TemplateRow = {
+  id: string;
+  user_id: string;
+  category_id: string;
+  name: string;
+  default_target_count: number;
+  sort_order: number;
+  is_active: boolean;
+  categories: { id: string; name: string; sort_order: number };
+};
+
+type WeekActivityRow = {
+  id: string;
+  week_id: string;
+  activity_template_id: string;
+  category_id: string;
+  category_name: string;
+  category_sort_order: number;
+  activity_name: string;
+  target_count: number;
+  sort_order: number;
+};
+
+type DayCellRow = {
+  id: string;
+  week_activity_id: string;
+  cell_date: string;
+  planned: boolean;
+  done: boolean;
+  skipped: boolean;
+};
+
+function createWeeklyListClient({
+  weeks = [],
+  weekActivities = [],
+  activityDayCells = [],
+}: {
+  weeks?: WeekRow[];
+  weekActivities?: WeekActivityRow[];
+  activityDayCells?: DayCellRow[];
+} = {}) {
+  const client = {
+    weeks: [...weeks],
+    templates: [
+      templateRow({
+        id: "walk-template",
+        category_id: "physical-category",
+        name: "Walk",
+        default_target_count: 4,
+        sort_order: 10,
+        categories: {
+          id: "physical-category",
+          name: "Physical Health",
+          sort_order: 10,
+        },
+      }),
+      templateRow({
+        id: "read-template",
+        category_id: "mental-category",
+        name: "Read",
+        default_target_count: 5,
+        sort_order: 20,
+        categories: {
+          id: "mental-category",
+          name: "Mental Health",
+          sort_order: 20,
+        },
+      }),
+    ],
+    weekActivities: [...weekActivities],
+    activityDayCells: [...activityDayCells],
+    supabase: null as unknown,
+  };
+
+  client.supabase = {
+    from(table: string) {
+      if (table === "activity_templates") {
+        return {
+          select() {
+            return {
+              async eq(column: string, value: boolean) {
+                return {
+                  data: client.templates.filter((template) =>
+                    column === "is_active" ? template.is_active === value : true,
+                  ),
+                  error: null,
+                };
+              },
+            };
+          },
+        };
+      }
+
+      if (table === "weeks") {
+        return {
+          select() {
+            return {
+              eq(column: string, value: string) {
+                return {
+                  async maybeSingle() {
+                    const week = client.weeks.find((row) =>
+                      column === "week_start_date"
+                        ? row.week_start_date === value
+                        : false,
+                    );
+
+                    return {
+                      data: week ? serializeWeek(client, week) : null,
+                      error: null,
+                    };
+                  },
+                };
+              },
+            };
+          },
+          insert(row: { user_id: string; week_start_date: string; status: "active" }) {
+            return {
+              select() {
+                return {
+                  async single() {
+                    const existing = client.weeks.find(
+                      (week) =>
+                        week.user_id === row.user_id &&
+                        week.week_start_date === row.week_start_date,
+                    );
+
+                    if (existing) {
+                      return {
+                        data: null,
+                        error: { code: "23505", message: "duplicate week" },
+                      };
+                    }
+
+                    const week = weekRow({
+                      id: `week-${client.weeks.length + 1}`,
+                      user_id: row.user_id,
+                      week_start_date: row.week_start_date,
+                      status: row.status,
+                    });
+                    client.weeks.push(week);
+
+                    return { data: week, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+
+      if (table === "week_activities") {
+        return {
+          async insert(rows: Omit<WeekActivityRow, "id">[]) {
+            for (const row of rows) {
+              const exists = client.weekActivities.some(
+                (activity) =>
+                  activity.week_id === row.week_id &&
+                  activity.activity_template_id === row.activity_template_id,
+              );
+
+              if (!exists) {
+                client.weekActivities.push({
+                  id: `week-activity-${client.weekActivities.length + 1}`,
+                  ...row,
+                });
+              }
+            }
+
+            return { error: null };
+          },
+        };
+      }
+
+      throw new Error(`Unexpected table: ${table}`);
+    },
+  };
+
+  return client as typeof client & {
+    supabase: Parameters<typeof loadToday>[0];
+  };
+}
+
+function serializeWeek(client: ReturnType<typeof createWeeklyListClient>, week: WeekRow) {
+  return {
+    id: week.id,
+    week_start_date: week.week_start_date,
+    week_end_date: week.week_end_date,
+    status: week.status,
+    week_activities: client.weekActivities
+      .filter((activity) => activity.week_id === week.id)
+      .map((activity) => ({
+        ...activity,
+        activity_day_cells: client.activityDayCells
+          .filter((cell) => cell.week_activity_id === activity.id)
+          .map((cell) => ({
+            id: cell.id,
+            cell_date: cell.cell_date,
+            planned: cell.planned,
+            done: cell.done,
+            skipped: cell.skipped,
+          })),
+      })),
+  };
+}
+
+function weekRow(overrides: Partial<WeekRow>): WeekRow {
+  const weekStartDate = overrides.week_start_date ?? "2026-06-01";
+
+  return {
+    id: "week",
+    user_id: "user-1",
+    week_start_date: weekStartDate,
+    week_end_date: "2026-06-07",
+    status: "active",
+    ...overrides,
+  };
+}
+
+function templateRow(overrides: Partial<TemplateRow>): TemplateRow {
+  return {
+    id: "template",
+    user_id: "user-1",
+    category_id: "category",
+    name: "Activity",
+    default_target_count: 1,
+    sort_order: 10,
+    is_active: true,
+    categories: { id: "category", name: "Category", sort_order: 10 },
+    ...overrides,
   };
 }

@@ -99,14 +99,16 @@ export type TodayOptimisticAction =
 
 export async function loadToday(
   supabase: SupabaseClient,
-  options: { ensureCurrentWeekForUserId?: string } = {},
+  options: { ensureCurrentWeekForUserId?: string; today?: DateOnly } = {},
 ): Promise<TodayLoadState> {
-  const weekState = await loadThisWeek(supabase);
+  const today = options.today;
+  const weekState = await loadThisWeek(supabase, today);
 
   if (weekState.status === "no-current-week" && options.ensureCurrentWeekForUserId) {
     const created = await createCurrentWeekFromTemplates({
       supabase,
       userId: options.ensureCurrentWeekForUserId,
+      today,
     });
 
     if (created.status === "needs-setup") {
@@ -117,13 +119,13 @@ export async function loadToday(
       return { status: "error", message: created.message };
     }
 
-    const refreshedWeekState = await loadThisWeek(supabase);
+    const refreshedWeekState = await loadThisWeek(supabase, today);
 
     if (refreshedWeekState.status !== "ready") {
       return refreshedWeekState.status === "no-current-week"
         ? {
             status: "error",
-            message: "Today could not find the current week after creating it.",
+            message: `Today created this week, but it still could not reload the week starting ${refreshedWeekState.weekStartDate}.`,
           }
         : refreshedWeekState;
     }

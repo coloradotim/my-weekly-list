@@ -675,7 +675,7 @@ export async function createCurrentWeekFromTemplates({
   if (rows.length > 0) {
     const { error } = await supabase.from("week_activities").insert(rows);
 
-    if (error) {
+    if (error && error.code !== "23505") {
       return { status: "error" as const, message: error.message };
     }
   }
