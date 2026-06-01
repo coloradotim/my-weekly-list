@@ -94,7 +94,9 @@ export type WeekGridActivity = {
   categoryName: string;
   categorySortOrder: number;
   activityName: string;
+  weekStatus: WeekStatus;
   targetCount: number;
+  plannedCount: number;
   doneCount: number;
   sortOrder: number;
   cells: WeekGridCell[];
@@ -538,7 +540,9 @@ export function buildThisWeekViewModel({
       categoryName: activity.categoryName,
       categorySortOrder: activity.categorySortOrder,
       activityName: activity.activityName,
+      weekStatus: week.status,
       targetCount: activity.targetCount,
+      plannedCount: cells.filter((cell) => cell.planned).length,
       doneCount: cells.filter((cell) => cell.done).length,
       sortOrder: activity.sortOrder,
       cells,

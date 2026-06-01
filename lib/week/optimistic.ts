@@ -74,7 +74,12 @@ export function applyOptimisticWeekCellFacts({
         });
       });
 
-      return { ...activity, cells: nextCells };
+      return {
+        ...activity,
+        cells: nextCells,
+        plannedCount: nextCells.filter((cell) => cell.planned).length,
+        doneCount: nextCells.filter((cell) => cell.done).length,
+      };
     }),
   }));
 

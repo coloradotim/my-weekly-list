@@ -35,6 +35,10 @@ describe("optimistic week planning", () => {
       state: "planned",
       isPlanningEditable: true,
     });
+    expect(getActivity(view, "walk")).toMatchObject({
+      plannedCount: 4,
+      doneCount: 1,
+    });
   });
 
   it("applies a permitted planned to blank transition immediately", () => {
@@ -51,6 +55,10 @@ describe("optimistic week planning", () => {
       done: false,
       state: "blank",
       isPlanningEditable: true,
+    });
+    expect(getActivity(view, "walk")).toMatchObject({
+      plannedCount: 2,
+      doneCount: 1,
     });
   });
 
@@ -204,6 +212,16 @@ describe("optimistic week planning", () => {
     expect(thisWeekGrid).not.toContain("opacity-80");
   });
 
+  it("renders planned-first row subtitles for active and draft Week rows", () => {
+    expect(thisWeekGrid).toContain('activity.weekStatus === "draft"');
+    expect(thisWeekGrid).toContain('activity.weekStatus === "active"');
+    expect(thisWeekGrid).toContain(
+      "{activity.plannedCount}/{activity.targetCount} planned",
+    );
+    expect(thisWeekGrid).toContain("{activity.doneCount} done");
+    expect(thisWeekGrid).toContain("{activity.doneCount}/{activity.targetCount} done");
+  });
+
   it("keeps Week day headers sticky while the grid scrolls vertically", () => {
     expect(thisWeekGrid).toContain("data-week-grid-header-scroll");
     expect(thisWeekGrid).toContain(
@@ -215,16 +233,27 @@ describe("optimistic week planning", () => {
 });
 
 function getCell(view: ThisWeekViewModel, activityId: string, cellDate: string) {
-  const cell = view.categories
-    .flatMap((category) => category.activities)
-    .find((activity) => activity.id === activityId)
-    ?.cells.find((candidate) => candidate.date === cellDate);
+  const cell = getActivity(view, activityId).cells.find(
+    (candidate) => candidate.date === cellDate,
+  );
 
   if (!cell) {
     throw new Error(`Missing cell ${activityId}:${cellDate}`);
   }
 
   return cell;
+}
+
+function getActivity(view: ThisWeekViewModel, activityId: string) {
+  const activity = view.categories
+    .flatMap((category) => category.activities)
+    .find((candidate) => candidate.id === activityId);
+
+  if (!activity) {
+    throw new Error(`Missing activity ${activityId}`);
+  }
+
+  return activity;
 }
 
 function closedFixtureView() {
@@ -277,7 +306,9 @@ function fixtureView(overrides: { walkToday?: ReturnType<typeof cell> } = {}) {
           {
             id: "walk",
             activityName: "Walk",
+            weekStatus: "active",
             targetCount: 4,
+            plannedCount: 3,
             doneCount: 1,
             sortOrder: 10,
             cells: [
@@ -293,7 +324,9 @@ function fixtureView(overrides: { walkToday?: ReturnType<typeof cell> } = {}) {
           {
             id: "read",
             activityName: "Read",
+            weekStatus: "active",
             targetCount: 5,
+            plannedCount: 0,
             doneCount: 0,
             sortOrder: 20,
             cells: [
