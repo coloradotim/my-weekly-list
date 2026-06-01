@@ -250,7 +250,9 @@ export function WeekListEditor({
       categoryName: normalizedCategoryName,
       categorySortOrder,
       activityName,
+      weekStatus: view.week.status,
       targetCount,
+      plannedCount: 0,
       doneCount: 0,
       sortOrder:
         Math.max(

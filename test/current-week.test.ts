@@ -398,7 +398,9 @@ describe("persisted grid state", () => {
     expect(view.categories[0].activities[0]).toMatchObject({
       id: "walk",
       activityName: "Walk",
+      weekStatus: "active",
       targetCount: 4,
+      plannedCount: 1,
       doneCount: 0,
     });
     expect(view.categories[0].activities[0].cells[1]).toMatchObject({
@@ -410,8 +412,53 @@ describe("persisted grid state", () => {
     expect(view.categories[1].activities[0]).toMatchObject({
       id: "read",
       activityName: "Read",
+      weekStatus: "active",
       targetCount: 5,
+      plannedCount: 0,
       doneCount: 1,
+    });
+  });
+
+  it("counts planned cells separately from completed cells for Week row progress", () => {
+    const view = buildThisWeekViewModel({
+      week: activeWeek,
+      today: "2026-06-04",
+      activities: [
+        activity({
+          id: "walk",
+          activityName: "Walk",
+          targetCount: 4,
+          cells: [
+            {
+              id: "planned-done",
+              cellDate: "2026-06-01",
+              planned: true,
+              done: true,
+              skipped: false,
+            },
+            {
+              id: "planned-skipped",
+              cellDate: "2026-06-02",
+              planned: true,
+              done: false,
+              skipped: true,
+            },
+            {
+              id: "unplanned-done",
+              cellDate: "2026-06-03",
+              planned: false,
+              done: true,
+              skipped: false,
+            },
+          ],
+        }),
+      ],
+    });
+
+    expect(view.categories[0].activities[0]).toMatchObject({
+      targetCount: 4,
+      plannedCount: 2,
+      doneCount: 2,
     });
   });
 

@@ -166,9 +166,7 @@ function ActivityRow({
         <div className="text-xs font-semibold leading-4 text-ink sm:text-sm sm:leading-5">
           {activity.activityName}
         </div>
-        <div className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">
-          {activity.doneCount}/{activity.targetCount} done
-        </div>
+        <ActivitySubtitle activity={activity} />
       </div>
       {activity.cells.map((cell) => (
         <WeekCell
@@ -179,6 +177,36 @@ function ActivityRow({
           renderPlanningControl={renderPlanningControl}
         />
       ))}
+    </div>
+  );
+}
+
+function ActivitySubtitle({ activity }: { activity: WeekGridActivity }) {
+  if (activity.weekStatus === "draft") {
+    return (
+      <div className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">
+        {activity.plannedCount}/{activity.targetCount} planned
+      </div>
+    );
+  }
+
+  if (activity.weekStatus === "active") {
+    return (
+      <div className="mt-0.5 flex flex-col text-[11px] leading-4 text-muted sm:flex-row sm:items-center sm:gap-1 sm:text-xs">
+        <span>
+          {activity.plannedCount}/{activity.targetCount} planned
+        </span>
+        <span className="hidden sm:inline" aria-hidden="true">
+          ·
+        </span>
+        <span>{activity.doneCount} done</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">
+      {activity.doneCount}/{activity.targetCount} done
     </div>
   );
 }
