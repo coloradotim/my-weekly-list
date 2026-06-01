@@ -207,7 +207,7 @@ describe("optimistic week planning", () => {
   it("keeps Week day headers sticky while the grid scrolls vertically", () => {
     expect(thisWeekGrid).toContain("data-week-grid-header-scroll");
     expect(thisWeekGrid).toContain(
-      "sticky top-[calc(env(safe-area-inset-top)+var(--app-visual-viewport-top,0px))] z-30 w-full max-w-full",
+      "sticky top-[var(--app-mobile-nav-height)] z-30 w-full max-w-full",
     );
     expect(thisWeekGrid).toContain("rounded-t-none border-t-0");
     expect(thisWeekGrid).toContain("ref={gridLayout.headerScrollerRef}");

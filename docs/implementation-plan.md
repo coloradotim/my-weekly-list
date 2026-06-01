@@ -214,8 +214,10 @@ sticky activity column. The current Week view should initially snap to today's
 column, while Review day-by-day details should start at Monday. Treat that
 layout as shared infrastructure rather than separate screen-specific CSS, and
 verify Week and Review production screens/tests together when changing it.
-The weekday/date header row should be sticky during vertical scrolling on both
-Week and Review detail grids while staying aligned with horizontal scroll.
+The weekday/date header row should be sticky below the compact mobile top app
+nav during vertical scrolling on Week and on Review's expanded detail grid,
+while staying aligned with horizontal scroll. Review summary should not show a
+permanent weekday/date header before details are expanded.
 
 ### Today view
 
@@ -319,12 +321,12 @@ visual language where appropriate.
   navigation. Avoid duplicate Supabase auth checks in the app shell when
   middleware already guards authenticated app routes.
 - Use compact app navigation focused on Today, Week, and Review. Do not expose
-  Plan, Home, Setup, or Sign out as primary navigation items.
+  Plan, Home, Setup, History, Install, or Sign out as primary navigation items.
 - Derive selected nav state from the committed current route segment so exactly
   one Today/Week/Review item is active at a time.
-- Keep mobile navigation fixed to the bottom safe area, and keep desktop
-  navigation fixed to the top with content offset so it remains available while
-  scrolling long Week and Review screens.
+- Keep mobile navigation as one compact sticky top bar, and do not render a
+  mobile fixed bottom nav. Keep desktop navigation fixed to the top with content
+  offset so it remains available while scrolling long Week and Review screens.
 - Provide a stable `/install` route for iPhone Safari Add to Home Screen. It
   should not smart-route away, should not be primary navigation, and should link
   to `/today` so launches open the daily execution screen directly.
@@ -332,11 +334,12 @@ visual language where appropriate.
   `scope: "/"`, `display: "standalone"`, warm theme/background colors, real PNG
   icons, and iOS Home Screen metadata. Use `/install` for installation rather
   than installing from route-specific pages such as `/week` or `/review`.
-- On mobile, preserve normal document scrolling. Keep the bottom nav fixed to
-  the bottom safe area with content padding for the nav height and safe area.
-  Avoid `100dvh` app frames, visual-viewport browser-control offsets, fake top
-  spacers, or route-specific Week/Review padding unless a concrete device test
-  proves they are still required after standalone install metadata is correct.
+- On mobile, preserve normal document scrolling. Keep one sticky top app nav
+  above content, with Week day headers and Review detail-grid day headers
+  sticking below it. Avoid fixed bottom nav, `100dvh` app frames,
+  visual-viewport browser-control offsets, fake viewport spacers, or
+  route-specific nav positions unless a concrete device test proves they are
+  still required after standalone install metadata is correct.
 - Keep `/plan`, if retained, as a compatibility redirect/internal route rather
   than a primary app destination.
 - Keep Sign out out of normal app chrome; use a deliberate utility route/script

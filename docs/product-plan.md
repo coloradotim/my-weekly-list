@@ -37,11 +37,13 @@ and launches into Today directly. Installed app metadata should use
 `display: standalone`, `start_url: "/today"`, and `scope: "/"` so `Today`,
 `Week`, and `Review` stay inside the installed app context.
 
-On mobile, the app shell should keep normal document scrolling. The bottom
-navigation should sit at the bottom safe area and content should reserve enough
-bottom padding for that nav. Avoid route-specific browser-chrome workarounds
-unless a concrete device test proves they are still needed after install
-metadata is correct.
+On mobile, the app shell should keep normal document scrolling. Primary
+navigation should be one compact sticky top bar with `Today`, `Week`, and
+`Review`; do not use a fixed bottom nav. This keeps Week and Review grid day
+headers sticky below the app nav without stacking competing fixed/sticky chrome
+layers in iPhone Safari or Home Screen mode. Avoid route-specific
+browser-chrome workarounds unless a concrete device test proves they are still
+needed after install metadata is correct.
 
 ## Design principles
 
@@ -325,8 +327,9 @@ For the current Week on mobile, the grid should open near today's column once on
 initial entry. Manual horizontal scrolling should be respected afterward, and
 planning toggles must not reset the scroll position. Next Week and Past Week
 views can open at Monday. Week and Review detail grids should keep the
-weekday/date header sticky while vertically scrolling so day context stays
-visible.
+weekday/date header sticky below the mobile top app nav while vertically
+scrolling so day context stays visible. Review should not show a permanent
+weekday/date header until day-by-day details are expanded.
 
 ### List Editing Inside Week
 
@@ -489,8 +492,9 @@ correction of forgotten prior-day completions.
 - Week owns current-week viewing, next-week planning, and future list editing.
 - Week's day header should remain visible during vertical grid scrolling.
 - The app nav should derive active state from the current route segment and show
-  exactly one active item. Mobile uses fixed bottom navigation; desktop uses a
-  fixed compact top navigation with content space reserved below it.
+  exactly one active item. Mobile uses one compact sticky top navigation;
+  desktop uses a fixed compact top navigation with content space reserved below
+  it.
 - There is no permanent top-level Plan workflow in the product model.
 - Copy previous week should default to copying activities, target counts, categories, and planned days when planning before the new week starts.
 - If creating the current week late, copy activities and target counts but default to planned days from today forward only.

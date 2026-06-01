@@ -29,6 +29,7 @@ not a required implementation sequence for future work.
 | Backlog | #73 | Add Sunday Review handoff to next-week planning | Let current-week Sunday Review create or open next week in the existing Week planning flow without adding Plan, Close, Finalize, or locking Sunday activity. | In progress |
 | Backlog | #74 | Fix Monday Today first-load repair and empty planned-day state | Ensure Monday Today creates/repairs the current week from the reusable list without planned cells or copied outcomes, and show a calm empty planned-day state. | Closed |
 | Backlog | #30 | Add History for previous-week review and simple patterns | Secondary Review-linked History surface for opening previous weekly Reviews and seeing simple activity-level patterns over real recorded weeks only. | In progress |
+| Backlog | #83 | Move mobile app navigation to sticky top bar | Replace mobile fixed bottom nav with one compact sticky top nav so Week and Review day headers can stay sticky below it without competing iOS chrome layers. | In progress |
 
 ## Label suggestions
 
@@ -85,10 +86,12 @@ For non-trivial changes, inspect impact on:
 - Do not edit planning or structure for past weeks.
 - Do not add brand-new activities to already-active weeks in MVP.
 - Main navigation should stay focused on Today, Week, and Review; next-week
-  planning lives inside Week rather than as a permanent Plan destination.
+  planning lives inside Week rather than as a permanent Plan destination. Mobile
+  uses one compact sticky top nav, not a fixed bottom nav.
 - Week and Review grids share responsive sizing, sticky day headers, and
   horizontal overscroll containment; keep their scroll/snap behavior aligned
-  when changing either grid.
+  when changing either grid. Mobile day headers should stick below the top app
+  nav, and Review day headers should remain contextual to expanded details.
 - Week list editing should stay category-first: add activities within categories
   add new categories at the bottom, and allow compact category rename from
   inside the Week list editor.

@@ -37,26 +37,28 @@ describe("app routes", () => {
     expect(planPage).not.toContain("Plan next week");
   });
 
-  it("renders mobile bottom navigation without in-app sign-out chrome", () => {
+  it("renders compact sticky top mobile navigation without in-app sign-out chrome", () => {
     expect(appLayout).toContain("AppShell");
     expect(appLayout).not.toContain("supabase.auth.getUser()");
     expect(appLayout).not.toContain("checkAllowedUser");
-    expect(appShell).toContain(
-      "fixed inset-x-0 bottom-[var(--app-visual-viewport-bottom,0px)]",
-    );
-    expect(appShell).toContain("fixed inset-x-0 top-0");
+    expect(appShell).toContain("sticky inset-x-0 top-0");
+    expect(appShell).toContain("sm:fixed");
     expect(appShell).toContain("sm:pt-20");
     expect(appShell).toContain("touch-manipulation");
-    expect(appShell).toContain("bg-paper px-3");
-    expect(appShell).toContain("env(safe-area-inset-bottom)");
-    expect(appShell).toContain("useVisualViewportOffsets");
-    expect(appShell).toContain("window.visualViewport");
-    expect(appShell).toContain("--app-visual-viewport-top");
-    expect(appShell).toContain("--app-visual-viewport-bottom");
-    expect(appShell).toContain("bottom-[var(--app-visual-viewport-bottom,0px)]");
+    expect(appShell).toContain("min-h-[var(--app-mobile-nav-height)]");
+    expect(rootLayout).not.toContain("app-mobile-nav-height");
+    expect(readFileSync(join(process.cwd(), "app/globals.css"), "utf8")).toContain(
+      "--app-mobile-nav-height",
+    );
+    expect(appShell).toContain("env(safe-area-inset-top)");
+    expect(appShell).toContain('className="hidden text-base');
     expect(appShell).toContain('aria-label="Main navigation"');
     expect(appShell).toContain('aria-current={selected ? "page" : undefined}');
-    expect(appShell).not.toContain("bg-paper/95 px-3");
+    expect(appShell).not.toContain("bottom-0");
+    expect(appShell).not.toContain("bottom-[");
+    expect(appShell).not.toContain("fixed inset-x-0 bottom");
+    expect(appShell).not.toContain("window.visualViewport");
+    expect(appShell).not.toContain("--app-visual-viewport");
     expect(appShell).not.toContain("h-[100dvh]");
     expect(appShell).not.toContain("overflow-y-auto overscroll-y-contain");
     expect(appShell).not.toContain("Account");

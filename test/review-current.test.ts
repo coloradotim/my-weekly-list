@@ -75,7 +75,7 @@ describe("persisted Review model", () => {
     expect(reviewClient).toContain("weekGridColumnsClassName");
     expect(reviewClient).toContain("data-week-grid-header-scroll");
     expect(reviewClient).toContain(
-      "sticky top-[calc(env(safe-area-inset-top)+var(--app-visual-viewport-top,0px))] z-30 w-full max-w-full",
+      "sticky top-[var(--app-mobile-nav-height)] z-30 w-full max-w-full",
     );
     expect(reviewClient).toContain("sm:top-16");
     expect(reviewClient).toContain("rounded-t-none border-t-0");
