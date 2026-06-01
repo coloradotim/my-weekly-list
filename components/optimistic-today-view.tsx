@@ -88,6 +88,11 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
   const correctionActivity = correctionPopover
     ? view.activities.find((activity) => activity.id === correctionPopover.activityId)
     : null;
+  const showStandalonePicker =
+    view.openPlannedToday.length > 0 ||
+    view.doneToday.length > 0 ||
+    view.skippedToday.length > 0 ||
+    isPickerOpen;
   const notice = useMemo<Notice>(() => {
     if (saveStatus === "error") {
       return { tone: "error", body: "Couldn’t save that change. Try again." };
@@ -445,79 +450,85 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
         />
       ) : null}
 
-      <section className="rounded-lg border border-line bg-surface/80 p-3 shadow-soft">
-        <div className="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-surface px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-            onClick={() => setIsPickerOpen((current) => !current)}
-          >
-            + Something else
-          </button>
-          {isPickerOpen ? (
-            <button
-              type="button"
-              className="rounded-full px-2 py-1 text-sm font-semibold text-muted transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-              onClick={() => setIsPickerOpen(false)}
-            >
-              Close
-            </button>
-          ) : null}
-        </div>
-        {isPickerOpen ? (
-          <div className="mt-3 border-t border-line pt-3">
-            {view.pickerGroups.length > 0 ? (
-              <div className="space-y-2">
-                {view.pickerGroups.map((group) => {
-                  const isCollapsed = collapsedCategories.includes(group.categoryName);
-
-                  return (
-                    <div
-                      key={group.categoryName}
-                      className="rounded-lg border border-line bg-surface/70"
-                    >
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-                        onClick={() => togglePickerCategory(group.categoryName)}
-                        aria-expanded={!isCollapsed}
-                        aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
-                          group.categoryName
-                        }`}
-                      >
-                        <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
-                        <span>{group.categoryName}</span>
-                      </button>
-                      {!isCollapsed ? (
-                        <div className="border-t border-line-soft">
-                          {group.activities.map((activity) => (
-                            <button
-                              key={activity.id}
-                              type="button"
-                              className="flex min-h-11 w-full items-center justify-between gap-4 px-3 py-2 text-left text-sm transition hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow"
-                              disabled={pendingActivityIds.has(activity.id)}
-                              onClick={() => markDone(activity)}
-                            >
-                              <span className="font-semibold text-ink">
-                                {activity.activityName}
-                              </span>
-                              <span className="shrink-0 text-right font-semibold text-meadow">
-                                Mark done today
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <EmptyNote body="Everything eligible is already counted or resolved for today." />
-            )}
+      {showStandalonePicker ? (
+        <section className="rounded-lg border border-line bg-surface/80 p-3 shadow-soft">
+          <div className="flex items-center justify-between gap-3">
+            {view.openPlannedToday.length > 0 ||
+            view.doneToday.length > 0 ||
+            view.skippedToday.length > 0 ? (
+              <button
+                type="button"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-clay/40 bg-surface px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                onClick={() => setIsPickerOpen((current) => !current)}
+              >
+                + Something else
+              </button>
+            ) : null}
+            {isPickerOpen ? (
+              <button
+                type="button"
+                className="rounded-full px-2 py-1 text-sm font-semibold text-muted transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                onClick={() => setIsPickerOpen(false)}
+              >
+                Close
+              </button>
+            ) : null}
           </div>
-        ) : null}
-      </section>
+          {isPickerOpen ? (
+            <div className="mt-3 border-t border-line pt-3">
+              {view.pickerGroups.length > 0 ? (
+                <div className="space-y-2">
+                  {view.pickerGroups.map((group) => {
+                    const isCollapsed = collapsedCategories.includes(group.categoryName);
+
+                    return (
+                      <div
+                        key={group.categoryName}
+                        className="rounded-lg border border-line bg-surface/70"
+                      >
+                        <button
+                          type="button"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+                          onClick={() => togglePickerCategory(group.categoryName)}
+                          aria-expanded={!isCollapsed}
+                          aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${
+                            group.categoryName
+                          }`}
+                        >
+                          <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+                          <span>{group.categoryName}</span>
+                        </button>
+                        {!isCollapsed ? (
+                          <div className="border-t border-line-soft">
+                            {group.activities.map((activity) => (
+                              <button
+                                key={activity.id}
+                                type="button"
+                                className="flex min-h-11 w-full items-center justify-between gap-4 px-3 py-2 text-left text-sm transition hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-meadow"
+                                disabled={pendingActivityIds.has(activity.id)}
+                                onClick={() => markDone(activity)}
+                              >
+                                <span className="font-semibold text-ink">
+                                  {activity.activityName}
+                                </span>
+                                <span className="shrink-0 text-right font-semibold text-meadow">
+                                  Mark done today
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EmptyNote body="Everything eligible is already counted or resolved for today." />
+              )}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {view.doneToday.length > 0 ? (
         <section className="space-y-2">
