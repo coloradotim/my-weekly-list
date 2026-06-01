@@ -9,6 +9,7 @@ import { parseDateOnly, type DateOnly } from "@/lib/week/date";
 type ReviewPageProps = {
   searchParams: Promise<{
     weekStart?: string | string[];
+    planning?: string | string[];
   }>;
 };
 
@@ -18,6 +19,7 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
   const supabase = await createSupabaseServerClient();
   const params = await searchParams;
   const weekStartDate = getWeekStartParam(params.weekStart);
+  const planningStatus = getSearchParam(params.planning);
 
   if (!supabase) {
     return (
@@ -62,7 +64,20 @@ export default async function ReviewPage({ searchParams }: ReviewPageProps) {
     );
   }
 
-  return <OptimisticReviewView initialState={state.state} />;
+  return (
+    <OptimisticReviewView
+      initialState={state.state}
+      initialNotice={
+        planningStatus === "error"
+          ? "Next week could not be opened just now. Try again."
+          : null
+      }
+    />
+  );
+}
+
+function getSearchParam(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 function getWeekStartParam(value?: string | string[]): DateOnly | null {

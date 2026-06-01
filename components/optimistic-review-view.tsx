@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { setReviewCellDoneAction } from "@/app/(app)/review/actions";
+import {
+  planNextWeekFromReviewAction,
+  setReviewCellDoneAction,
+} from "@/app/(app)/review/actions";
 import { useWeekGridLayout } from "@/components/use-week-grid-layout";
 import {
   weekGridColumnsClassName,
@@ -20,7 +23,13 @@ import type { DateOnly } from "@/lib/week/date";
 
 const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-export function OptimisticReviewView({ initialState }: { initialState: ReviewState }) {
+export function OptimisticReviewView({
+  initialState,
+  initialNotice = null,
+}: {
+  initialState: ReviewState;
+  initialNotice?: string | null;
+}) {
   const [state, setState] = useState(initialState);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [collapsedCategoryNames, setCollapsedCategoryNames] = useState<string[]>([]);
@@ -109,6 +118,15 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
 
   return (
     <section className="space-y-3">
+      {initialNotice ? (
+        <div
+          className="rounded-lg border border-clay/30 bg-clay/10 px-3 py-2 text-sm leading-6 text-ink"
+          role="alert"
+        >
+          {initialNotice}
+        </div>
+      ) : null}
+
       <article className="rounded-lg border border-line bg-surface/90 p-3 shadow-soft sm:p-4">
         <p className="text-sm font-semibold text-clay">Review · {view.rangeLabel}</p>
 
@@ -120,6 +138,10 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
         ) : null}
 
         <p className="mt-4 text-lg font-semibold text-ink">{view.summarySentence}</p>
+
+        {view.nextWeekPlanning ? (
+          <NextWeekPlanningAction nextWeekExists={view.nextWeekPlanning.nextWeekExists} />
+        ) : null}
 
         <SummarySection title="Targets met" rows={view.targetsMet} />
         <SummarySection title="Short of target" rows={view.shortOfTarget} />
@@ -159,6 +181,24 @@ export function OptimisticReviewView({ initialState }: { initialState: ReviewSta
           />
         </div>
       </details>
+    </section>
+  );
+}
+
+function NextWeekPlanningAction({ nextWeekExists }: { nextWeekExists: boolean }) {
+  return (
+    <section className="mt-4 rounded-lg border border-mist bg-mist/20 p-3">
+      <p className="text-sm leading-6 text-secondary">
+        Set up next week without closing this week.
+      </p>
+      <form action={planNextWeekFromReviewAction} className="mt-3">
+        <button
+          type="submit"
+          className="inline-flex min-h-11 items-center rounded-full bg-clay px-4 text-sm font-semibold text-white transition hover:bg-clay/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+        >
+          {nextWeekExists ? "Continue planning next week" : "Plan next week"}
+        </button>
+      </form>
     </section>
   );
 }

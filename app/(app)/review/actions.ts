@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getDatabaseUserAccess, getUnauthorizedEmail } from "@/lib/auth/access";
 import { setReviewCellDone } from "@/lib/review/current";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createNextWeekFromCurrentWeek } from "@/lib/week/current";
 import type { DateOnly } from "@/lib/week/date";
 
 type ReviewActionResult =
@@ -45,6 +46,19 @@ export async function setReviewCellDoneAction({
   revalidatePath("/today");
   revalidatePath("/week");
   return { status: "updated" };
+}
+
+export async function planNextWeekFromReviewAction() {
+  const { supabase, userId } = await requireAllowedUser("/review");
+  const result = await createNextWeekFromCurrentWeek({ supabase, userId });
+
+  if (result.status === "error") {
+    redirect("/review?planning=error");
+  }
+
+  revalidatePath("/review");
+  revalidatePath("/week");
+  redirect("/week?week=next");
 }
 
 async function requireAllowedUser(nextPath: string) {

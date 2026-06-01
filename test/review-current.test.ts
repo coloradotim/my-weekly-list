@@ -167,6 +167,41 @@ describe("persisted Review model", () => {
     expect(fixtureState("2026-05-30").isSundayCurrentWeek).toBe(false);
   });
 
+  it("shows next-week planning only for current-week Sunday review", () => {
+    const sundayView = buildReviewViewModel(
+      buildReviewState({
+        week: activeWeek,
+        today: "2026-05-31",
+        activities: fixtureActivities(),
+        nextWeekPlanning: {
+          weekStartDate: "2026-06-01",
+          nextWeekExists: false,
+        },
+      }),
+    );
+    const continuedView = buildReviewViewModel(
+      buildReviewState({
+        week: activeWeek,
+        today: "2026-05-31",
+        activities: fixtureActivities(),
+        nextWeekPlanning: {
+          weekStartDate: "2026-06-01",
+          nextWeekExists: true,
+        },
+      }),
+    );
+    const nonSundayView = buildReviewViewModel(fixtureState("2026-05-30"));
+    const pastWeekView = buildReviewViewModel(fixtureState("2026-06-02"));
+
+    expect(sundayView.nextWeekPlanning).toEqual({
+      weekStartDate: "2026-06-01",
+      nextWeekExists: false,
+    });
+    expect(continuedView.nextWeekPlanning?.nextWeekExists).toBe(true);
+    expect(nonSundayView.nextWeekPlanning).toBeNull();
+    expect(pastWeekView.nextWeekPlanning).toBeNull();
+  });
+
   it("uses in-progress summary copy while the week is still current", () => {
     const view = buildReviewViewModel(fixtureState("2026-05-30"));
 
@@ -224,6 +259,24 @@ describe("persisted Review implementation guardrails", () => {
     expect(reviewClient).toContain(
       "Review what happened. Tap any day to correct whether you completed that",
     );
+    expect(reviewClient).toContain("Plan next week");
+    expect(reviewClient).toContain("Continue planning next week");
+    expect(reviewClient).toContain("Set up next week without closing this week.");
+    expect(reviewClient.indexOf("NextWeekPlanningAction")).toBeLessThan(
+      reviewClient.indexOf('<SummarySection title="Targets met"'),
+    );
+  });
+
+  it("keeps the Sunday handoff inside Review and Week without ceremony language", () => {
+    expect(reviewActions).toContain("planNextWeekFromReviewAction");
+    expect(reviewActions).toContain("createNextWeekFromCurrentWeek");
+    expect(reviewActions).toContain('redirect("/week?week=next")');
+    expect(reviewClient).not.toContain("Close week");
+    expect(reviewClient).not.toContain("Finalize");
+    expect(reviewClient).not.toContain("Activate");
+    expect(reviewClient).not.toContain("Publish");
+    expect(reviewClient).not.toContain("Done planning");
+    expect(reviewClient).not.toContain("Draft");
   });
 });
 
