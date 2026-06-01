@@ -74,6 +74,9 @@ correction and no planning or structure edits.
 - Weeks run Monday through Sunday.
 - App-side lifecycle helpers use `YYYY-MM-DD` date-only strings and UTC date math internally so a personal planning day does not shift because of browser or server timezone conversion.
 - Sunday should prompt review and next-week planning while still allowing Sunday execution.
+- On current-week Sunday Review, a compact action can hand off to Week focused
+  on `Next week`; this must not close/finalize the current week or prevent
+  later Sunday completion updates.
 - Monday should use a prepared next week as the current week if one exists.
 - If the user starts the current week late, do not create missed cells for days before the user planned the week.
 - If several weeks are missed, do not auto-create ghost weeks.
@@ -254,6 +257,9 @@ visual language where appropriate.
 ### Next-week planning and copy-forward inside Week
 
 - Launch next-week planning from Week rather than a standalone Plan screen.
+- Sunday Review can create or open next week as a handoff into the existing
+  Week planning surface, but planning still lives under Week and no Plan tab is
+  added.
 - Copy the most recent real week into next week before the new week starts.
 - Copy activities, categories, targets, ordering, and planned-day pattern when
   planning ahead.

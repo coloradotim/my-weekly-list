@@ -209,6 +209,11 @@ The app should show a gentle prompt such as:
 > Today is Sunday. You can finish today's items, review this week, or start planning next week.
 
 Actions should stay within the three main areas: Today, Week, and Review.
+From the current-week Review screen on Sunday, Review may offer a compact
+handoff to Week for next-week planning. This handoff creates or opens `Next
+week` without closing, finalizing, or locking the current week. Sunday remains
+active afterward, so Today can still record Sunday completions and Review can
+still correct Sunday completion truth.
 
 ### If the user does not open the app Sunday
 

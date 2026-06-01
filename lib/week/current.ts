@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   addDays,
   compareDateOnly,
+  daysBetween,
   getDateOnlyForTimeZone,
   getWeekEndDate,
   getWeekStartDate,
@@ -33,8 +34,8 @@ export type WeekRecord = {
 
 export type WeekActivitySnapshotInsert = {
   week_id: string;
-  activity_template_id: string;
-  category_id: string;
+  activity_template_id: string | null;
+  category_id: string | null;
   category_name: string;
   category_sort_order: number;
   activity_name: string;
@@ -681,6 +682,161 @@ export async function createCurrentWeekFromTemplates({
   }
 
   return { status: "created" as const, weekId: weekResult.week.id };
+}
+
+export async function createNextWeekFromCurrentWeek({
+  supabase,
+  userId,
+  today = getTodayDateOnly(),
+}: {
+  supabase: SupabaseClient;
+  userId: string;
+  today?: DateOnly;
+}) {
+  const currentWeekStartDate = getWeekStartDate(today);
+  const nextWeekStartDate = addDays(currentWeekStartDate, 7);
+  const existingNextWeek = await getWeekByStartDate(supabase, nextWeekStartDate);
+
+  if (existingNextWeek.status === "error") {
+    return { status: "error" as const, message: existingNextWeek.message };
+  }
+
+  if (existingNextWeek.week) {
+    return {
+      status: "opened" as const,
+      weekId: existingNextWeek.week.id,
+      weekStartDate: existingNextWeek.week.weekStartDate,
+    };
+  }
+
+  const currentWeek = await getWeekByStartDate(supabase, currentWeekStartDate);
+
+  if (currentWeek.status === "error") {
+    return { status: "error" as const, message: currentWeek.message };
+  }
+
+  if (!currentWeek.week || currentWeek.activities.length === 0) {
+    return {
+      status: "error" as const,
+      message: "This week could not be found for next-week planning.",
+    };
+  }
+
+  const createdWeek = await insertWeek(supabase, {
+    userId,
+    weekStartDate: nextWeekStartDate,
+    status: "draft",
+  });
+
+  if (createdWeek.status === "error") {
+    return { status: "error" as const, message: createdWeek.message };
+  }
+
+  const snapshotRows = currentWeek.activities.map<WeekActivitySnapshotInsert>(
+    (activity) => ({
+      week_id: createdWeek.week.id,
+      activity_template_id: activity.activityTemplateId,
+      category_id: activity.categoryId,
+      category_name: activity.categoryName,
+      category_sort_order: activity.categorySortOrder,
+      activity_name: activity.activityName,
+      target_count: activity.targetCount,
+      sort_order: activity.sortOrder,
+    }),
+  );
+
+  const { error: snapshotError } = await supabase
+    .from("week_activities")
+    .insert(snapshotRows);
+
+  if (snapshotError && snapshotError.code !== "23505") {
+    return { status: "error" as const, message: snapshotError.message };
+  }
+
+  const nextWeek = await getWeekByStartDate(supabase, nextWeekStartDate);
+
+  if (nextWeek.status === "error") {
+    return { status: "error" as const, message: nextWeek.message };
+  }
+
+  if (!nextWeek.week) {
+    return {
+      status: "error" as const,
+      message: "Next week could not be loaded after it was created.",
+    };
+  }
+
+  const nextActivitiesBySourceKey = new Map(
+    nextWeek.activities.map((activity) => [getWeekActivityCopyKey(activity), activity]),
+  );
+  const plannedRows = currentWeek.activities.flatMap((sourceActivity) => {
+    const nextActivity = nextActivitiesBySourceKey.get(
+      getWeekActivityCopyKey(sourceActivity),
+    );
+
+    if (!nextActivity) {
+      return [];
+    }
+
+    return sourceActivity.cells
+      .filter((cell) => cell.planned)
+      .map((cell) => ({
+        week_activity_id: nextActivity.id,
+        cell_date: addDays(
+          nextWeek.week.weekStartDate,
+          daysBetween(currentWeek.week!.weekStartDate, cell.cellDate),
+        ),
+        planned: true,
+        done: false,
+        skipped: false,
+      }));
+  });
+
+  if (plannedRows.length > 0) {
+    const { error: cellsError } = await supabase
+      .from("activity_day_cells")
+      .upsert(plannedRows, { onConflict: "week_activity_id,cell_date" });
+
+    if (cellsError) {
+      return { status: "error" as const, message: cellsError.message };
+    }
+  }
+
+  return {
+    status: "created" as const,
+    weekId: nextWeek.week.id,
+    weekStartDate: nextWeek.week.weekStartDate,
+  };
+}
+
+export async function loadNextWeek(
+  supabase: SupabaseClient,
+  today = getTodayDateOnly(),
+): Promise<ThisWeekLoadState> {
+  const nextWeekStartDate = addDays(getWeekStartDate(today), 7);
+  const week = await getWeekByStartDate(supabase, nextWeekStartDate);
+
+  if (week.status === "error") {
+    return { status: "error", message: week.message };
+  }
+
+  if (!week.week) {
+    return {
+      status: "no-current-week",
+      weekStartDate: nextWeekStartDate,
+      weekEndDate: getWeekEndDate(nextWeekStartDate),
+      isLateStart: false,
+    };
+  }
+
+  return {
+    status: "ready",
+    view: buildThisWeekViewModel({
+      week: week.week,
+      activities: week.activities,
+      today,
+    }),
+  };
 }
 
 export async function createReusableCategoryForOnboarding({
@@ -1900,12 +2056,27 @@ async function insertActiveWeek(
     weekStartDate: DateOnly;
   },
 ) {
+  return insertWeek(supabase, { userId, weekStartDate, status: "active" });
+}
+
+async function insertWeek(
+  supabase: SupabaseClient,
+  {
+    userId,
+    weekStartDate,
+    status,
+  }: {
+    userId: string;
+    weekStartDate: DateOnly;
+    status: WeekStatus;
+  },
+) {
   const { data, error } = await supabase
     .from("weeks")
     .insert({
       user_id: userId,
       week_start_date: weekStartDate,
-      status: "active",
+      status,
     })
     .select("id, week_start_date, week_end_date, status")
     .single();
@@ -1944,6 +2115,21 @@ async function insertActiveWeek(
       status: row.status,
     } satisfies WeekRecord,
   };
+}
+
+function getWeekActivityCopyKey(
+  activity: Pick<
+    PersistedWeekActivity,
+    | "activityTemplateId"
+    | "categoryName"
+    | "activityName"
+    | "categorySortOrder"
+    | "sortOrder"
+  >,
+) {
+  return activity.activityTemplateId
+    ? `template:${activity.activityTemplateId}`
+    : `snapshot:${activity.categorySortOrder}:${activity.categoryName}:${activity.sortOrder}:${activity.activityName}`;
 }
 
 async function getWeekActivityOwner(supabase: SupabaseClient, weekActivityId: string) {

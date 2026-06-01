@@ -38,7 +38,13 @@ export type ReviewState = {
   dayDates: DateOnly[];
   isCurrentWeek: boolean;
   isSundayCurrentWeek: boolean;
+  nextWeekPlanning: ReviewNextWeekPlanning | null;
   activities: ReviewActivityRecord[];
+};
+
+export type ReviewNextWeekPlanning = {
+  weekStartDate: DateOnly;
+  nextWeekExists: boolean;
 };
 
 export type ReviewSummaryRow = {
@@ -63,6 +69,7 @@ export type ReviewViewModel = {
   summarySentence: string;
   isCurrentWeek: boolean;
   isSundayCurrentWeek: boolean;
+  nextWeekPlanning: ReviewNextWeekPlanning | null;
   targetsMet: ReviewSummaryRow[];
   shortOfTarget: ReviewSummaryRow[];
   categoryGroups: ReviewCategoryGroup[];
@@ -143,7 +150,8 @@ export async function loadReview({
 
   return {
     status: "ready",
-    state: buildReviewState({
+    state: await buildReviewStateForWeek({
+      supabase,
       week: weekResult.week,
       activities: weekResult.activities,
       today,
@@ -155,10 +163,12 @@ export function buildReviewState({
   week,
   activities,
   today,
+  nextWeekPlanning = null,
 }: {
   week: WeekRecord;
   activities: ReviewActivityRecord[];
   today: DateOnly;
+  nextWeekPlanning?: ReviewNextWeekPlanning | null;
 }): ReviewState {
   const dayDates = getReviewDayDates(week.weekStartDate);
   const isCurrentWeek =
@@ -171,6 +181,8 @@ export function buildReviewState({
     dayDates,
     isCurrentWeek,
     isSundayCurrentWeek: isCurrentWeek && today === week.weekEndDate,
+    nextWeekPlanning:
+      isCurrentWeek && today === week.weekEndDate ? nextWeekPlanning : null,
     activities: activities.toSorted(compareReviewActivities).map((activity) => {
       const cellMap = new Map(activity.cells.map((cell) => [cell.date, cell]));
 
@@ -216,10 +228,49 @@ export function buildReviewViewModel(state: ReviewState): ReviewViewModel {
     summarySentence: getReviewSummarySentence(completedActivityDays, state.isCurrentWeek),
     isCurrentWeek: state.isCurrentWeek,
     isSundayCurrentWeek: state.isSundayCurrentWeek,
+    nextWeekPlanning: state.nextWeekPlanning,
     targetsMet: rows.filter((row) => row.isTargetMet),
     shortOfTarget: rows.filter((row) => !row.isTargetMet),
     categoryGroups: groupActivitiesByCategory(state.activities),
   };
+}
+
+async function buildReviewStateForWeek({
+  supabase,
+  week,
+  activities,
+  today,
+}: {
+  supabase: SupabaseClient;
+  week: WeekRecord;
+  activities: ReviewActivityRecord[];
+  today: DateOnly;
+}) {
+  const nextWeekStartDate = addDays(week.weekStartDate, 7);
+  const isSundayCurrentWeek =
+    compareDateOnly(today, week.weekStartDate) >= 0 &&
+    compareDateOnly(today, week.weekEndDate) <= 0 &&
+    today === week.weekEndDate;
+
+  if (!isSundayCurrentWeek) {
+    return buildReviewState({ week, activities, today });
+  }
+
+  const nextWeek = await getReviewWeekByStartDate(supabase, nextWeekStartDate);
+
+  if (nextWeek.status === "error") {
+    return buildReviewState({ week, activities, today });
+  }
+
+  return buildReviewState({
+    week,
+    activities,
+    today,
+    nextWeekPlanning: {
+      weekStartDate: nextWeekStartDate,
+      nextWeekExists: Boolean(nextWeek.week),
+    },
+  });
 }
 
 export function getReviewSummarySentence(

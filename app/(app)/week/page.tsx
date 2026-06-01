@@ -4,7 +4,7 @@ import { ScreenShell } from "@/components/screen-shell";
 import { formatDateRange, Notice } from "@/components/this-week-grid";
 import { WeekPageClient } from "@/components/week-page-client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { loadThisWeek } from "@/lib/week/current";
+import { loadNextWeek, loadThisWeek } from "@/lib/week/current";
 
 type ThisWeekPageProps = {
   searchParams: Promise<{
@@ -20,6 +20,7 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
   const supabase = await createSupabaseServerClient();
   const params = await searchParams;
   const notice = getWeekNotice(params);
+  const selectedWeek = getSelectedWeek(params.week);
 
   if (!supabase) {
     return (
@@ -36,7 +37,8 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
     );
   }
 
-  const state = await loadThisWeek(supabase);
+  const state =
+    selectedWeek === "next" ? await loadNextWeek(supabase) : await loadThisWeek(supabase);
 
   if (state.status === "needs-setup") {
     return (
@@ -60,6 +62,20 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
         description="Your sign-in is working, but the app could not read the week tables. Try again after confirming the Supabase migration has been applied."
       >
         <Notice tone="error" body={state.message} />
+      </ScreenShell>
+    );
+  }
+
+  if (state.status === "no-current-week" && selectedWeek === "next") {
+    return (
+      <ScreenShell
+        eyebrow="Next week"
+        title="Next week has not been planned yet."
+        description="Use Review on Sunday to start the next-week planning handoff."
+      >
+        <Link className={primaryButtonClassName} href="/review">
+          Go to Review
+        </Link>
       </ScreenShell>
     );
   }
@@ -102,6 +118,11 @@ export default async function ThisWeekPage({ searchParams }: ThisWeekPageProps) 
       <WeekPageClient initialView={state.view} initialNotice={notice} />
     </section>
   );
+}
+
+function getSelectedWeek(value?: string | string[]) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw === "next" ? "next" : "this";
 }
 
 type WeekNotice = {

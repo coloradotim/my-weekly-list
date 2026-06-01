@@ -26,6 +26,8 @@ not a required implementation sequence for future work.
 | Backlog | #65 | Add system light/dark theme support | Follow the browser/device appearance setting with a warm dark theme, keeping light mode visually close to the original app and without adding an MVP theme toggle. | Closed |
 | Backlog | #67 | Fix edit-list category picker, drag scrolling, and category rename | Improve Week/Edit list category picker freshness and mobile usability, add category rename, improve activity drag feedback/auto-scroll, and keep desktop navigation fixed while scrolling. | Closed |
 | Backlog | #69 | Add quick weekly completion correction from Today | Make each Today progress line open an activity-specific current-week completion correction sheet without adding an earlier-week backlog queue or planning controls. | In progress |
+| Backlog | #73 | Add Sunday Review handoff to next-week planning | Let current-week Sunday Review create or open next week in the existing Week planning flow without adding Plan, Close, Finalize, or locking Sunday activity. | In progress |
+| Backlog | #74 | Fix Monday Today first-load repair and empty planned-day state | Ensure Monday Today creates/repairs the current week from the reusable list without planned cells or copied outcomes, and show a calm empty planned-day state. | Closed |
 | Backlog | #30 | Add simple historical activity look-back | Deferred activity-level historical summaries over real recorded weeks only; do not build until Tim resumes this backlog feature. | Open / deferred |
 
 ## Label suggestions

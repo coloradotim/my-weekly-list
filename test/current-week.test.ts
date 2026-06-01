@@ -8,9 +8,11 @@ import {
   buildWeekCreationPlan,
   canMutateCurrentWeekDayFacts,
   canTogglePlanningCell,
+  createNextWeekFromCurrentWeek,
   getCellVisualState,
   getDesiredPlanningCellFacts,
   getNextPlanningCellFacts,
+  loadNextWeek,
   type ActivityTemplateSnapshot,
   type PersistedWeekActivity,
   type WeekRecord,
@@ -247,6 +249,93 @@ describe("current-week creation planning", () => {
     expect(rows[0]).not.toHaveProperty("done");
     expect(rows[0]).not.toHaveProperty("cell_date");
     expect(rows[0]).not.toHaveProperty("activity_day_cells");
+  });
+});
+
+describe("next-week copy-forward planning", () => {
+  it("creates next week once from current planned weekday intent only", async () => {
+    const client = createNextWeekClient();
+
+    const first = await createNextWeekFromCurrentWeek({
+      supabase: client.supabase,
+      userId: "user-1",
+      today: "2026-05-31",
+    });
+    const second = await createNextWeekFromCurrentWeek({
+      supabase: client.supabase,
+      userId: "user-1",
+      today: "2026-05-31",
+    });
+
+    expect(first.status).toBe("created");
+    expect(second.status).toBe("opened");
+    expect(client.weeks.map((week) => week.week_start_date)).toEqual([
+      "2026-05-25",
+      "2026-06-01",
+    ]);
+    expect(client.weekActivities.map((activity) => activity.week_id)).toEqual([
+      "current-week",
+      "current-week",
+      "next-week",
+      "next-week",
+    ]);
+    expect(client.activityDayCells).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          week_activity_id: "next-activity-1",
+          cell_date: "2026-06-02",
+          planned: true,
+          done: false,
+          skipped: false,
+        }),
+        expect.objectContaining({
+          week_activity_id: "next-activity-2",
+          cell_date: "2026-06-05",
+          planned: true,
+          done: false,
+          skipped: false,
+        }),
+      ]),
+    );
+    expect(
+      client.activityDayCells.some(
+        (cell) => cell.week_activity_id.startsWith("next") && (cell.done || cell.skipped),
+      ),
+    ).toBe(false);
+    expect(
+      client.activityDayCells.some(
+        (cell) =>
+          cell.week_activity_id === "next-activity-1" && cell.cell_date === "2026-06-04",
+      ),
+    ).toBe(false);
+  });
+
+  it("loads Week focused on the existing Next week draft", async () => {
+    const client = createNextWeekClient();
+    await createNextWeekFromCurrentWeek({
+      supabase: client.supabase,
+      userId: "user-1",
+      today: "2026-05-31",
+    });
+
+    const state = await loadNextWeek(client.supabase, "2026-05-31");
+
+    expect(state.status).toBe("ready");
+
+    if (state.status !== "ready") {
+      return;
+    }
+
+    expect(state.view.week).toMatchObject({
+      weekStartDate: "2026-06-01",
+      status: "draft",
+    });
+    expect(state.view.categories[0].activities[0].cells[1]).toMatchObject({
+      date: "2026-06-02",
+      planned: true,
+      done: false,
+      skipped: false,
+    });
   });
 });
 
@@ -585,6 +674,9 @@ describe("week action guardrails", () => {
   });
 
   it("renders the real Week list editor on the production Week page", () => {
+    expect(weekPage).toContain("loadNextWeek");
+    expect(weekPage).toContain("getSelectedWeek(params.week)");
+    expect(weekPage).toContain('raw === "next"');
     expect(weekPageClient).toContain("WeekListEditor");
     expect(weekListEditor).toContain("Edit this week’s list");
     expect(weekListEditor).toContain("Edit next week’s list");
@@ -736,5 +828,243 @@ function weekRecord(overrides: Partial<WeekRecord> = {}): WeekRecord {
     weekEndDate: "2026-06-07",
     status: "active",
     ...overrides,
+  };
+}
+
+type NextWeekTestWeek = {
+  id: string;
+  user_id: string;
+  week_start_date: string;
+  week_end_date: string;
+  status: "active" | "draft";
+};
+
+type NextWeekTestActivity = {
+  id: string;
+  week_id: string;
+  activity_template_id: string;
+  category_id: string;
+  category_name: string;
+  category_sort_order: number;
+  activity_name: string;
+  target_count: number;
+  sort_order: number;
+};
+
+type NextWeekTestCell = {
+  id: string;
+  week_activity_id: string;
+  cell_date: string;
+  planned: boolean;
+  done: boolean;
+  skipped: boolean;
+};
+
+function createNextWeekClient() {
+  const client = {
+    weeks: [
+      {
+        id: "current-week",
+        user_id: "user-1",
+        week_start_date: "2026-05-25",
+        week_end_date: "2026-05-31",
+        status: "active",
+      },
+    ] satisfies NextWeekTestWeek[],
+    weekActivities: [
+      {
+        id: "current-activity-1",
+        week_id: "current-week",
+        activity_template_id: "walk-template",
+        category_id: "physical-category",
+        category_name: "Physical Health",
+        category_sort_order: 10,
+        activity_name: "Walk",
+        target_count: 4,
+        sort_order: 10,
+      },
+      {
+        id: "current-activity-2",
+        week_id: "current-week",
+        activity_template_id: "read-template",
+        category_id: "mental-category",
+        category_name: "Mental Health",
+        category_sort_order: 20,
+        activity_name: "Read",
+        target_count: 5,
+        sort_order: 20,
+      },
+    ] satisfies NextWeekTestActivity[],
+    activityDayCells: [
+      {
+        id: "planned-walk",
+        week_activity_id: "current-activity-1",
+        cell_date: "2026-05-26",
+        planned: true,
+        done: false,
+        skipped: false,
+      },
+      {
+        id: "unplanned-done-walk",
+        week_activity_id: "current-activity-1",
+        cell_date: "2026-05-28",
+        planned: false,
+        done: true,
+        skipped: false,
+      },
+      {
+        id: "planned-skipped-read",
+        week_activity_id: "current-activity-2",
+        cell_date: "2026-05-29",
+        planned: true,
+        done: false,
+        skipped: true,
+      },
+    ] satisfies NextWeekTestCell[],
+    supabase: null as unknown,
+  };
+
+  client.supabase = {
+    from(table: string) {
+      if (table === "weeks") {
+        return {
+          select() {
+            return {
+              eq(column: string, value: string) {
+                return {
+                  async maybeSingle() {
+                    const week = client.weeks.find((candidate) =>
+                      column === "week_start_date"
+                        ? candidate.week_start_date === value
+                        : false,
+                    );
+
+                    return {
+                      data: week ? serializeNextWeek(client, week) : null,
+                      error: null,
+                    };
+                  },
+                };
+              },
+            };
+          },
+          insert(row: {
+            user_id: string;
+            week_start_date: string;
+            status: "active" | "draft";
+          }) {
+            return {
+              select() {
+                return {
+                  async single() {
+                    const existing = client.weeks.find(
+                      (week) =>
+                        week.user_id === row.user_id &&
+                        week.week_start_date === row.week_start_date,
+                    );
+
+                    if (existing) {
+                      return {
+                        data: null,
+                        error: { code: "23505", message: "duplicate week" },
+                      };
+                    }
+
+                    const week = {
+                      id: "next-week",
+                      user_id: row.user_id,
+                      week_start_date: row.week_start_date,
+                      week_end_date: "2026-06-07",
+                      status: row.status,
+                    };
+                    client.weeks.push(week);
+
+                    return { data: week, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+
+      if (table === "week_activities") {
+        return {
+          async insert(rows: Omit<NextWeekTestActivity, "id">[]) {
+            for (const row of rows) {
+              const exists = client.weekActivities.some(
+                (activity) =>
+                  activity.week_id === row.week_id &&
+                  activity.activity_template_id === row.activity_template_id,
+              );
+
+              if (!exists) {
+                client.weekActivities.push({
+                  id: `next-activity-${client.weekActivities.length - 1}`,
+                  ...row,
+                });
+              }
+            }
+
+            return { error: null };
+          },
+        };
+      }
+
+      if (table === "activity_day_cells") {
+        return {
+          async upsert(rows: Omit<NextWeekTestCell, "id">[]) {
+            for (const row of rows) {
+              const exists = client.activityDayCells.some(
+                (cell) =>
+                  cell.week_activity_id === row.week_activity_id &&
+                  cell.cell_date === row.cell_date,
+              );
+
+              if (!exists) {
+                client.activityDayCells.push({
+                  id: `cell-${client.activityDayCells.length + 1}`,
+                  ...row,
+                });
+              }
+            }
+
+            return { error: null };
+          },
+        };
+      }
+
+      throw new Error(`Unexpected table: ${table}`);
+    },
+  };
+
+  return client as typeof client & {
+    supabase: Parameters<typeof createNextWeekFromCurrentWeek>[0]["supabase"];
+  };
+}
+
+function serializeNextWeek(
+  client: ReturnType<typeof createNextWeekClient>,
+  week: NextWeekTestWeek,
+) {
+  return {
+    id: week.id,
+    week_start_date: week.week_start_date,
+    week_end_date: week.week_end_date,
+    status: week.status,
+    week_activities: client.weekActivities
+      .filter((activity) => activity.week_id === week.id)
+      .map((activity) => ({
+        ...activity,
+        activity_day_cells: client.activityDayCells
+          .filter((cell) => cell.week_activity_id === activity.id)
+          .map((cell) => ({
+            id: cell.id,
+            cell_date: cell.cell_date,
+            planned: cell.planned,
+            done: cell.done,
+            skipped: cell.skipped,
+          })),
+      })),
   };
 }
