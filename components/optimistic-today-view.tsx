@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   moveTodayPlanAction,
@@ -423,7 +424,11 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
             ))}
           </div>
         ) : (
-          <EmptyNote body="Nothing is open for today. You can still record something else you did." />
+          <TodayPlannedEmptyState
+            hasDoneToday={view.doneToday.length > 0}
+            hasSkippedToday={view.skippedToday.length > 0}
+            onOpenPicker={() => setIsPickerOpen(true)}
+          />
         )}
       </section>
 
@@ -902,6 +907,50 @@ function EmptyNote({ body }: { body: string }) {
     <p className="rounded-lg border border-line bg-surface/75 p-3 text-sm leading-6 text-muted">
       {body}
     </p>
+  );
+}
+
+function TodayPlannedEmptyState({
+  hasDoneToday,
+  hasSkippedToday,
+  onOpenPicker,
+}: {
+  hasDoneToday: boolean;
+  hasSkippedToday: boolean;
+  onOpenPicker: () => void;
+}) {
+  const hasResolvedToday = hasDoneToday || hasSkippedToday;
+
+  return (
+    <div className="rounded-lg border border-line bg-surface/75 p-3 shadow-soft">
+      <p className="text-base font-semibold text-ink">
+        {hasResolvedToday
+          ? "Nothing else planned for today."
+          : "Nothing planned for today yet."}
+      </p>
+      {!hasResolvedToday ? (
+        <p className="mt-1 text-sm leading-6 text-muted">
+          Plan this week, or record something you do today.
+        </p>
+      ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Link
+          href="/week"
+          className="inline-flex min-h-11 items-center rounded-full bg-clay px-4 text-sm font-semibold text-white transition hover:bg-clay/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+        >
+          Plan this week
+        </Link>
+        {!hasResolvedToday ? (
+          <button
+            type="button"
+            className="inline-flex min-h-11 items-center rounded-full border border-clay/40 bg-surface px-4 text-sm font-semibold text-clay transition hover:border-clay hover:bg-paper focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+            onClick={onOpenPicker}
+          >
+            + Something else
+          </button>
+        ) : null}
+      </div>
+    </div>
   );
 }
 
