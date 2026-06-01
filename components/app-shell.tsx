@@ -10,6 +10,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const selectedHref = pendingHref ?? getSelectedRouteHref(pathname);
 
+  useVisualViewportOffsets();
+
   useEffect(() => {
     setPendingHref(null);
   }, [pathname]);
@@ -25,13 +27,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-3 sm:px-6 sm:pb-8 sm:pt-20 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5.5rem+env(safe-area-inset-bottom)+var(--app-visual-viewport-bottom,0px))] pt-[calc(0.75rem+env(safe-area-inset-top)+var(--app-visual-viewport-top,0px))] sm:px-6 sm:pb-8 sm:pt-20 lg:px-8">
         {children}
       </main>
 
       <nav
         aria-label="Main navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgb(var(--color-shadow-soft)/0.08)] sm:hidden"
+        className="fixed inset-x-0 bottom-[var(--app-visual-viewport-bottom,0px)] z-40 border-t border-line bg-paper px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgb(var(--color-shadow-soft)/0.08)] sm:hidden"
       >
         <ul className="mx-auto grid max-w-md grid-cols-3 gap-2">
           {appRoutes.map((item) => {
@@ -58,6 +60,39 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
     </>
   );
+}
+
+function useVisualViewportOffsets() {
+  useEffect(() => {
+    const root = document.documentElement;
+
+    function updateOffsets() {
+      const viewport = window.visualViewport;
+      const top = viewport ? Math.max(0, viewport.offsetTop) : 0;
+      const bottom = viewport
+        ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+        : 0;
+
+      root.style.setProperty("--app-visual-viewport-top", `${top}px`);
+      root.style.setProperty("--app-visual-viewport-bottom", `${bottom}px`);
+    }
+
+    updateOffsets();
+
+    window.visualViewport?.addEventListener("resize", updateOffsets);
+    window.visualViewport?.addEventListener("scroll", updateOffsets);
+    window.addEventListener("resize", updateOffsets);
+    window.addEventListener("orientationchange", updateOffsets);
+
+    return () => {
+      window.visualViewport?.removeEventListener("resize", updateOffsets);
+      window.visualViewport?.removeEventListener("scroll", updateOffsets);
+      window.removeEventListener("resize", updateOffsets);
+      window.removeEventListener("orientationchange", updateOffsets);
+      root.style.removeProperty("--app-visual-viewport-top");
+      root.style.removeProperty("--app-visual-viewport-bottom");
+    };
+  }, []);
 }
 
 function PrimaryNav({
