@@ -18,7 +18,9 @@ normal routes.
 
 The root route sends authenticated users into Today whenever possible. Week owns
 current-week planning, next-week list preparation, and list editing; Review
-summarizes and corrects completion truth. `/plan` is retained only as a
+summarizes and corrects completion truth. History is available as a secondary
+action from Review for opening previous weekly Reviews and seeing simple
+activity patterns; it is not a primary nav item. `/plan` is retained only as a
 compatibility redirect to Week, not as a primary app area.
 
 Sign out is intentionally not shown in the normal app chrome. To clear the
@@ -256,7 +258,9 @@ Use this checklist after deployment:
    editing, category/activity reorder, and mobile horizontal scroll behavior.
 9. In Review, confirm the summary loads, day-by-day correction toggles
    completion truth only, and no Close/Finalize step is required.
-10. Revisit `/` and Week after refreshes; confirm no duplicate current week or
+10. From Review, open History and confirm past weeks open Review with
+    `/review?weekStart=...`; confirm no History item appears in the bottom nav.
+11. Revisit `/` and Week after refreshes; confirm no duplicate current week or
     duplicate week-activity snapshots appear.
 
 For iPhone Home Screen acceptance, reinstall from the stable install page:

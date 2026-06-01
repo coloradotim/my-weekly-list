@@ -289,6 +289,22 @@ visual language where appropriate.
   storage.
 - Do not require or expose Close Week, Finalize Week, or user-facing Draft
   actions in Review.
+- Link to History from Review as a small secondary action near the Review date
+  context. Do not add History to the primary bottom or desktop nav.
+- History uses authenticated Supabase/RLS reads of real persisted ended weeks,
+  week activities, and day cells. It does not create ghost weeks.
+- History's `Last week` section points to the immediately previous
+  Monday-Sunday week when that week exists; `Open review` hands off to the
+  existing `/review?weekStart=...` correction flow instead of duplicating Review
+  UI.
+- History's `Previous weeks` list shows earlier real ended weeks newest first.
+- History's `Patterns · Last 4 weeks` rows aggregate by historical activity
+  snapshots over the last four ended recorded weeks only, exclude the current
+  in-progress week, count planned and unplanned done days, use historical target
+  counts, and exclude absent weeks from each activity denominator.
+- Keep History calm and non-punitive: no charts, scores, percentages, streaks,
+  category rollups, planned-adherence analytics, skipped/missed analytics, or
+  coaching language.
 
 ### Mobile shell, install, and hardening
 
