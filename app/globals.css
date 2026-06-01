@@ -21,6 +21,7 @@
   --color-skipped: 120 113 108;
   --color-skipped-fill: 245 245 244;
   --color-shadow-soft: 74 57 43;
+  --app-mobile-nav-height: calc(3.75rem + env(safe-area-inset-top));
   background: rgb(var(--color-paper));
 }
 

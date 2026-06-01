@@ -10,89 +10,29 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const selectedHref = pendingHref ?? getSelectedRouteHref(pathname);
 
-  useVisualViewportOffsets();
-
   useEffect(() => {
     setPendingHref(null);
   }, [pathname]);
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 hidden border-b border-line bg-paper/95 backdrop-blur sm:block">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-3 lg:px-8">
-          <Link href="/" className="text-base font-semibold tracking-normal text-ink">
+      <header className="sticky inset-x-0 top-0 z-50 min-h-[var(--app-mobile-nav-height)] border-b border-line bg-paper px-3 pb-2 pt-[calc(0.5rem+env(safe-area-inset-top))] shadow-[0_6px_18px_rgb(var(--color-shadow-soft)/0.06)] sm:fixed sm:min-h-0 sm:bg-paper/95 sm:px-0 sm:py-0 sm:shadow-none sm:backdrop-blur">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-4 sm:justify-between sm:px-6 sm:py-3 lg:px-8">
+          <Link
+            href="/"
+            className="hidden text-base font-semibold tracking-normal text-ink sm:block"
+          >
             My Weekly List
           </Link>
           <PrimaryNav selectedHref={selectedHref} onNavigate={setPendingHref} />
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl px-2 pb-[calc(5.5rem+env(safe-area-inset-bottom)+var(--app-visual-viewport-bottom,0px))] pt-[calc(0.75rem+env(safe-area-inset-top)+var(--app-visual-viewport-top,0px))] sm:px-6 sm:pb-8 sm:pt-20 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl px-2 pb-4 pt-2 sm:px-6 sm:pb-8 sm:pt-20 lg:px-8">
         {children}
       </main>
-
-      <nav
-        aria-label="Main navigation"
-        className="fixed inset-x-0 bottom-[var(--app-visual-viewport-bottom,0px)] z-40 border-t border-line bg-paper px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgb(var(--color-shadow-soft)/0.08)] sm:hidden"
-      >
-        <ul className="mx-auto grid max-w-md grid-cols-3 gap-2">
-          {appRoutes.map((item) => {
-            const selected = selectedHref === item.href;
-
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={() => setPendingHref(item.href)}
-                  aria-current={selected ? "page" : undefined}
-                  className={`flex min-h-12 touch-manipulation items-center justify-center rounded-full border px-3 text-sm font-semibold transition-colors duration-75 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
-                    selected
-                      ? "border-clay bg-surface text-ink shadow-soft"
-                      : "border-line bg-surface/70 text-muted"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
     </>
   );
-}
-
-function useVisualViewportOffsets() {
-  useEffect(() => {
-    const root = document.documentElement;
-
-    function updateOffsets() {
-      const viewport = window.visualViewport;
-      const top = viewport ? Math.max(0, viewport.offsetTop) : 0;
-      const bottom = viewport
-        ? Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
-        : 0;
-
-      root.style.setProperty("--app-visual-viewport-top", `${top}px`);
-      root.style.setProperty("--app-visual-viewport-bottom", `${bottom}px`);
-    }
-
-    updateOffsets();
-
-    window.visualViewport?.addEventListener("resize", updateOffsets);
-    window.visualViewport?.addEventListener("scroll", updateOffsets);
-    window.addEventListener("resize", updateOffsets);
-    window.addEventListener("orientationchange", updateOffsets);
-
-    return () => {
-      window.visualViewport?.removeEventListener("resize", updateOffsets);
-      window.visualViewport?.removeEventListener("scroll", updateOffsets);
-      window.removeEventListener("resize", updateOffsets);
-      window.removeEventListener("orientationchange", updateOffsets);
-      root.style.removeProperty("--app-visual-viewport-top");
-      root.style.removeProperty("--app-visual-viewport-bottom");
-    };
-  }, []);
 }
 
 function PrimaryNav({
@@ -104,7 +44,7 @@ function PrimaryNav({
 }) {
   return (
     <nav aria-label="Main navigation">
-      <ul className="flex items-center gap-2">
+      <ul className="grid w-full max-w-md grid-cols-3 gap-2 sm:flex sm:w-auto sm:max-w-none sm:items-center">
         {appRoutes.map((item) => {
           const selected = selectedHref === item.href;
 
@@ -114,7 +54,7 @@ function PrimaryNav({
                 href={item.href}
                 onClick={() => onNavigate(item.href)}
                 aria-current={selected ? "page" : undefined}
-                className={`inline-flex min-h-10 items-center justify-center rounded-full border px-4 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay ${
+                className={`flex min-h-11 touch-manipulation items-center justify-center rounded-full border px-3 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-clay sm:inline-flex sm:min-h-10 sm:px-4 ${
                   selected
                     ? "border-clay bg-surface text-ink shadow-soft"
                     : "border-line bg-surface/70 text-muted hover:border-clay hover:text-ink"
