@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <nav
         aria-label="Main navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgb(var(--color-shadow-soft)/0.08)] backdrop-blur sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_24px_rgb(var(--color-shadow-soft)/0.08)] sm:hidden"
       >
         <ul className="mx-auto grid max-w-md grid-cols-3 gap-2">
           {appRoutes.map((item) => {
