@@ -45,9 +45,11 @@ describe("app routes", () => {
     expect(appShell).toContain("fixed inset-x-0 top-0");
     expect(appShell).toContain("sm:pt-20");
     expect(appShell).toContain("touch-manipulation");
+    expect(appShell).toContain("bg-paper px-3");
     expect(appShell).toContain("env(safe-area-inset-bottom)");
     expect(appShell).toContain('aria-label="Main navigation"');
     expect(appShell).toContain('aria-current={selected ? "page" : undefined}');
+    expect(appShell).not.toContain("bg-paper/95 px-3");
     expect(appShell).not.toContain("visualViewport");
     expect(appShell).not.toContain("--mobile-browser-bottom-offset");
     expect(appShell).not.toContain("h-[100dvh]");
