@@ -45,7 +45,13 @@ type CorrectionPopover = {
   left: number;
 };
 
-export function OptimisticTodayView({ initialState }: { initialState: TodayState }) {
+export function OptimisticTodayView({
+  initialState,
+  dayKind = "today",
+}: {
+  initialState: TodayState;
+  dayKind?: "today" | "yesterday";
+}) {
   const [state, setState] = useState(initialState);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [collapsedCategories, setCollapsedCategories] = useState<string[]>([]);
@@ -85,6 +91,11 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
   }, [initialState]);
 
   const view = buildTodayViewModel(state);
+  const isYesterday = dayKind === "yesterday";
+  const plannedTitle = isYesterday ? "Planned for yesterday" : "Planned for today";
+  const doneTitle = isYesterday ? "Done yesterday" : "Done today";
+  const skippedTitle = isYesterday ? "Skipped yesterday" : "Skipped";
+  const markDonePickerLabel = isYesterday ? "Mark done yesterday" : "Mark done today";
   const correctionActivity = correctionPopover
     ? view.activities.find((activity) => activity.id === correctionPopover.activityId)
     : null;
@@ -395,6 +406,17 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
 
   return (
     <div className="space-y-3">
+      {isYesterday ? (
+        <header className="px-1">
+          <p className="text-sm font-semibold uppercase tracking-wide text-clay">
+            Yesterday
+          </p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-normal text-ink">
+            {view.todayLabel}
+          </h1>
+        </header>
+      ) : null}
+
       {notice ? <Notice tone={notice.tone} body={notice.body} /> : null}
 
       {view.isSunday ? (
@@ -404,7 +426,17 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
       ) : null}
 
       <section className="space-y-2">
-        <SectionHeading title="Planned for today" count={view.openPlannedToday.length} />
+        <div>
+          <SectionHeading title={plannedTitle} count={view.openPlannedToday.length} />
+          {!isYesterday ? (
+            <Link
+              href="/today?day=yesterday"
+              className="ml-1 mt-1 inline-flex rounded px-1 py-0.5 text-sm font-semibold text-muted transition hover:bg-paper hover:text-clay focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+            >
+              Yesterday <span aria-hidden="true">›</span>
+            </Link>
+          ) : null}
+        </div>
         {view.openPlannedToday.length > 0 ? (
           <div className="space-y-2">
             {view.openPlannedToday.map((activity) => (
@@ -430,6 +462,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
           </div>
         ) : (
           <TodayPlannedEmptyState
+            dayKind={dayKind}
             hasDoneToday={view.doneToday.length > 0}
             hasSkippedToday={view.skippedToday.length > 0}
             onOpenPicker={() => setIsPickerOpen(true)}
@@ -512,7 +545,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
                                   {activity.activityName}
                                 </span>
                                 <span className="shrink-0 text-right font-semibold text-meadow">
-                                  Mark done today
+                                  {markDonePickerLabel}
                                 </span>
                               </button>
                             ))}
@@ -532,7 +565,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
 
       {view.doneToday.length > 0 ? (
         <section className="space-y-2">
-          <SectionHeading title="Done today" count={view.doneToday.length} />
+          <SectionHeading title={doneTitle} count={view.doneToday.length} />
           <div className="space-y-2">
             {view.doneToday.map((activity) => (
               <DoneTodayRow
@@ -549,7 +582,7 @@ export function OptimisticTodayView({ initialState }: { initialState: TodayState
 
       {view.skippedToday.length > 0 ? (
         <section className="space-y-2">
-          <SectionHeading title="Skipped" count={view.skippedToday.length} />
+          <SectionHeading title={skippedTitle} count={view.skippedToday.length} />
           <div className="space-y-2">
             {view.skippedToday.map((activity) => (
               <SkippedRow
@@ -922,35 +955,42 @@ function EmptyNote({ body }: { body: string }) {
 }
 
 function TodayPlannedEmptyState({
+  dayKind,
   hasDoneToday,
   hasSkippedToday,
   onOpenPicker,
 }: {
+  dayKind: "today" | "yesterday";
   hasDoneToday: boolean;
   hasSkippedToday: boolean;
   onOpenPicker: () => void;
 }) {
   const hasResolvedToday = hasDoneToday || hasSkippedToday;
+  const isYesterday = dayKind === "yesterday";
 
   return (
     <div className="rounded-lg border border-line bg-surface/75 p-3 shadow-soft">
       <p className="text-base font-semibold text-ink">
         {hasResolvedToday
-          ? "Nothing else planned for today."
-          : "Nothing planned for today yet."}
+          ? `Nothing else planned for ${isYesterday ? "yesterday" : "today"}.`
+          : `Nothing planned for ${isYesterday ? "yesterday" : "today"} yet.`}
       </p>
       {!hasResolvedToday ? (
         <p className="mt-1 text-sm leading-6 text-muted">
-          Plan this week, or record something you do today.
+          {isYesterday
+            ? "Record something you did yesterday."
+            : "Plan this week, or record something you do today."}
         </p>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link
-          href="/week"
-          className="inline-flex min-h-11 items-center rounded-full bg-clay px-4 text-sm font-semibold text-white transition hover:bg-clay/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
-        >
-          Plan this week
-        </Link>
+        {!isYesterday ? (
+          <Link
+            href="/week"
+            className="inline-flex min-h-11 items-center rounded-full bg-clay px-4 text-sm font-semibold text-white transition hover:bg-clay/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-clay"
+          >
+            Plan this week
+          </Link>
+        ) : null}
         {!hasResolvedToday ? (
           <button
             type="button"

@@ -233,6 +233,56 @@ describe("persisted Today model", () => {
     ).toEqual([]);
   });
 
+  it("builds Yesterday view state from the requested prior date", async () => {
+    const client = createWeeklyListClient({
+      weeks: [weekRow({ id: "week-existing", week_start_date: "2026-06-01" })],
+      weekActivities: [
+        weekActivityRow({
+          id: "walk-week",
+          week_id: "week-existing",
+          activity_template_id: "walk-template",
+          activity_name: "Walk",
+          target_count: 4,
+        }),
+      ],
+      activityDayCells: [
+        dayCellRow({
+          id: "walk-sunday",
+          week_activity_id: "walk-week",
+          cell_date: "2026-06-07",
+          planned: true,
+          done: false,
+          skipped: false,
+        }),
+      ],
+    });
+
+    const result = await loadToday(client.supabase, { today: "2026-06-07" });
+
+    expect(result.status).toBe("ready");
+
+    if (result.status !== "ready") {
+      return;
+    }
+
+    expect(result.state.today).toBe("2026-06-07");
+    expect(buildTodayViewModel(result.state).openPlannedToday).toHaveLength(1);
+    expect(client.weeks.map((week) => week.week_start_date)).toEqual(["2026-06-01"]);
+  });
+
+  it("does not create a ghost week for a missing Yesterday date", async () => {
+    const client = createWeeklyListClient();
+
+    const result = await loadToday(client.supabase, { today: "2026-06-07" });
+
+    expect(result).toMatchObject({
+      status: "no-current-week",
+      weekStartDate: "2026-06-01",
+      weekEndDate: "2026-06-07",
+    });
+    expect(client.weeks).toEqual([]);
+  });
+
   it("builds a full current-week correction row for each Today activity", () => {
     const view = buildTodayViewModel(fixtureState());
     const walk = view.activities.find((activity) => activity.id === "walk");
@@ -403,6 +453,8 @@ describe("persisted Today implementation guardrails", () => {
   it("renders the real Today route with the optimistic persisted client", () => {
     expect(todayPage).toContain("loadToday");
     expect(todayPage).toContain("ensureCurrentWeekForUserId");
+    expect(todayPage).toContain('raw === "yesterday"');
+    expect(todayPage).toContain("addDays(getTodayDateOnly(), -1)");
     expect(todayPage).toContain("OptimisticTodayView");
     expect(todayPage).not.toContain("PlaceholderCard");
     expect(todayPage).not.toContain("Earlier this week");
@@ -428,8 +480,13 @@ describe("persisted Today implementation guardrails", () => {
     expect(todayActions).toContain("done: boolean");
     expect(todayActions).toContain("skipped: boolean");
     expect(todayActions).toContain("setActivityDayCellFacts");
-    expect(todayActions).toContain("getTodayDateOnly()");
+    expect(todayActions).toContain("canUseTodaySurfaceForDate");
+    expect(todayActions).toContain(
+      "cellDate === today || cellDate === addDays(today, -1)",
+    );
+    expect(todayActions).toContain("mutationToday: cellDate");
     expect(todayActions).toContain("moveWeekActivityPlanDate");
+    expect(todayActions).toContain("mutationToday: today");
     expect(todayActions).toContain("moveTodayPlanAction");
     expect(todayActions).toContain("setTodayCompletionCorrectionAction");
     expect(todayActions).toContain("setReviewCellDone");
@@ -455,9 +512,19 @@ describe("persisted Today implementation guardrails", () => {
 
   it("uses the approved Today copy without prior-missed backlog language", () => {
     expect(todayClient).toContain("Planned for today");
-    expect(todayClient).toContain("Nothing planned for today yet.");
+    expect(todayClient).toContain('href="/today?day=yesterday"');
+    expect(todayClient).toContain("Yesterday");
+    expect(todayClient).toContain("Planned for yesterday");
+    expect(todayClient).toContain("Done yesterday");
+    expect(todayClient).toContain("Skipped yesterday");
+    expect(todayClient).toContain("Mark done yesterday");
+    expect(todayClient).toContain(
+      'Nothing planned for ${isYesterday ? "yesterday" : "today"} yet.',
+    );
     expect(todayClient).toContain("Plan this week, or record something you do today.");
-    expect(todayClient).toContain("Nothing else planned for today.");
+    expect(todayClient).toContain(
+      'Nothing else planned for ${isYesterday ? "yesterday" : "today"}.',
+    );
     expect(todayClient).toContain('href="/week"');
     expect(todayClient).toContain("showStandalonePicker");
     expect(todayClient).toContain("view.openPlannedToday.length > 0 ||");
@@ -592,6 +659,18 @@ function cell(date: string, planned: boolean, done: boolean, skipped = false) {
     planned,
     done,
     skipped,
+  };
+}
+
+function dayCellRow(overrides: Partial<DayCellRow>): DayCellRow {
+  return {
+    id: "cell",
+    week_activity_id: "week-activity",
+    cell_date: "2026-06-01",
+    planned: false,
+    done: false,
+    skipped: false,
+    ...overrides,
   };
 }
 
@@ -831,6 +910,21 @@ function templateRow(overrides: Partial<TemplateRow>): TemplateRow {
     sort_order: 10,
     is_active: true,
     categories: { id: "category", name: "Category", sort_order: 10 },
+    ...overrides,
+  };
+}
+
+function weekActivityRow(overrides: Partial<WeekActivityRow>): WeekActivityRow {
+  return {
+    id: "week-activity",
+    week_id: "week",
+    activity_template_id: "template",
+    category_id: "category",
+    category_name: "Physical Health",
+    category_sort_order: 10,
+    activity_name: "Activity",
+    target_count: 1,
+    sort_order: 10,
     ...overrides,
   };
 }

@@ -222,6 +222,17 @@ describe("optimistic week planning", () => {
     expect(thisWeekGrid).toContain("{activity.doneCount}/{activity.targetCount} done");
   });
 
+  it("renders inline Week target controls underneath the row progress copy", () => {
+    expect(thisWeekGrid).toContain("renderTargetControl");
+    expect(thisWeekGrid).toContain("mt-0.5 inline-flex items-center");
+    expect(optimisticGrid).toContain("updateWeekActivityTargetCountAction");
+    expect(optimisticGrid).toContain("Decrease ${activity.activityName} target");
+    expect(optimisticGrid).toContain("Increase ${activity.activityName} target");
+    expect(optimisticGrid).toContain("{activity.targetCount}/wk");
+    expect(optimisticGrid).toContain("WEEKLY_TARGET_MIN");
+    expect(optimisticGrid).toContain("WEEKLY_TARGET_MAX");
+  });
+
   it("keeps Week day headers sticky while the grid scrolls vertically", () => {
     expect(thisWeekGrid).toContain("data-week-grid-header-scroll");
     expect(thisWeekGrid).toContain(

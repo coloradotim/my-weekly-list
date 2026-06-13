@@ -14,6 +14,8 @@ import {
 } from "@/app/(app)/week/actions";
 import {
   canTogglePlanningCell,
+  WEEKLY_TARGET_MAX,
+  WEEKLY_TARGET_MIN,
   type AddedWeekActivity,
   type ThisWeekViewModel,
   type WeekGridActivity,
@@ -1061,8 +1063,10 @@ function ActivityEditForm({
             <button
               type="button"
               className="min-h-10 px-4 text-sm font-semibold text-muted disabled:opacity-40"
-              disabled={targetCount <= 0}
-              onClick={() => setTargetCount((value) => Math.max(0, value - 1))}
+              disabled={targetCount <= WEEKLY_TARGET_MIN}
+              onClick={() =>
+                setTargetCount((value) => Math.max(WEEKLY_TARGET_MIN, value - 1))
+              }
             >
               -
             </button>
@@ -1071,8 +1075,11 @@ function ActivityEditForm({
             </span>
             <button
               type="button"
-              className="min-h-10 px-4 text-sm font-semibold text-muted"
-              onClick={() => setTargetCount((value) => value + 1)}
+              className="min-h-10 px-4 text-sm font-semibold text-muted disabled:opacity-40"
+              disabled={targetCount >= WEEKLY_TARGET_MAX}
+              onClick={() =>
+                setTargetCount((value) => Math.min(WEEKLY_TARGET_MAX, value + 1))
+              }
             >
               +
             </button>

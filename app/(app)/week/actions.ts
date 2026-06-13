@@ -14,6 +14,7 @@ import {
   setWeekCellFacts,
   setWeekCellPlanned,
   updateWeekActivityListItem,
+  updateWeekActivityTargetCount,
 } from "@/lib/week/current";
 import type { DateOnly } from "@/lib/week/date";
 
@@ -154,6 +155,35 @@ export async function updateWeekActivityListItemClientAction(formData: FormData)
         status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
         message:
           "message" in result ? result.message : "That activity could not be saved.",
+      };
+}
+
+export async function updateWeekActivityTargetCountAction({
+  weekActivityId,
+  targetCount,
+}: {
+  weekActivityId: string;
+  targetCount: number;
+}) {
+  if (!weekActivityId || !Number.isFinite(targetCount)) {
+    return {
+      status: "blocked" as const,
+      message: "Target is required.",
+    };
+  }
+
+  const { supabase } = await requireAllowedUser("/week");
+  const result = await updateWeekActivityTargetCount({
+    supabase,
+    weekActivityId,
+    targetCount,
+  });
+
+  return result.status === "updated"
+    ? { status: "updated" as const }
+    : {
+        status: result.status === "blocked" ? ("blocked" as const) : ("error" as const),
+        message: "message" in result ? result.message : "That target could not be saved.",
       };
 }
 

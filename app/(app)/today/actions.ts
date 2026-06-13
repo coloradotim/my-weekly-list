@@ -10,7 +10,7 @@ import {
   moveWeekActivityPlanDate,
   setActivityDayCellFacts,
 } from "@/lib/week/current";
-import { compareDateOnly, type DateOnly } from "@/lib/week/date";
+import { addDays, compareDateOnly, type DateOnly } from "@/lib/week/date";
 
 type TodayActionResult =
   | { status: "updated" }
@@ -34,7 +34,7 @@ export async function setTodayCellFactsAction({
     return { status: "error" };
   }
 
-  if (cellDate !== getTodayDateOnly()) {
+  if (!canUseTodaySurfaceForDate(cellDate)) {
     return { status: "blocked" };
   }
 
@@ -44,6 +44,7 @@ export async function setTodayCellFactsAction({
     weekActivityId,
     cellDate,
     facts: { planned, done, skipped },
+    mutationToday: cellDate,
   });
 
   if (result.status === "blocked") {
@@ -55,6 +56,7 @@ export async function setTodayCellFactsAction({
   }
 
   revalidatePath("/today");
+  revalidatePath("/today?day=yesterday");
   revalidatePath("/week");
   return { status: "updated" };
 }
@@ -89,6 +91,7 @@ export async function setTodayCompletionCorrectionAction({
   }
 
   revalidatePath("/today");
+  revalidatePath("/today?day=yesterday");
   revalidatePath("/week");
   revalidatePath("/review");
   return { status: "updated" };
@@ -107,7 +110,7 @@ export async function moveTodayPlanAction({
     return { status: "blocked" };
   }
 
-  if (today !== getTodayDateOnly()) {
+  if (!canUseTodaySurfaceForDate(today)) {
     return { status: "blocked" };
   }
 
@@ -117,6 +120,7 @@ export async function moveTodayPlanAction({
     weekActivityId,
     fromDate: today,
     toDate,
+    mutationToday: today,
   });
 
   if (result.status !== "updated") {
@@ -124,6 +128,7 @@ export async function moveTodayPlanAction({
   }
 
   revalidatePath("/today");
+  revalidatePath("/today?day=yesterday");
   revalidatePath("/week");
   return { status: "updated" };
 }
@@ -141,7 +146,7 @@ export async function undoMoveTodayPlanAction({
     return { status: "blocked" };
   }
 
-  if (today !== getTodayDateOnly()) {
+  if (!canUseTodaySurfaceForDate(today)) {
     return { status: "blocked" };
   }
 
@@ -151,6 +156,7 @@ export async function undoMoveTodayPlanAction({
     weekActivityId,
     cellDate: fromDate,
     facts: { planned: false, done: false, skipped: false },
+    mutationToday: today,
   });
 
   if (clearFuture.status !== "updated") {
@@ -162,6 +168,7 @@ export async function undoMoveTodayPlanAction({
     weekActivityId,
     cellDate: today,
     facts: { planned: true, done: false, skipped: false },
+    mutationToday: today,
   });
 
   if (restoreToday.status !== "updated") {
@@ -170,6 +177,7 @@ export async function undoMoveTodayPlanAction({
       weekActivityId,
       cellDate: fromDate,
       facts: { planned: true, done: false, skipped: false },
+      mutationToday: today,
     });
 
     return restoreToday.status === "blocked"
@@ -178,8 +186,15 @@ export async function undoMoveTodayPlanAction({
   }
 
   revalidatePath("/today");
+  revalidatePath("/today?day=yesterday");
   revalidatePath("/week");
   return { status: "updated" };
+}
+
+function canUseTodaySurfaceForDate(cellDate: DateOnly) {
+  const today = getTodayDateOnly();
+
+  return cellDate === today || cellDate === addDays(today, -1);
 }
 
 async function requireAllowedUser(nextPath: string) {

@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { setWeekCellFactsAction } from "@/app/(app)/week/actions";
+import {
+  setWeekCellFactsAction,
+  updateWeekActivityTargetCountAction,
+} from "@/app/(app)/week/actions";
 import { Notice, ThisWeekGrid } from "@/components/this-week-grid";
-import type { ThisWeekViewModel } from "@/lib/week/current";
+import {
+  WEEKLY_TARGET_MAX,
+  WEEKLY_TARGET_MIN,
+  type ThisWeekViewModel,
+} from "@/lib/week/current";
 import type { DateOnly } from "@/lib/week/date";
 import {
   applyOptimisticWeekCellFacts,
@@ -22,14 +29,17 @@ type SaveStatus = "idle" | "error";
 export function OptimisticThisWeekGrid({
   initialView,
   initialNotice,
+  onViewChange,
 }: {
   initialView: ThisWeekViewModel;
   initialNotice: WeekNotice;
+  onViewChange?: (view: ThisWeekViewModel) => void;
 }) {
   const [view, setView] = useState(initialView);
   const [pendingCellKeys, setPendingCellKeys] = useState<Set<PlanningCellKey>>(
     () => new Set(),
   );
+  const [pendingTargetIds, setPendingTargetIds] = useState<Set<string>>(() => new Set());
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [collapsedCategoryNames, setCollapsedCategoryNames] = useState<string[]>([]);
   const [, startTransition] = useTransition();
@@ -37,6 +47,7 @@ export function OptimisticThisWeekGrid({
   useEffect(() => {
     setView(initialView);
     setPendingCellKeys(new Set());
+    setPendingTargetIds(new Set());
     setSaveStatus("idle");
   }, [initialView]);
 
@@ -114,6 +125,69 @@ export function OptimisticThisWeekGrid({
     });
   }
 
+  function setTargetPending(activityId: string, isPending: boolean) {
+    setPendingTargetIds((current) => {
+      const next = new Set(current);
+
+      if (isPending) {
+        next.add(activityId);
+      } else {
+        next.delete(activityId);
+      }
+
+      return next;
+    });
+  }
+
+  function setOptimisticView(nextView: ThisWeekViewModel) {
+    setView(nextView);
+    onViewChange?.(nextView);
+  }
+
+  function updateTargetCount(
+    activityId: string,
+    currentTargetCount: number,
+    next: number,
+  ) {
+    const nextTargetCount = Math.min(
+      WEEKLY_TARGET_MAX,
+      Math.max(WEEKLY_TARGET_MIN, next),
+    );
+
+    if (nextTargetCount === currentTargetCount || pendingTargetIds.has(activityId)) {
+      return;
+    }
+
+    const previousView = view;
+    const nextView = applyTargetCountToView(view, activityId, nextTargetCount);
+
+    setSaveStatus("idle");
+    setTargetPending(activityId, true);
+    setOptimisticView(nextView);
+
+    startTransition(() => {
+      void updateWeekActivityTargetCountAction({
+        weekActivityId: activityId,
+        targetCount: nextTargetCount,
+      })
+        .then((result) => {
+          if (result.status === "updated") {
+            return;
+          }
+
+          setSaveStatus("error");
+          setOptimisticView(previousView);
+        })
+        .catch(() => {
+          setSaveStatus("error");
+          setOptimisticView(previousView);
+        })
+        .finally(() => {
+          setTargetPending(activityId, false);
+        });
+    });
+  }
+
   return (
     <>
       {notice ? <Notice tone={notice.tone} body={notice.body} /> : null}
@@ -123,6 +197,47 @@ export function OptimisticThisWeekGrid({
         showStatusPanel={false}
         collapsedCategoryNames={collapsedCategoryNames}
         onToggleCategory={toggleCategory}
+        renderTargetControl={({ activity, className }) => {
+          const isPending = pendingTargetIds.has(activity.id);
+
+          return (
+            <span className={className} aria-busy={isPending}>
+              <button
+                type="button"
+                aria-label={`Decrease ${activity.activityName} target`}
+                className="inline-flex min-h-5 min-w-5 items-center justify-center rounded text-xs font-normal text-muted transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed disabled:text-disabled"
+                disabled={isPending || activity.targetCount <= WEEKLY_TARGET_MIN}
+                onClick={() =>
+                  updateTargetCount(
+                    activity.id,
+                    activity.targetCount,
+                    activity.targetCount - 1,
+                  )
+                }
+              >
+                -
+              </button>
+              <span className="min-w-8 text-center text-[11px] font-normal text-secondary sm:text-xs">
+                {activity.targetCount}/wk
+              </span>
+              <button
+                type="button"
+                aria-label={`Increase ${activity.activityName} target`}
+                className="inline-flex min-h-5 min-w-5 items-center justify-center rounded text-xs font-normal text-muted transition hover:bg-paper hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-clay disabled:cursor-not-allowed disabled:text-disabled"
+                disabled={isPending || activity.targetCount >= WEEKLY_TARGET_MAX}
+                onClick={() =>
+                  updateTargetCount(
+                    activity.id,
+                    activity.targetCount,
+                    activity.targetCount + 1,
+                  )
+                }
+              >
+                +
+              </button>
+            </span>
+          );
+        }}
         renderPlanningControl={({ activity, cell, children, className, ariaLabel }) => {
           const cellDate = cell.date as DateOnly;
           const key = getPlanningCellKey(activity.id, cellDate);
@@ -210,4 +325,20 @@ export function OptimisticThisWeekGrid({
       />
     </>
   );
+}
+
+function applyTargetCountToView(
+  view: ThisWeekViewModel,
+  activityId: string,
+  targetCount: number,
+): ThisWeekViewModel {
+  return {
+    ...view,
+    categories: view.categories.map((category) => ({
+      ...category,
+      activities: category.activities.map((activity) =>
+        activity.id === activityId ? { ...activity, targetCount } : activity,
+      ),
+    })),
+  };
 }
