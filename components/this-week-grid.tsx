@@ -33,10 +33,19 @@ type PlanningControlRenderer = ({
   ariaLabel: string;
 }) => ReactNode;
 
+type TargetControlRenderer = ({
+  activity,
+  className,
+}: {
+  activity: WeekGridActivity;
+  className: string;
+}) => ReactNode;
+
 export function ThisWeekGrid({
   view,
   notice,
   renderPlanningControl,
+  renderTargetControl,
   showStatusPanel = true,
   collapsedCategoryNames = [],
   onToggleCategory,
@@ -44,6 +53,7 @@ export function ThisWeekGrid({
   view: ThisWeekViewModel;
   notice: WeekNotice;
   renderPlanningControl: PlanningControlRenderer;
+  renderTargetControl?: TargetControlRenderer;
   showStatusPanel?: boolean;
   collapsedCategoryNames?: string[];
   onToggleCategory?: (categoryName: string) => void;
@@ -139,6 +149,7 @@ export function ThisWeekGrid({
                         activity={activity}
                         today={view.today}
                         renderPlanningControl={renderPlanningControl}
+                        renderTargetControl={renderTargetControl}
                       />
                     ))
                   : null}
@@ -155,18 +166,20 @@ function ActivityRow({
   activity,
   today,
   renderPlanningControl,
+  renderTargetControl,
 }: {
   activity: WeekGridActivity;
   today: string;
   renderPlanningControl: PlanningControlRenderer;
+  renderTargetControl?: TargetControlRenderer;
 }) {
   return (
     <div className="contents">
-      <div className="sticky left-0 z-10 border-b border-r border-line bg-surface px-2 py-1.5 sm:px-3 sm:py-2.5">
+      <div className="sticky left-0 z-10 border-b border-r border-line bg-surface px-2 py-1.5 sm:px-3 sm:py-2">
         <div className="text-xs font-semibold leading-4 text-ink sm:text-sm sm:leading-5">
           {activity.activityName}
         </div>
-        <ActivitySubtitle activity={activity} />
+        <ActivitySubtitle activity={activity} renderTargetControl={renderTargetControl} />
       </div>
       {activity.cells.map((cell) => (
         <WeekCell
@@ -181,25 +194,45 @@ function ActivityRow({
   );
 }
 
-function ActivitySubtitle({ activity }: { activity: WeekGridActivity }) {
+function ActivitySubtitle({
+  activity,
+  renderTargetControl,
+}: {
+  activity: WeekGridActivity;
+  renderTargetControl?: TargetControlRenderer;
+}) {
+  const targetControl =
+    activity.weekStatus === "active" || activity.weekStatus === "draft"
+      ? renderTargetControl?.({
+          activity,
+          className: "mt-0.5 inline-flex items-center gap-0.5 text-[11px] text-muted",
+        })
+      : null;
+
   if (activity.weekStatus === "draft") {
     return (
-      <div className="mt-0.5 text-[11px] leading-4 text-muted sm:text-xs">
-        {activity.plannedCount}/{activity.targetCount} planned
+      <div className="mt-0.5 text-[11px] leading-3 text-muted sm:text-xs sm:leading-4">
+        <div>
+          {activity.plannedCount}/{activity.targetCount} planned
+        </div>
+        {targetControl}
       </div>
     );
   }
 
   if (activity.weekStatus === "active") {
     return (
-      <div className="mt-0.5 flex flex-col text-[11px] leading-4 text-muted sm:flex-row sm:items-center sm:gap-1 sm:text-xs">
-        <span>
-          {activity.plannedCount}/{activity.targetCount} planned
-        </span>
-        <span className="hidden sm:inline" aria-hidden="true">
-          ·
-        </span>
-        <span>{activity.doneCount} done</span>
+      <div className="mt-0.5 text-[11px] leading-3 text-muted sm:text-xs sm:leading-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-1">
+          <span>
+            {activity.plannedCount}/{activity.targetCount} planned
+          </span>
+          <span className="hidden sm:inline" aria-hidden="true">
+            ·
+          </span>
+          <span>{activity.doneCount} done</span>
+        </div>
+        {targetControl}
       </div>
     );
   }
@@ -238,7 +271,7 @@ function WeekCell({
 
   return (
     <div
-      className={`relative flex min-h-12 snap-start items-center justify-center border-b border-line px-0.5 py-1.5 sm:min-h-[4.5rem] sm:px-2 sm:py-2.5 ${
+      className={`relative flex min-h-12 snap-start items-center justify-center border-b border-line px-0.5 py-1.5 sm:min-h-16 sm:px-2 sm:py-2 ${
         isToday ? "bg-mist/35" : "bg-surface"
       }`}
     >

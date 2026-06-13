@@ -44,7 +44,17 @@ export function normalizeEmail(email: string | null | undefined) {
 }
 
 export function getSafeAuthNextPath(nextPath: string | null | undefined) {
-  return nextPath && allowedAuthNextPaths.has(nextPath) ? nextPath : "/";
+  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return "/";
+  }
+
+  const url = new URL(nextPath, "http://my-weekly-list.local");
+
+  if (url.origin !== "http://my-weekly-list.local") {
+    return "/";
+  }
+
+  return allowedAuthNextPaths.has(url.pathname) ? `${url.pathname}${url.search}` : "/";
 }
 
 export async function getDatabaseUserAccess({

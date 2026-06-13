@@ -21,7 +21,11 @@ export function WeekPageClient({
 
   return (
     <>
-      <OptimisticThisWeekGrid initialView={view} initialNotice={initialNotice} />
+      <OptimisticThisWeekGrid
+        initialView={view}
+        initialNotice={initialNotice}
+        onViewChange={setView}
+      />
       <WeekListEditor
         view={view}
         onCategoriesChange={(categories) =>

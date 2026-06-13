@@ -86,10 +86,13 @@ describe("database-backed access control", () => {
 
   it("keeps post-login routing on safe in-app paths", () => {
     expect(getSafeAuthNextPath("/today")).toBe("/today");
+    expect(getSafeAuthNextPath("/today?day=yesterday")).toBe("/today?day=yesterday");
     expect(getSafeAuthNextPath("/week")).toBe("/week");
     expect(getSafeAuthNextPath("/review")).toBe("/review");
     expect(getSafeAuthNextPath("/onboarding")).toBe("/onboarding");
     expect(getSafeAuthNextPath("/change-password")).toBe("/change-password");
+    expect(getSafeAuthNextPath("/login?next=/today")).toBe("/");
+    expect(getSafeAuthNextPath("//example.com/today")).toBe("/");
     expect(getSafeAuthNextPath("https://example.com")).toBe("/");
   });
 });

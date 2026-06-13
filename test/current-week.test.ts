@@ -686,6 +686,7 @@ describe("week action guardrails", () => {
     expect(weekActions).toContain("getDatabaseUserAccess");
     expect(weekActions).toContain("setWeekCellPlanned");
     expect(weekActions).toContain("updateWeekActivityListItemAction");
+    expect(weekActions).toContain("updateWeekActivityTargetCountAction");
     expect(weekActions).toContain("addWeekActivityListItemAction");
     expect(weekActions).toContain("removeWeekActivityFromFutureAction");
     expect(weekActions).toContain("renameWeekCategoryAction");
@@ -741,6 +742,8 @@ describe("week action guardrails", () => {
     expect(weekListEditor).not.toContain("Drag to reorder");
     expect(weekListEditor).toContain("updateWeekActivityListItemAction");
     expect(weekListEditor).toContain("updateWeekActivityListItemClientAction");
+    expect(weekListEditor).toContain("WEEKLY_TARGET_MIN");
+    expect(weekListEditor).toContain("WEEKLY_TARGET_MAX");
     expect(weekListEditor).toContain("addWeekActivityListItemAction");
     expect(weekListEditor).toContain("removeWeekActivityFromFutureClientAction");
     expect(weekListEditor).toContain('type="button"');

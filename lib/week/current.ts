@@ -12,6 +12,8 @@ import {
 import { isCellMissed, type WeekStatus } from "@/lib/week/lifecycle";
 
 export const weekDayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+export const WEEKLY_TARGET_MIN = 0;
+export const WEEKLY_TARGET_MAX = 7;
 
 export type CellVisualState = "blank" | "planned" | "done" | "missed";
 
@@ -1181,11 +1183,13 @@ export async function setActivityDayCellFacts({
   weekActivityId,
   cellDate,
   facts,
+  mutationToday = getTodayDateOnly(),
 }: {
   supabase: SupabaseClient;
   weekActivityId: string;
   cellDate: DateOnly;
   facts: ActivityDayCellFacts;
+  mutationToday?: DateOnly;
 }) {
   parseDateOnly(cellDate);
 
@@ -1212,7 +1216,7 @@ export async function setActivityDayCellFacts({
 
   const week = owner.activity.week;
 
-  if (!canMutateCurrentWeekDayFacts({ week, today: getTodayDateOnly() })) {
+  if (!canMutateCurrentWeekDayFacts({ week, today: mutationToday })) {
     return { status: "blocked" as const, message: "That day is view-only right now." };
   }
 
@@ -1267,11 +1271,13 @@ export async function moveWeekActivityPlanDate({
   weekActivityId,
   fromDate,
   toDate,
+  mutationToday = getTodayDateOnly(),
 }: {
   supabase: SupabaseClient;
   weekActivityId: string;
   fromDate: DateOnly;
   toDate: DateOnly;
+  mutationToday?: DateOnly;
 }) {
   parseDateOnly(fromDate);
   parseDateOnly(toDate);
@@ -1292,7 +1298,7 @@ export async function moveWeekActivityPlanDate({
 
   const week = owner.activity.week;
 
-  if (!canMutateCurrentWeekDayFacts({ week, today: getTodayDateOnly() })) {
+  if (!canMutateCurrentWeekDayFacts({ week, today: mutationToday })) {
     return { status: "blocked" as const, message: "That day is view-only right now." };
   }
 
@@ -1333,6 +1339,7 @@ export async function moveWeekActivityPlanDate({
     weekActivityId,
     cellDate: fromDate,
     facts: { planned: false, done: false, skipped: false },
+    mutationToday,
   });
 
   if (clearSource.status !== "updated") {
@@ -1344,6 +1351,7 @@ export async function moveWeekActivityPlanDate({
     weekActivityId,
     cellDate: toDate,
     facts: { planned: true, done: false, skipped: false },
+    mutationToday,
   });
 
   if (setDestination.status !== "updated") {
@@ -1352,6 +1360,7 @@ export async function moveWeekActivityPlanDate({
       weekActivityId,
       cellDate: fromDate,
       facts: { planned: true, done: false, skipped: false },
+      mutationToday,
     });
   }
 
@@ -1585,6 +1594,61 @@ export async function updateWeekActivityListItem({
         category_id: category.category.id,
         name: input.activityName,
         default_target_count: input.targetCount,
+        is_active: true,
+      })
+      .eq("id", activity.activity.activityTemplateId);
+
+    if (templateError) {
+      return { status: "error", message: templateError.message };
+    }
+  }
+
+  return { status: "updated" };
+}
+
+export async function updateWeekActivityTargetCount({
+  supabase,
+  weekActivityId,
+  targetCount,
+}: {
+  supabase: SupabaseClient;
+  weekActivityId: string;
+  targetCount: number;
+}): Promise<WeekListMutationResult> {
+  const normalizedTargetCount = normalizeTargetCount(targetCount);
+
+  if (normalizedTargetCount === null) {
+    return { status: "blocked", message: "Target is required." };
+  }
+
+  const activity = await getWeekActivityForEdit(supabase, weekActivityId);
+
+  if (activity.status !== "success") {
+    return activity;
+  }
+
+  if (!activity.activity) {
+    return { status: "error", message: "Activity not found." };
+  }
+
+  if (!canEditWeekList(activity.activity.week.status)) {
+    return { status: "blocked", message: "That week list is view-only." };
+  }
+
+  const { error: weekActivityError } = await supabase
+    .from("week_activities")
+    .update({ target_count: normalizedTargetCount })
+    .eq("id", weekActivityId);
+
+  if (weekActivityError) {
+    return { status: "error", message: weekActivityError.message };
+  }
+
+  if (activity.activity.activityTemplateId) {
+    const { error: templateError } = await supabase
+      .from("activity_templates")
+      .update({
+        default_target_count: normalizedTargetCount,
         is_active: true,
       })
       .eq("id", activity.activity.activityTemplateId);
@@ -2583,12 +2647,12 @@ function normalizeListInput({
 }) {
   const normalizedActivityName = activityName.trim();
   const normalizedCategoryName = categoryName.trim();
-  const normalizedTargetCount = Math.max(0, Math.floor(targetCount));
+  const normalizedTargetCount = normalizeTargetCount(targetCount);
 
   if (
     normalizedActivityName.length === 0 ||
     normalizedCategoryName.length === 0 ||
-    Number.isNaN(normalizedTargetCount)
+    normalizedTargetCount === null
   ) {
     return null;
   }
@@ -2598,6 +2662,16 @@ function normalizeListInput({
     categoryName: normalizedCategoryName,
     targetCount: normalizedTargetCount,
   };
+}
+
+function normalizeTargetCount(targetCount: number) {
+  const normalizedTargetCount = Math.floor(targetCount);
+
+  if (Number.isNaN(normalizedTargetCount)) {
+    return null;
+  }
+
+  return Math.min(WEEKLY_TARGET_MAX, Math.max(WEEKLY_TARGET_MIN, normalizedTargetCount));
 }
 
 async function deactivateCategoryIfEmpty({
