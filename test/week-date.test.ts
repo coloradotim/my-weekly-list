@@ -3,6 +3,7 @@ import {
   addDays,
   compareDateOnly,
   daysBetween,
+  formatDateRange,
   getDateOnlyForTimeZone,
   getWeekEndDate,
   getWeekRange,
@@ -15,6 +16,10 @@ import {
 } from "@/lib/week/date";
 
 describe("week date helpers", () => {
+  it("formats a server-safe week date range", () => {
+    expect(formatDateRange("2026-07-27", "2026-08-02")).toBe("Jul 27 – Aug 2");
+  });
+
   it("identifies Monday starts and Sunday ends for a normal week", () => {
     expect(getWeekStartDate("2026-05-28")).toBe("2026-05-25");
     expect(getWeekEndDate("2026-05-25")).toBe("2026-05-31");

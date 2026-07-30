@@ -12,6 +12,9 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
 
   return createServerClient(config.url, config.publishableKey, {
+    global: {
+      fetch: fetchWithoutStore,
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -26,5 +29,12 @@ export async function createSupabaseServerClient() {
         }
       },
     },
+  });
+}
+
+export function fetchWithoutStore(input: RequestInfo | URL, init?: RequestInit) {
+  return fetch(input, {
+    ...init,
+    cache: "no-store",
   });
 }
