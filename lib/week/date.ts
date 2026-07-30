@@ -7,6 +7,17 @@ export type WeekRelation = "past" | "current" | "future";
 
 export const DEFAULT_APP_TIME_ZONE = "America/Denver";
 
+export function formatDateRange(start: DateOnly, end: DateOnly) {
+  return `${formatMediumDate(start)} – ${formatMediumDate(end)}`;
+}
+
+function formatMediumDate(date: DateOnly) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+  }).format(new Date(`${date}T12:00:00Z`));
+}
+
 export function parseDateOnly(date: DateOnly) {
   if (!ISO_DATE_PATTERN.test(date)) {
     throw new Error(`Expected date-only string in YYYY-MM-DD format: ${date}`);

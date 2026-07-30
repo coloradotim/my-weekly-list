@@ -14,6 +14,8 @@ import {
   type WeekGridCell,
 } from "@/lib/week/current";
 
+export { formatDateRange } from "@/lib/week/date";
+
 type WeekNotice = {
   tone: "success" | "error" | "neutral";
   body: string;
@@ -354,17 +356,6 @@ export function Notice({
       {body}
     </div>
   );
-}
-
-export function formatDateRange(start: string, end: string) {
-  return `${formatMediumDate(start)} – ${formatMediumDate(end)}`;
-}
-
-function formatMediumDate(date: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  }).format(new Date(`${date}T12:00:00Z`));
 }
 
 function formatShortDate(date: string) {

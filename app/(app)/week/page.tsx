@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { startThisWeekAction } from "@/app/(app)/week/actions";
 import { ScreenShell } from "@/components/screen-shell";
-import { formatDateRange, Notice } from "@/components/this-week-grid";
+import { Notice } from "@/components/this-week-grid";
 import { WeekPageClient } from "@/components/week-page-client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loadNextWeek, loadThisWeek } from "@/lib/week/current";
+import { formatDateRange } from "@/lib/week/date";
 
 type ThisWeekPageProps = {
   searchParams: Promise<{
